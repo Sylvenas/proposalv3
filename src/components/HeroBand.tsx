@@ -93,15 +93,32 @@ export function HeroBand({ proposal, coverImageUrl, onVisibilityChange }: HeroBa
 
       {/* Content */}
       <div className="relative z-10 px-5 pt-8 pb-6">
+        {/* Proposal name — the hero */}
         <h1
           className="font-bold text-white leading-tight mb-2"
-          style={{ fontSize: 28, letterSpacing: '-0.03em', textShadow: '0 2px 10px rgba(0,0,0,0.34)' }}
+          style={{ fontSize: 28, letterSpacing: '-0.02em', textShadow: '0 2px 10px rgba(0,0,0,0.34)' }}
         >
           {proposal.name}
         </h1>
-        <p className="text-[15px] font-medium mb-4" style={{ color: '#d6dee8' }}>
+
+        {/* Customer + address */}
+        <p className="text-sm font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
           Prepared for {proposal.customerName}
         </p>
+        {proposal.customerAddress ? (
+          <div className="flex items-center gap-1.5 mb-4">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+              <circle cx="12" cy="9" r="2.5" />
+            </svg>
+            <span className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.72)' }}>
+              {proposal.customerAddress}
+            </span>
+          </div>
+        ) : (
+          <div className="mb-4" />
+        )}
+
         {proposal.expiredTime && proposal.status === 'PENDING' && (
           <ExpiryCountdown expiredTime={proposal.expiredTime} />
         )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { LandingPage } from './components/LandingPage';
 import { ProposalPage } from './views/ProposalPage';
 import {
   MOCK_PROPOSAL,
@@ -42,8 +43,15 @@ const SCENARIOS: Record<ScenarioKey, { label: string; proposal: Proposal }> = {
 export default function App() {
   const [scenario, setScenario] = useState<ScenarioKey>('multi-pending');
   const [showSwitcher, setShowSwitcher] = useState(false);
+  const [view, setView] = useState<'landing' | 'proposal'>('landing');
 
   const currentProposal = SCENARIOS[scenario].proposal;
+
+  function switchScenario(key: ScenarioKey) {
+    setScenario(key);
+    setView('landing');
+    setShowSwitcher(false);
+  }
 
   return (
     <div>
@@ -88,7 +96,7 @@ export default function App() {
               ([key, { label }]) => (
                 <button
                   key={key}
-                  onClick={() => { setScenario(key); setShowSwitcher(false); }}
+                  onClick={() => switchScenario(key)}
                   className="w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2"
                   style={{
                     background: scenario === key ? 'var(--arc-orange-soft)' : 'transparent',
@@ -119,8 +127,12 @@ export default function App() {
         )}
       </div>
 
-      {/* Main proposal */}
-      <ProposalPage key={scenario} proposal={currentProposal} />
+      {/* Landing or Proposal */}
+      {view === 'landing' ? (
+        <LandingPage proposal={currentProposal} onOpen={() => setView('proposal')} />
+      ) : (
+        <ProposalPage key={scenario} proposal={currentProposal} />
+      )}
     </div>
   );
 }

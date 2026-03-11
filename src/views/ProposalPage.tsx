@@ -433,6 +433,11 @@ export function ProposalPage({ proposal }: ProposalPageProps) {
           <PriceReveal total={selectedOption.total} currencySymbol={proposal.currencySymbol} />
         )}
 
+        <DrawingPreview
+          drawingPreviewUrl={selectedOption.drawingPreviewUrl}
+          pdfUrl={selectedOption.pdfUrl}
+        />
+
         {/* Payment timeline — always show, wired up if approved */}
         <PaymentTimeline
           phases={currentPhases}
@@ -441,10 +446,6 @@ export function ProposalPage({ proposal }: ProposalPageProps) {
         />
 
         <ProductList productGroups={selectedOption.productGroups} />
-        <DrawingPreview
-          drawingPreviewUrl={selectedOption.drawingPreviewUrl}
-          pdfUrl={selectedOption.pdfUrl}
-        />
         <BlueprintPreview coverImageUrl={selectedOption.coverImageUrl} />
 
         {/* Single option approve CTA */}

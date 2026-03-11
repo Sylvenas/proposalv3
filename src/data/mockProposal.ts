@@ -55,7 +55,9 @@ export interface Company {
 export interface Proposal {
   id: string;
   name: string;
+  description?: string;
   customerName: string;
+  customerAddress?: string;
   status: ProposalStatus;
   expiredTime?: string; // ISO string
   approvedOptionId?: string;
@@ -90,7 +92,9 @@ const WARRANTY_URL =
 export const MOCK_PROPOSAL: Proposal = {
   id: 'prop-001',
   name: 'Roof Replacement 2025',
+  description: 'Full tear-off and replacement with 3 package options — from essential protection to a complete premium upgrade with gutters.',
   customerName: 'Sarah Chen',
+  customerAddress: '142 Maple Drive, Portland OR 97201',
   status: 'PENDING',
   expiredTime: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
   recommendedOptionId: 'opt-2',

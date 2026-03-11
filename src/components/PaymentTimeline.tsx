@@ -153,7 +153,8 @@ export function PaymentTimeline({ phases, currencySymbol, onPayPhase }: PaymentT
             'radial-gradient(circle at top right, rgba(31,143,99,0.08), transparent 26%), linear-gradient(180deg,#ffffff,#fffbf8)',
         }}
       >
-        <div>
+        <ProgressBar phases={phases} />
+        <div className="mt-4">
           {phases.map((phase, i) => (
             <PhaseNode
               key={phase.id}
@@ -164,7 +165,6 @@ export function PaymentTimeline({ phases, currencySymbol, onPayPhase }: PaymentT
             />
           ))}
         </div>
-        <ProgressBar phases={phases} />
       </div>
     </section>
   );
