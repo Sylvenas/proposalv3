@@ -419,6 +419,7 @@ function DetailScreen({
 
       {/* Sticky header wrapper */}
       <div className="sticky top-0 z-50 bg-white">
+      <div className="max-w-[1500px] mx-auto w-full">
 
       {/* Nav Row 1: home | logo | user (15.1% = 217px on 1440px, matching Figma left-[217px]) */}
       <nav className="flex items-center justify-between" style={{ padding: '31px 15.1%' }}>
@@ -506,13 +507,14 @@ function DetailScreen({
         </div>
       </div>
 
+      </div>{/* end max-width inner */}
       </div>{/* end sticky header */}
 
       {/* Main content: 842px gallery + 505px config */}
-      <div className="flex items-start px-8 pt-6" style={{ gap: '32px', height: 'calc(100vh - 158px)' }}>
+      <div className="max-w-[1500px] mx-auto w-full flex items-start px-8 pt-6" style={{ gap: '32px', height: 'calc(100vh - 158px)' }}>
 
-        {/* Left: Image Gallery (842px fixed) */}
-        <div className="flex-shrink-0 flex flex-col gap-[10px]" style={{ width: '842px' }}>
+        {/* Left: Image Gallery (fills remaining width) */}
+        <div className="flex-1 min-w-0 flex flex-col gap-[10px]">
           {/* Main image with expand button */}
           <div className="relative overflow-hidden rounded-[8px] bg-[#F0F0F0]" style={{ aspectRatio: '864/633' }}>
             <img src={option.images[currentImage]} alt="Room view" className="w-full h-full object-cover" />
