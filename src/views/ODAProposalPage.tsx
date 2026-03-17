@@ -144,43 +144,60 @@ function LandingScreen({ onContinue }: { onContinue: () => void }) {
   const { heroImage } = odaProjectInfo
 
   return (
-    <div className="h-screen w-full relative overflow-hidden"
+    <div className="min-h-screen bg-white"
       style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+      <div className="max-w-[1440px] mx-auto">
 
-      {/* Background Image */}
-      <img src={heroImage} alt="Architecture" className="absolute inset-0 w-full h-full object-cover" />
-
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/25" />
-
-      {/* Top-left Logo */}
-      <div className="absolute top-7 left-8">
-        <ODALogo color="white" size="sm" />
-      </div>
-
-      {/* Bottom Content */}
-      <div className="absolute bottom-0 left-0 right-0 px-10 pb-10 flex items-end justify-between">
-        {/* Left: Title */}
-        <div>
-          <h1 className="text-white leading-[1.0] font-light" style={{ fontSize: '54px', letterSpacing: '-1px' }}>
-            HOME RENOVATION<br />PROPOSAL
-          </h1>
+        {/* Logo — above image on white background */}
+        <div style={{ padding: '39px 0 24px 95px' }}>
+          <ODALogo size="sm" />
         </div>
 
-        {/* Right: Tagline + CTA */}
-        <div className="text-right flex flex-col items-end gap-3">
-          <p className="text-white/75 text-[13px] max-w-[260px] leading-relaxed text-right">
-            Where curation meets legacy, define your singular dimensions.
-          </p>
-          <button
-            onClick={onContinue}
-            className="h-[40px] px-7 bg-[#262626] text-white text-[11px] tracking-[2px] uppercase hover:bg-black transition-colors"
+        {/* Hero image card with side margins */}
+        <div className="relative overflow-hidden" style={{ margin: '0 95px', height: '845px' }}>
+          <img src={heroImage} alt="Architecture" className="w-full h-full object-cover" />
+
+          {/* Gradient — bottom portion only */}
+          <div
+            className="absolute bottom-0 left-0 right-0 pointer-events-none"
+            style={{ height: '216px', background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.5))' }}
+          />
+
+          {/* Title — bottom left of image */}
+          <div className="absolute" style={{ left: '44px', bottom: '38px' }}>
+            <p className="text-white m-0 leading-tight" style={{ fontSize: '48px', fontWeight: 300, letterSpacing: '-2.4px' }}>
+              HOME RENOVATION
+            </p>
+            <p className="text-white m-0 leading-tight" style={{ fontSize: '48px', fontWeight: 300, letterSpacing: '-2.4px' }}>
+              PROPOSAL
+            </p>
+          </div>
+
+          {/* Tagline + CTA — bottom right, same row */}
+          <div
+            className="absolute flex items-center gap-6"
+            style={{ right: '44px', bottom: '32px' }}
           >
-            Explore Options
-          </button>
+            <p className="text-white text-[14px] m-0 whitespace-nowrap">
+              Where curation meets legacy, define your singular dimensions.
+            </p>
+            <button
+              onClick={onContinue}
+              className="flex-shrink-0 flex items-center justify-center text-white text-[14px] font-semibold tracking-[1px] uppercase transition-opacity hover:opacity-80"
+              style={{
+                height: '40px',
+                padding: '0 16px',
+                background: 'rgba(116,116,116,0.7)',
+                border: '1px solid white',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              EXPLORE OPTIONS
+            </button>
+          </div>
         </div>
-      </div>
 
+      </div>
     </div>
   )
 }
