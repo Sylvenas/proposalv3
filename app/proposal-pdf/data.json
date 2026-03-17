@@ -1,0 +1,1289 @@
+{
+  "code": 0,
+  "result": "success",
+  "message": "",
+  "data": {
+    "id": "56577295001713958",
+    "is_draft": true,
+    "report_name": "Quote",
+    "widget_props": {
+      "logo_on_right": {
+        "widget_group_id": "282299704381341",
+        "widget_type": null,
+        "widget_display_name": "Company Info (Logo On Right)",
+        "formatting_options": [
+          {
+            "name": "org_name_font_size",
+            "display_name": "Company Name Text Size",
+            "description": null,
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 12
+          },
+          {
+            "name": "logo_width",
+            "display_name": "Company Logo Width",
+            "description": null,
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 150
+          },
+          {
+            "name": "additonal_text_under_address",
+            "display_name": "Additional Text",
+            "description": "Optional text below address",
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": ""
+          },
+          {
+            "name": "hide_org_name",
+            "display_name": "Hide Company Name",
+            "description": "",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "display_link",
+            "display_name": "Display Link",
+            "description": "",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          }
+        ]
+      },
+      "client_profile": {
+        "widget_group_id": "282299704381338",
+        "widget_type": null,
+        "widget_display_name": "Client Profile",
+        "formatting_options": [
+          {
+            "name": "date_title_width",
+            "display_name": "Date Label Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 20
+          },
+          {
+            "name": "date_value_width",
+            "display_name": "Date Value Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 30
+          },
+          {
+            "name": "date_format",
+            "display_name": "Date Format",
+            "description": "Y - year(2022), m - month(03), d - Day(14), F - month abbreviation(March)",
+            "value_type": "STR",
+            "value_options": ["m-d-Y", "Y-m-d", "d/m/Y", "F d, Y"],
+            "default_value": "m-d-Y"
+          },
+          {
+            "name": "hide_empty_job_number",
+            "display_name": "Hide Empty Job Number",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          },
+          {
+            "name": "title_job_number",
+            "display_name": "Job Number Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Job Number"
+          },
+          {
+            "name": "job_number_title_width",
+            "display_name": "Job Number Label Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 20
+          },
+          {
+            "name": "job_number_value_width",
+            "display_name": "Job Number Value Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 30
+          },
+          {
+            "name": "title_site_address",
+            "display_name": "Site Address Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Site Address"
+          },
+          {
+            "name": "title_site_width",
+            "display_name": "Site Address Label Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 20
+          },
+          {
+            "name": "title_client_detail",
+            "display_name": "Client Details Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Client Details"
+          },
+          {
+            "name": "show_org_website_address",
+            "display_name": "Show Company Website and Address",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_client_email",
+            "display_name": "Hide Client Email",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_client_phone",
+            "display_name": "Hide Client Phone",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "title_sales_detail",
+            "display_name": "Sales Representative Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Sales Representative"
+          },
+          {
+            "name": "sales_text_alignment",
+            "display_name": "Sales Alignment",
+            "description": null,
+            "value_type": "STR",
+            "value_options": ["left", "right"],
+            "default_value": "left"
+          },
+          {
+            "name": "hide_sales_email",
+            "display_name": "Hide Sales Email",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_sales_detail",
+            "display_name": "Hide Sales Detail",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "display_link",
+            "display_name": "Display Link",
+            "description": "",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          }
+        ]
+      },
+      "additional_information": {
+        "widget_group_id": "282299704381340",
+        "widget_type": null,
+        "widget_display_name": "Field Data",
+        "formatting_options": [
+          {
+            "name": "title_additional_information",
+            "display_name": "Field Data Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Additional Information"
+          },
+          {
+            "name": "data_field_groups",
+            "display_name": "Additional Data Group",
+            "description": "Select the data group to display as Additional Information",
+            "value_type": "DATA_FIELD_GROUP",
+            "value_options": null,
+            "default_value": {
+              "enabled": false,
+              "group_ids": []
+            }
+          },
+          {
+            "name": "hidden_data_field_groups",
+            "display_name": "Hide Data Field Groups",
+            "description": "Data Field Groups in this list will be hidden. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "DATA_FIELD_GROUP",
+            "value_options": null,
+            "default_value": {
+              "enabled": true,
+              "group_ids": []
+            }
+          },
+          {
+            "name": "filtered_out_field_names",
+            "display_name": "Hide Data Fields",
+            "description": "Fields in this list will be hidden. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "hidden_select_field_values",
+            "display_name": "Hide Data Fields for specified values",
+            "description": "If the value of a data filed matches the specified values in the list, it will be hidden. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "hide_switch_false_value",
+            "display_name": "Hide the Yes/No switches if set to \"No\"",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "field_name_value_alignment_of_multiple_selections",
+            "display_name": "Multiple Selections Alignment",
+            "description": "Choose how to align the information from the \"Multiple Selections\" field",
+            "value_type": "STR",
+            "value_options": ["vertical", "horizontal"],
+            "default_value": "vertical"
+          },
+          {
+            "name": "date_field_format",
+            "display_name": "Date Format",
+            "description": "Y - year(2022), m - month(03), d - Day(14)",
+            "value_type": "STR",
+            "value_options": ["m-d-Y", "Y-m-d", "d/m/Y"],
+            "default_value": "m-d-Y"
+          }
+        ]
+      },
+      "product_list": {
+        "widget_group_id": "282299704381346",
+        "widget_type": null,
+        "widget_display_name": "Products (All Columns)",
+        "formatting_options": [
+          {
+            "name": "hide_product_list_header",
+            "display_name": "Hide Product List Label",
+            "description": "Show the list of products without a heading",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "title_included_product_list",
+            "display_name": "Product List Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Product List"
+          },
+          {
+            "name": "product_name_width",
+            "display_name": "Product Name Column Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 50
+          },
+          {
+            "name": "product_quantity_width",
+            "display_name": "Product Quantity Column Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 15
+          },
+          {
+            "name": "product_amount_width",
+            "display_name": "Product Amount Column Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 35
+          },
+          {
+            "name": "override_visibility_to_show_all",
+            "display_name": "Override Product Visibility and Show All",
+            "description": "If checked, the Hide on proposal setting of Products will be ignored and all products will be displayed. Please test this with a real drawing. (Live preview cannot preview this)",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "only_displayed_category_name_list",
+            "display_name": "Only Show Listed Categories",
+            "description": "All categories will be shown if empty. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "hide_product_desc",
+            "display_name": "Hide Product Description",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_price_part",
+            "display_name": "Hide Product Price Part",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "only_displayed_price_part_name_list",
+            "display_name": "Only Show Listed Price Parts",
+            "description": "All price parts will be shown if empty. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "hide_custom_price_items",
+            "display_name": "Hide Custom Price Items in Product List",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "show_product_media_image",
+            "display_name": "Show Product Media Image",
+            "description": "Display product media images in the product list if available",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          },
+          {
+            "name": "product_image_fit_option",
+            "display_name": "Product Image Fit Option",
+            "description": "Change the fit option for the product image in Proposal PDF",
+            "value_type": "STR",
+            "value_options": [
+              {
+                "value": "cover",
+                "name": "Fill (Crop)"
+              },
+              {
+                "value": "contain",
+                "name": "Fit (No Crop)"
+              }
+            ],
+            "default_value": "cover"
+          },
+          {
+            "name": "hide_total_price",
+            "display_name": "Hide Total Pricing Information",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_subtotal_total_of_product_list",
+            "display_name": "Hide Subtotal",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_total_discount",
+            "display_name": "Hide Subtotal Discount",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "show_product_taxable_mark",
+            "display_name": "Differentiate Taxable Product?",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "amount_digits",
+            "display_name": "Product price digits",
+            "description": null,
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 2
+          },
+          {
+            "name": "round_up_quantity",
+            "display_name": "Round Up Quantity?",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "show_line_items_markup_individual",
+            "display_name": "Show Markup Separately",
+            "description": "When off, markup is included in the product total price. When on, markup is displayed as a separate line below the base price.",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "show_total_markup_individual",
+            "display_name": "Show Total Markup Separately",
+            "description": "When off, markup is included in the subtotal. When on, each markup is displayed as a separate line below the subtotal.",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "total_label",
+            "display_name": "\"Total\" Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Total"
+          }
+        ]
+      },
+      "group_by_category_only_name": {
+        "widget_group_id": "282299704381346",
+        "widget_type": null,
+        "widget_display_name": "Products (Group by Category, Name Only)",
+        "formatting_options": [
+          {
+            "name": "hide_product_list_header",
+            "display_name": "Hide Product List Label",
+            "description": "Show the list of products without a heading",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "title_included_product_list",
+            "display_name": "Product List Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Product List"
+          },
+          {
+            "name": "override_visibility_to_show_all",
+            "display_name": "Override Product Visibility and Show All",
+            "description": "If checked, the Hide on proposal setting of Products will be ignored and all products will be displayed. Please test this with a real drawing. (Live preview cannot preview this)",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "only_displayed_category_name_list",
+            "display_name": "Only Show Listed Categories",
+            "description": "All categories will be shown if empty. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "hide_product_desc",
+            "display_name": "Hide Product Description",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_price_part",
+            "display_name": "Hide Product Price Part",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "only_displayed_price_part_name_list",
+            "display_name": "Only Show Listed Price Parts",
+            "description": "All price parts will be shown if empty. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "custom_product_categories_order",
+            "display_name": "Order of Product Categories",
+            "description": null,
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "show_signature_for_included_products",
+            "display_name": "Show Signature Line",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "signature_placeholder_for_included_products",
+            "display_name": "Digital Signature Placeholder Text",
+            "description": "Optional text snippet for integration with DocuSign, Hellosign",
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": ""
+          },
+          {
+            "name": "hide_category_subtotal",
+            "display_name": "Hide Category Products Subtotal",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          },
+          {
+            "name": "hide_custom_price_items",
+            "display_name": "Hide Custom Price Items in Product List",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "show_product_media_image",
+            "display_name": "Show Product Media Image",
+            "description": "Display product media images in the product list if available",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          },
+          {
+            "name": "product_image_fit_option",
+            "display_name": "Product Image Fit Option",
+            "description": "Change the fit option for the product image in Proposal PDF",
+            "value_type": "STR",
+            "value_options": [
+              {
+                "value": "cover",
+                "name": "Fill (Crop)"
+              },
+              {
+                "value": "contain",
+                "name": "Fit (No Crop)"
+              }
+            ],
+            "default_value": "cover"
+          },
+          {
+            "name": "custom_price_items_title",
+            "display_name": "Custom Price Items Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Other Items"
+          },
+          {
+            "name": "show_custom_item_price",
+            "display_name": "Show Custom Item Price",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          },
+          {
+            "name": "hide_total_price",
+            "display_name": "Hide Total Pricing Information",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_subtotal_total_of_product_list",
+            "display_name": "Hide Subtotal",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_total_discount",
+            "display_name": "Hide Subtotal Discount",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "amount_digits",
+            "display_name": "Product price digits",
+            "description": null,
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 2
+          },
+          {
+            "name": "line_space_length",
+            "display_name": "Line spacing",
+            "description": null,
+            "value_type": "FLOAT",
+            "value_options": [1, 1.2, 1.5, 2],
+            "default_value": 1.5
+          },
+          {
+            "name": "show_total_markup_individual",
+            "display_name": "Show Total Markup Separately",
+            "description": "When off, markup is included in the subtotal. When on, each markup is displayed as a separate line below the subtotal.",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "total_label",
+            "display_name": "\"Total\" Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Total"
+          }
+        ]
+      },
+      "group_by_category_only_name_and_quantity": {
+        "widget_group_id": "282299704381346",
+        "widget_type": null,
+        "widget_display_name": "Products (Group by Category, Name & Quantity)",
+        "formatting_options": [
+          {
+            "name": "hide_product_list_header",
+            "display_name": "Hide Product List Label",
+            "description": "Show the list of products without a heading",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "title_included_product_list",
+            "display_name": "Product List Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Product List"
+          },
+          {
+            "name": "product_name_width",
+            "display_name": "Product Name Column Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 50
+          },
+          {
+            "name": "product_quantity_width",
+            "display_name": "Product Quantity Column Width",
+            "description": null,
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 50
+          },
+          {
+            "name": "override_visibility_to_show_all",
+            "display_name": "Override Product Visibility and Show All",
+            "description": "If checked, the Hide on proposal setting of Products will be ignored and all products will be displayed. Please test this with a real drawing. (Live preview cannot preview this)",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "only_displayed_category_name_list",
+            "display_name": "Only Show Listed Categories",
+            "description": "All categories will be shown if empty. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "hide_product_desc",
+            "display_name": "Hide Product Description",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_price_part",
+            "display_name": "Hide Product Price Part",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "only_displayed_price_part_name_list",
+            "display_name": "Only Show Listed Price Parts",
+            "description": "All price parts will be shown if empty. Please test this with real drawing. (Live preview can't preview this)",
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "custom_product_categories_order",
+            "display_name": "Order of Product Categories",
+            "description": null,
+            "value_type": "LIST",
+            "value_options": null,
+            "default_value": []
+          },
+          {
+            "name": "show_signature_for_included_products",
+            "display_name": "Show Signature Line",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "signature_placeholder_for_included_products",
+            "display_name": "Digital Signature Placeholder Text",
+            "description": "Optional text snippet for integration with DocuSign, Hellosign",
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": ""
+          },
+          {
+            "name": "hide_category_subtotal",
+            "display_name": "Hide Category Products Subtotal",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_custom_price_items",
+            "display_name": "Hide Custom Price Items in Product List",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "show_product_media_image",
+            "display_name": "Show Product Media Image",
+            "description": "Display product media images in the product list if available",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          },
+          {
+            "name": "product_image_fit_option",
+            "display_name": "Product Image Fit Option",
+            "description": "Change the fit option for the product image in Proposal PDF",
+            "value_type": "STR",
+            "value_options": [
+              {
+                "value": "cover",
+                "name": "Fill (Crop)"
+              },
+              {
+                "value": "contain",
+                "name": "Fit (No Crop)"
+              }
+            ],
+            "default_value": "cover"
+          },
+          {
+            "name": "custom_price_items_title",
+            "display_name": "Custom Price Items Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Other Items"
+          },
+          {
+            "name": "show_custom_item_price",
+            "display_name": "Show Custom Item Price",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": true
+          },
+          {
+            "name": "hide_total_price",
+            "display_name": "Hide Total Pricing Information",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_subtotal_total_of_product_list",
+            "display_name": "Hide Subtotal",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "hide_total_discount",
+            "display_name": "Hide Subtotal Discount",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "amount_digits",
+            "display_name": "Product price digits",
+            "description": null,
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 2
+          },
+          {
+            "name": "round_up_quantity",
+            "display_name": "Round Up Quantity?",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "line_space_length",
+            "display_name": "Line spacing",
+            "description": null,
+            "value_type": "FLOAT",
+            "value_options": [1, 1.2, 1.5, 2],
+            "default_value": 1.5
+          },
+          {
+            "name": "show_total_markup_individual",
+            "display_name": "Show Total Markup Separately",
+            "description": "When off, markup is included in the subtotal. When on, each markup is displayed as a separate line below the subtotal.",
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "total_label",
+            "display_name": "\"Total\" Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Total"
+          }
+        ]
+      },
+      "drawing": {
+        "widget_group_id": "282299704381339",
+        "widget_type": null,
+        "widget_display_name": "Drawing",
+        "formatting_options": [
+          {
+            "name": "hide_detail_plan_title",
+            "display_name": "Hide Drawing Label",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "title_detail_plan",
+            "display_name": "Drawing Label",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Detail Plan"
+          },
+          {
+            "name": "drawing_height_ratio",
+            "display_name": "Height of Drawing",
+            "description": "As a percentage of page height",
+            "value_type": "PERCENTAGE",
+            "value_options": null,
+            "default_value": 82
+          },
+          {
+            "name": "drawing_rotation",
+            "display_name": "Auto-Rotate Drawing",
+            "description": "Automatically rotates landscape drawings (width > height) to maximize display area. Supported angles: 90° (Rotate Right) and 270° (Rotate Left). Portrait drawings will not be rotated. 'Auto-Rotation Off' disables auto-rotation.",
+            "value_type": "INT",
+            "value_options": [
+              {
+                "value": 0,
+                "name": "Rotate Off"
+              },
+              {
+                "value": 90,
+                "name": "Rotate Right"
+              },
+              {
+                "value": 270,
+                "name": "Rotate Left"
+              }
+            ],
+            "default_value": 0
+          }
+        ]
+      },
+      "location_photo_new": {
+        "widget_group_id": "282299704381345",
+        "widget_type": null,
+        "widget_display_name": "Location Based Photos",
+        "formatting_options": [
+          {
+            "name": "start_on_new_page",
+            "display_name": "Always start on a new page at the top",
+            "description": null,
+            "value_type": "BOOL",
+            "value_options": null,
+            "default_value": false
+          },
+          {
+            "name": "row_count_per_page",
+            "display_name": "Number of Rows per Page",
+            "description": "",
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 3
+          },
+          {
+            "name": "col_count_per_page",
+            "display_name": "Number of Columns per Page",
+            "description": "",
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 3
+          }
+        ]
+      },
+      "customer_only_signature": {
+        "widget_group_id": "282299704381347",
+        "widget_type": null,
+        "widget_display_name": "Customer Only Signature",
+        "formatting_options": [
+          {
+            "name": "signature_margin_top",
+            "display_name": "Signature Line Top Margin",
+            "description": null,
+            "value_type": "INT",
+            "value_options": null,
+            "default_value": 50
+          },
+          {
+            "name": "signature_customer_title",
+            "display_name": "Left Signature Title",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": "Customer Signature"
+          },
+          {
+            "name": "signature_placeholder_for_customer",
+            "display_name": "Placeholder text for Digital Signature Service for customer",
+            "description": null,
+            "value_type": "STR",
+            "value_options": null,
+            "default_value": ""
+          }
+        ]
+      }
+    },
+    "template_object": {
+      "fragments": [
+        {
+          "template_config": {
+            "page_configs": [
+              {
+                "name": "__default__",
+                "display_name": "page_config_display_name",
+                "width": 612,
+                "height": 792,
+                "content_frame": {
+                  "top_margin": 50,
+                  "bottom_margin": 50,
+                  "left_margin": 50,
+                  "right_margin": 50
+                }
+              }
+            ],
+            "page_number": {
+              "left_margin": 50,
+              "bottom_margin": 10,
+              "font_size": 10,
+              "color": "#000000",
+              "page_number_color": null,
+              "hide_page_number": false
+            },
+            "file_attach_config": {
+              "hide_attach_of_takeoff_form": false,
+              "hide_switched_attach_of_takeoff_form": false,
+              "hide_selected_attach_of_takeoff_form": false
+            },
+            "naming_rule": null,
+            "first_page_config": null
+          },
+          "fragment_type": "TEMPLATE_CONFIG"
+        },
+        {
+          "page_config": null,
+          "used_page_config": null,
+          "use_named_header": null,
+          "use_named_footer": null,
+          "fragment_type": "PAGE_BREAK_SETTINGS",
+          "sequence": null
+        },
+        {
+          "widget_name": "logo_on_right",
+          "widget_vars_value": {
+            "org_name_font_size": 12,
+            "logo_width": 150,
+            "additonal_text_under_address": "QFS PTY LTD (QBCC: 15281810)",
+            "hide_org_name": false,
+            "display_link": true
+          },
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (org_name_font_size) schema definition -->\n<!-- Variable (logo_width) schema definition -->\n<!-- Variable (additonal_text_under_address) schema definition -->\n<!-- Variable (hide_org_name) schema definition -->\n<!-- Variable (display_link) schema definition -->\n<table id=\"logo_on_right\" class=\"mb16\">\n    <tr>\n        <td colspan=\"2\">\n            \n                <p style=\"font-size: 12pt\">Sample Company</p>\n            \n            <p><a href=\"https://www.sample.com\" rel=\"noopener\">www.sample.com</a></p>\n            <p>\n                \n                    <a href=\"mailto:sample@sample.com\">sample@sample.com</a>\n                \n            </p>\n            <p>\n                <a style=\"color: blue; text-decoration:underline;\"\n                   href=\"tel:(888) 266-1843\"\n                   target=\"_blank\">(888) 266-1843</a>\n            </p>\n            <p>Company Street Address</p>\n            <p>Company City, MI 49546</p>\n            <p>QFS PTY LTD (QBCC: 15281810)</p>\n        </td>\n        <td class=\"text-right\" colspan=\"2\">\n            <img src=\"https://cdn-files-1.arcsite.com/282024757359566/282024757359564/67bbb9cd-d172-4452-a634-075e6af00064_new_company_logo.png?response-content-disposition=attachment;filename%2A%3DUTF-8%27%27new_company_logo.png&Expires=1773834447&Signature=ApCLY2f0NOfUG1njDPbE6tW0ZuGAa6EnBKmnMucgDnYVkpj6aCI9b8wt6DDThE~YaTqz~3GGzEv67OoGMy4W~G7on0RKxL2EtyftU9LuTimVApiFI7jJROroKbgSv0dKKY5Y5L54M3PXy7191Bz5CMGrICbC4Mwd6AYTDaaIfsqffALqGDQ81kqDH-1xUvcQXQr0utUQj7aKikx9tQo3aJUaQduekLIj5aGgOpypJ~Q62bztl461E0FRcqtehyBga5yGwjFvqTSve5Y2K8GCZjBK3bX9nm5q5fvU4f03pqjAhEPz7BBjXLoSBI5HAzppYfTinjW5Fiygov7KZUz5xg__&Key-Pair-Id=APKAIZL6W5TJO2AK7DOQ\"\n                 alt=\"\"\n                 width=\"150pt\" />\n        </td>\n    </tr>\n</table>"
+        },
+        {
+          "widget_name": "client_profile",
+          "widget_vars_value": {
+            "date_title_width": 20,
+            "date_value_width": 30,
+            "date_format": "d/m/Y",
+            "hide_empty_job_number": true,
+            "title_job_number": "Job Number",
+            "job_number_title_width": 20,
+            "job_number_value_width": 30,
+            "title_site_address": "Site Address",
+            "title_site_width": 20,
+            "title_client_detail": "Client Details",
+            "show_org_website_address": false,
+            "hide_client_email": false,
+            "hide_client_phone": false,
+            "title_sales_detail": "Sales Representative",
+            "sales_text_alignment": "left",
+            "hide_sales_email": false,
+            "hide_sales_detail": false,
+            "display_link": true
+          },
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (date_title_width) schema definition -->\n<!-- Variable (date_value_width) schema definition -->\n<!-- Variable (date_format) schema definition -->\n<!-- Variable (hide_empty_job_number) schema definition -->\n<!-- Variable (title_job_number) schema definition -->\n<!-- Variable (job_number_title_width) schema definition -->\n<!-- Variable (job_number_value_width) schema definition -->\n<!-- Variable (title_site_address) schema definition -->\n<!-- Variable (title_site_width) schema definition -->\n<!-- Variable (title_client_detail) schema definition -->\n<!-- Variable (show_org_website_address) schema definition -->\n<!-- Variable (hide_client_email) schema definition -->\n<!-- Variable (hide_client_phone) schema definition -->\n<!-- Variable (title_sales_detail) schema definition -->\n<!-- Variable (sales_text_alignment) schema definition -->\n<!-- Variable (hide_sales_email) schema definition -->\n<!-- Variable (hide_sales_detail) schema definition -->\n<!-- Variable (display_link) schema definition -->\n<div id=\"client_profile\" class=\"mb16\">\n    <table class=\"mb16\">\n        <tr>\n            <td class=\"header\" style=\"width: 20%;\">Date</td>\n            <td style=\"width: 30%;\n                       vertical-align: center\">\n                <p>17/03/2026</p>\n            </td>\n            \n                <td style=\"width: 20%;\">\n                    <p class=\"header\">Job Number</p>\n                </td>\n                <td style=\"width: 30%;\n                           vertical-align: center\">\n                    <p>No. 0564132</p>\n                </td>\n            \n        </tr>\n    </table>\n    \n        <table class=\"mb16\">\n            <tr>\n                <td class=\"header\" style=\"width: 20%;\">\n                    Site Address\n                </td>\n                <td style=\"width: 80%;\n                           vertical-align: center\">\n                    <p>Worksite Street Address, Worksite City, Worksite County, MI 49546</p>\n                </td>\n            </tr>\n        </table>\n    \n    <table>\n        <tr style=\"vertical-align: top;\">\n            <td>\n                <p class=\"header\">Client Details</p>\n                <p>Client Name</p>\n                \n                    <p>\n                        <a style=\"color: blue;\n                                  text-decoration:underline;\n                                  \"\n                           href=\"tel:(888) 266-1843\">(888) 266-1843\n                            / (876) 596-4585\n                        </a>\n                    </p>\n                \n                \n                    <p>\n                        <a style=\"color: blue;\n                                  text-decoration:underline;\n                                  \"\n                           href=\"mailto:client@sample.com\">client@sample.com\n                            / client2@sample.com\n                        </a>\n                    </p>\n                \n                <p>Client Address Street</p>\n                <p>Client City, Client County, MI  49546</p>\n            </td>\n            \n                <td style=\"vertical-align: left\">\n                    <p class=\"header\">Sales Representative</p>\n                    <p>Sales Name</p>\n                    \n                        <p>\n                            <a style=\"color: blue;\n                                      text-decoration:underline;\n                                      \"\n                               href=\"tel:8882661843\">8882661843</a>\n                        </p>\n                    \n                    \n                        <p>\n                            <a style=\"color: blue;\n                                      text-decoration:underline;\n                                      \"\n                               href=\"mailto:sales@sample.com\">sales@sample.com</a>\n                        </p>\n                    \n                    \n                </td>\n            \n        </tr>\n    </table>\n</div>"
+        },
+        {
+          "widget_name": "additional_information",
+          "widget_vars_value": {
+            "title_additional_information": "Information",
+            "data_field_groups": {
+              "enabled": true,
+              "group_ids": ["179863334777713816"]
+            },
+            "hidden_data_field_groups": {
+              "group_ids": ["288231200953933942"]
+            },
+            "filtered_out_field_names": ["Job Type"],
+            "hidden_select_field_values": [],
+            "hide_switch_false_value": false,
+            "field_name_value_alignment_of_multiple_selections": "vertical",
+            "date_field_format": "d/m/Y"
+          },
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (title_additional_information) schema definition -->\n<!-- Variable (data_field_groups) schema definition -->\n<!-- Variable (hidden_data_field_groups) schema definition -->\n<!-- Variable (filtered_out_field_names) schema definition -->\n<!-- Variable (hidden_select_field_values) schema definition -->\n<!-- Variable (hide_switch_false_value) schema definition -->\n<!-- Variable (field_name_value_alignment_of_multiple_selections) schema definition -->\n<!-- Variable (date_field_format) schema definition -->\n\n\n    \n\n\n    <table class=\"mt16\">\n        <tr>\n            <td>\n                <p class=\"header\">Information</p>\n            </td>\n        </tr>\n    </table>\n\n<style>\n    #additional_data .field-data-table td {\n        padding-top: 4pt;\n        padding-left: 4pt;\n    }\n</style>\n<div id=\"additional_data\" class=\"mb16\">\n    \n        \n            \n                <table class=\"field-data-table mb16\" style=\"margin-top: 6pt;\">\n                    \n                        \n                            \n                                <tr>\n                                    \n                                        <td>\n                                            <p class=\"body\">Single Line Text</p>\n                                            <div class=\"body2\" style=\"padding: 2pt 20pt;\">Single line text filled in app</div>\n                                        </td>\n                                    \n                            </tr>\n                        \n                    \n                \n                        \n                            \n                                <tr>\n                                    \n                                        <td>\n                                            <p class=\"body\">Paragraph Text</p>\n                                            \n                                                \n                                                    <div class=\"body2\" style=\"padding: 2pt 20pt; display: block;\">\n                                                        \n                                                            Paragraph new line 1\n                                                        \n                                                    </div>\n                                                \n                                                    <div class=\"body2\" style=\"padding: 2pt 20pt; display: block;\">\n                                                        \n                                                            Paragraph new line 2\n                                                        \n                                                    </div>\n                                                \n                                            \n                                        </td>\n                                    \n                            </tr>\n                        \n                    \n                \n                        \n                            \n                                \n                                    <tr>\n                                        \n                                            <td>\n                                                <p class=\"body\">Switch (Yes / No)</p>\n                                            </td>\n                                            \n                                                <td align=\"right\">\n                                                    <p class=\"body2\">Yes</p>\n                                                </td>\n                                            \n                                        \n                                    </tr>\n                                \n                            \n                    \n                \n                        \n                            \n                                <tr>\n                                    \n                                        \n                                        <td >\n                                            <p class=\"body\">Dropdown List</p>\n                                            \n                                            <p class=\"body2\" style=\"padding: 2pt 20pt;\">Dropdown Option 1</p>\n                                        </td>\n                                    \n                                \n                            </tr>\n                        \n                    \n                \n                        \n                            \n                                <tr>\n                                    \n                                    <td>\n                                        <p class=\"body\">Date</p>\n                                    </td>\n                                    <td align=\"right\">\n                                        <p class=\"body2\">\n                                            29/11/2022\n                                        </p>\n                                    </td>\n                                \n                            </tr>\n                        \n                    \n                \n            </table>\n        \n    \n\n</div>"
+        },
+        {
+          "widget_name": "product_list",
+          "widget_vars_value": {
+            "hide_product_list_header": false,
+            "title_included_product_list": "Product List",
+            "product_name_width": 50,
+            "product_quantity_width": 15,
+            "product_amount_width": 35,
+            "override_visibility_to_show_all": false,
+            "only_displayed_category_name_list": [
+              "MARY 1800",
+              "MARY 1500",
+              "VICTORIA",
+              "LADY JANE",
+              "CAROLINE",
+              "ELEANOR",
+              "BERTHA",
+              "ANNE",
+              "ISABELLA",
+              "ELIZABETH",
+              "MARGARET",
+              "PHILIPPA",
+              "INSERT",
+              "CAPS",
+              "LATCH",
+              "OTHER",
+              "LETTERBOX",
+              "ARBOUR",
+              "BRACKET",
+              "BLANK POST",
+              "MOTOR",
+              "HINGE",
+              "SLEEPER",
+              "ACCESSORY",
+              "SLIDING GATE",
+              "SERVICE",
+              "RURAL 3 RAIL",
+              "MARY",
+              "LITTLE MARY",
+              "QUEEN VICTORIA"
+            ],
+            "hide_product_desc": false,
+            "hide_price_part": false,
+            "only_displayed_price_part_name_list": [],
+            "hide_custom_price_items": false,
+            "show_product_media_image": true,
+            "product_image_fit_option": "cover",
+            "hide_total_price": true,
+            "hide_subtotal_total_of_product_list": false,
+            "hide_total_discount": false,
+            "show_product_taxable_mark": false,
+            "amount_digits": 2,
+            "round_up_quantity": false,
+            "total_label": "Total"
+          },
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (hide_product_list_header) schema definition -->\n<!-- Variable (title_included_product_list) schema definition -->\n<!-- Variable (product_name_width) schema definition -->\n<!-- Variable (product_quantity_width) schema definition -->\n<!-- Variable (product_amount_width) schema definition -->\n<!-- Variable (override_visibility_to_show_all) schema definition -->\n<!-- Variable (only_displayed_category_name_list) schema definition -->\n<!-- Variable (hide_product_desc) schema definition -->\n<!-- Variable (hide_price_part) schema definition -->\n<!-- Variable (only_displayed_price_part_name_list) schema definition -->\n<!-- Variable (hide_custom_price_items) schema definition -->\n<!-- Variable (show_product_media_image) schema definition -->\n<!-- Variable (product_image_fit_option) schema definition -->\n<!-- Variable (hide_total_price) schema definition -->\n<!-- Variable (hide_subtotal_total_of_product_list) schema definition -->\n<!-- Variable (hide_total_discount) schema definition -->\n<!-- Variable (show_product_taxable_mark) schema definition -->\n<!-- Variable (amount_digits) schema definition -->\n<!-- Variable (round_up_quantity) schema definition -->\n<!-- Variable (show_line_items_markup_individual) schema definition -->\n<!-- Variable (show_total_markup_individual) schema definition -->\n<!-- Variable (total_label) schema definition -->\n\n\n    \n    <div id=\"product-list\" class=\"mb16\">\n        \n            <div class=\"header\">Product List</div>\n        \n        \n        \n        \n        \n            \n        \n        \n        \n        \n            <table style=\"border-top: 6pt solid #ebebeb; width: 100%;\">\n                <tbody>\n                    <tr style=\"border-bottom: 1pt solid #dbdbdb\" class=\"header\">\n                        <td class=\"text-left\"\n                            style=\"padding: 5pt 3pt;\n                                   width: 50%\"\n                            >Description</td>\n                        <td class=\"text-left\"\n                            style=\"padding: 5pt 3pt;\n                                   width: 15%\">Quantity</td>\n                        <td class=\"text-right\"\n                            style=\"padding: 5pt 3pt;\n                                   width: 35%\">Amount</td>\n                    </tr>\n                </tbody>\n            </table>\n            \n                \n                \n                \n                \n                \n                \n                \n                \n            \n            \n                \n                    <table>\n                        <tr style=\"border-bottom: 1px solid #DBDBDB; \">\n                            \n                            <td class=\"text-left\"\n                                style=\"width: 50%;\n                                       vertical-align: center;\n                                       padding: 3pt\">\n                                <p class=\"body-strong\" style=\"margin-bottom: 0; padding-bottom: 0;\">Custom Product</p>\n                                \n                                    <p class=\"body3\" style=\"margin: 0;\">Other Item</p>\n                                \n                            </td>\n                            <td class=\"text_left\"\n                                style=\"width: 15%;\n                                       padding: 3pt\"></td>\n                            <td class=\"text-right\"\n                                style=\"vertical-align: top;\n                                       width: 35%;\n                                       padding: 3pt\">\n                                <p class=\"body-strong text-right\">\n                                    $20.00\n                                    \n                                </p>\n                            </td>\n                        </tr>\n                    </table>\n                \n            \n            \n    \n\n\n        </div>\n    "
+        },
+        {
+          "widget_name": "group_by_category_only_name",
+          "widget_vars_value": {
+            "hide_product_list_header": true,
+            "title_included_product_list": "Installation",
+            "only_displayed_category_name_list": ["Installation Fee"],
+            "hide_product_desc": false,
+            "hide_price_part": false,
+            "only_displayed_price_part_name_list": [],
+            "custom_product_categories_order": [],
+            "show_signature_for_included_products": false,
+            "signature_placeholder_for_included_products": "",
+            "hide_category_subtotal": false,
+            "hide_custom_price_items": false,
+            "custom_price_items_title": "Other Items",
+            "show_custom_item_price": true,
+            "hide_total_price": true,
+            "hide_subtotal_total_of_product_list": false,
+            "hide_total_discount": false,
+            "amount_digits": 2,
+            "line_space_length": 1.5
+          },
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (hide_product_list_header) schema definition -->\n<!-- Variable (title_included_product_list) schema definition -->\n<!-- Variable (override_visibility_to_show_all) schema definition -->\n<!-- Variable (only_displayed_category_name_list) schema definition -->\n<!-- Variable (hide_product_desc) schema definition -->\n<!-- Variable (hide_price_part) schema definition -->\n<!-- Variable (only_displayed_price_part_name_list) schema definition -->\n<!-- Variable (custom_product_categories_order) schema definition -->\n<!-- Variable (show_signature_for_included_products) schema definition -->\n<!-- Variable (signature_placeholder_for_included_products) schema definition -->\n<!-- Variable (hide_category_subtotal) schema definition -->\n<!-- Variable (hide_custom_price_items) schema definition -->\n<!-- Variable (show_product_media_image) schema definition -->\n<!-- Variable (product_image_fit_option) schema definition -->\n<!-- Variable (custom_price_items_title) schema definition -->\n<!-- Variable (show_custom_item_price) schema definition -->\n<!-- Variable (hide_total_price) schema definition -->\n<!-- Variable (hide_subtotal_total_of_product_list) schema definition -->\n<!-- Variable (hide_total_discount) schema definition -->\n<!-- Variable (amount_digits) schema definition -->\n<!-- Variable (line_space_length) schema definition -->\n<!-- Variable (show_total_markup_individual) schema definition -->\n<!-- Variable (total_label) schema definition -->\n\n\n    <div id=\"product-list\" class=\"mb16\">\n        \n        \n        \n        \n        \n        \n        \n        \n            \n            \n            \n                \n            \n                \n            \n                \n            \n                \n            \n            \n                <div class=\"bg-gray text-md\" style=\"padding: 3pt;\">Other Items</div>\n                <table>\n                    \n                        <tr>\n                            \n                            <td class=\"text-sm font-bold\"\n                                style=\"text-align: left;\n                                       width: 70%;\n                                       padding-left: 3pt\">Custom Product</td>\n                        </tr>\n                        \n                            <tr>\n                                \n                                <td class=\"text-gray\" style=\"padding-left: 3pt\">Other Item</td>\n                            </tr>\n                        \n                    \n                </table>\n                \n                    <table class=\"divider-top\" style=\"margin-bottom: 5pt; margin-top: 5pt;\">\n                        <tr>\n                            <td class=\"text-left\" style=\"width: 50%\"></td>\n                            <td class=\"text-left\" style=\"width: 15%\">Subtotal</td>\n                            <td class=\"text-right\" style=\"width: 35%\">\n                                $20.00\n                            </td>\n                        </tr>\n                    </table>\n                \n            \n            \n    \n\n\n        \n    </div>\n"
+        },
+        {
+          "widget_name": "group_by_category_only_name_and_quantity",
+          "widget_vars_value": {
+            "hide_product_list_header": false,
+            "title_included_product_list": "Total",
+            "product_name_width": 50,
+            "product_quantity_width": 50,
+            "only_displayed_category_name_list": ["Nothing"],
+            "hide_product_desc": false,
+            "hide_price_part": false,
+            "only_displayed_price_part_name_list": [],
+            "custom_product_categories_order": [],
+            "show_signature_for_included_products": false,
+            "signature_placeholder_for_included_products": "",
+            "hide_category_subtotal": false,
+            "hide_custom_price_items": false,
+            "custom_price_items_title": "Other Items",
+            "show_custom_item_price": true,
+            "hide_total_price": false,
+            "hide_subtotal_total_of_product_list": false,
+            "hide_total_discount": false,
+            "amount_digits": 2,
+            "round_up_quantity": false,
+            "line_space_length": 1.5
+          },
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (hide_product_list_header) schema definition -->\n<!-- Variable (title_included_product_list) schema definition -->\n<!-- Variable (product_name_width) schema definition -->\n<!-- Variable (product_quantity_width) schema definition -->\n<!-- Variable (override_visibility_to_show_all) schema definition -->\n<!-- Variable (only_displayed_category_name_list) schema definition -->\n<!-- Variable (hide_product_desc) schema definition -->\n<!-- Variable (hide_price_part) schema definition -->\n<!-- Variable (only_displayed_price_part_name_list) schema definition -->\n<!-- Variable (custom_product_categories_order) schema definition -->\n<!-- Variable (show_signature_for_included_products) schema definition -->\n<!-- Variable (signature_placeholder_for_included_products) schema definition -->\n<!-- Variable (hide_category_subtotal) schema definition -->\n<!-- Variable (hide_custom_price_items) schema definition -->\n<!-- Variable (show_product_media_image) schema definition -->\n<!-- Variable (product_image_fit_option) schema definition -->\n<!-- Variable (custom_price_items_title) schema definition -->\n<!-- Variable (show_custom_item_price) schema definition -->\n<!-- Variable (hide_total_price) schema definition -->\n<!-- Variable (hide_subtotal_total_of_product_list) schema definition -->\n<!-- Variable (hide_total_discount) schema definition -->\n<!-- Variable (amount_digits) schema definition -->\n<!-- Variable (round_up_quantity) schema definition -->\n<!-- Variable (line_space_length) schema definition -->\n<!-- Variable (show_total_markup_individual) schema definition -->\n<!-- Variable (total_label) schema definition -->\n\n\n    <div id=\"product-list\" class=\"mb16\">\n        \n            <table style=\"margin-bottom: 8pt;\">\n                <tr>\n                    <td>\n                        <p class=\"header\">Total</p>\n                    </td>\n                    \n                </tr>\n            </table>\n        \n        \n        \n        \n        \n        \n        \n        \n        \n            \n            \n                \n            \n                \n            \n                \n            \n                \n            \n            \n                <div class=\"bg-gray text-md\" style=\"padding: 3pt;\">Other Items</div>\n                <table>\n                    \n                        <tr>\n                            \n                            <td class=\"text-sm font-bold\"\n                                style=\"text-align: left;\n                                       width: 70%;\n                                       padding-left: 3pt\">Custom Product</td>\n                            \n                                <td style=\"text-align: right;width: 30%\">$20.00</td>\n                            \n                        </tr>\n                        \n                            <tr>\n                                \n                                <td class=\"text-gray\" style=\"padding-left: 3pt\">Other Item</td>\n                            </tr>\n                        \n                    \n                </table>\n                \n                    <table class=\"divider-top\" style=\"margin-bottom: 5pt; margin-top: 5pt;\">\n                        <tr>\n                            <td class=\"text-left\" style=\"width: 50%\"></td>\n                            <td class=\"text-left\" style=\"width: 15%\">Subtotal</td>\n                            <td class=\"text-right\" style=\"width: 35%\">\n                                $20.00\n                            </td>\n                        </tr>\n                    </table>\n                \n            \n            \n    \n        \n            \n            <table class=\"mb48\"  style=\"border-top: 1px solid #434343; margin-top: 10px;\" >\n                \n                    <tr>\n                        <td style=\"width: 50%;\"></td>\n                        <td style=\"width: 15%;\">\n                            <p>Subtotal</p>\n                        </td>\n                        <td style=\"width: 35%;\">\n                            \n                                <p class=\"body text-right\">$52,996.80</p>\n                            \n                        </td>\n                    </tr>\n                \n                \n                \n                    \n                    \n                    \n                        <tr>\n                            <td style=\"width: 50%;\"></td>\n                            <td style=\"width: 25%; \">\n                                <p>Discount</p>\n                            </td>\n                            <td style=\"width: 25%;\">\n                                <p class=\"body text-right\" style=\"\">\n                                    (-30%) -$15,899.04\n                                </p>\n                            </td>\n                        </tr>\n                    \n                \n                \n                    \n                        <tr>\n                            <td style=\"width: 50%;\"></td>\n                            <td style=\"width: 15%;\">\n                                <p class=\"body\">Sales Tax</p>\n                            </td>\n                            <td style=\"padding-top: 0; width: 35%;\">\n                                <p class=\"body text-right\">(8.25%) $3,060.57</p>\n                            </td>\n                        </tr>\n                    \n                \n                <tr >\n                    <td style=\"width: 50%;\"></td>\n                    <td style=\"width: 15%;\">\n                        <p class=\"body-strong\">Total</p>\n                    </td>\n                    <td style=\"width: 35%;\">\n                        <p class=\"body-strong text-right\">\n                            $40,158.33\n                        </p>\n                    </td>\n                </tr>\n            </table>\n        \n    \n\n\n        \n    </div>\n"
+        },
+        {
+          "display_name": "Paragraph",
+          "html_content": "                                                                <p data-end=\"93\" data-start=\"75\"><strong data-end=\"93\" data-start=\"75\">Payment Terms:<br/><br/></strong></p>\n<p data-end=\"205\" data-start=\"95\">To secure your installation, a 10% deposit is required. The remaining 90% is due upon completion of the fence.</p>\n<p data-end=\"276\" data-start=\"207\"> </p>\n<p data-end=\"276\" data-start=\"207\">For <strong>custom aluminium gates</strong>, your invoice will be divided into three payments:</p>\n<ol data-end=\"518\" data-start=\"278\">\n<li data-end=\"305\" data-start=\"278\">\n<p data-end=\"305\" data-start=\"281\">The initial 10% deposit.</p>\n</li>\n<li data-end=\"371\" data-start=\"306\">\n<p data-end=\"371\" data-start=\"309\">The fencing and labour costs, due upon completion of the fence.</p>\n</li>\n<li data-end=\"518\" data-start=\"372\">\n<p data-end=\"518\" data-start=\"375\">The final payment for the <strong>custom aluminium gates</strong> and motor, due once installation of the<strong> gates</strong> has been completed (approximately 4 weeks after the fence installation).</p>\n</li>\n</ol>\n<p data-end=\"628\" data-start=\"520\">If you wish to proceed, please approve your proposal, and we will promptly send an invoice for your deposit.<br/><br/></p>\n<p data-end=\"826\" data-start=\"630\">Please allow 1 business day for the invoice to arrive. If you haven't received it by then, kindly check your spam/junk folder. If you still don't see it, feel free to contact us by phone or email.</p>",
+          "fragment_type": "EMBED_CONTENT"
+        },
+        {
+          "page_config": null,
+          "used_page_config": null,
+          "use_named_header": null,
+          "use_named_footer": null,
+          "fragment_type": "PAGE_BREAK_SETTINGS",
+          "sequence": null
+        },
+        {
+          "widget_name": "drawing",
+          "widget_vars_value": null,
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (hide_detail_plan_title) schema definition -->\n<!-- Variable (title_detail_plan) schema definition -->\n<!-- Variable (drawing_height_ratio) schema definition -->\n<!-- Variable (drawing_rotation) schema definition -->\n\n\n    \n    \n    <div id=\"drawing\" style=\"margin-top: 10pt;\" class=\"mb16\">\n        \n            <div class=\"header mb16\">Detail Plan</div>\n        \n        <div style=\"background-color: white;\n                    padding: 10pt 0;\n                    overflow: hidden;\n                    position: relative;\n                    height: 573.8399999999999pt\">\n            \n  \n  \n\n  \n  \n  \n  \n\n  \n  \n  \n\n  \n  <img style=\"object-fit: contain;\n              max-height: 573.8399999999999pt;\n              max-width: 492pt;\n              position: absolute;\n              top: 50%;\n              left: 50%;\n              transform: translate(-50%, -50%);\"\n       src=https://cdn-files-1.arcsite.com/282024757359566/282299796391788/_attach_282299949685195/Sample_Drawing.png?Expires=4927348047&Signature=YBzpQMn50Wy8Nrv43WIoqZi~UdwvS2BZuXKlMr5deBtJVizN6NIUo6K7F3ZO2w3iJqBzHeqKepsqij12ni7qC4lt1sPl-ll5ivBbsmky~wt80~7OHe6v2QHeucTMdKZgrTq3PRRphvTfsZ-faXAJtM-NDcEgwNQIQrtX918~hujgSp6QUdZJD2mleERco3kj3Mhw5G8RXAmJrzpMKnIPoJoEtan9EYiUzIPM~AkL-pmZKyjfvB-lcnsaOZMTlrvsMRC31neoE4fPiKmeoOEfeqJo0TYxGluEsBPHmAS~88Y897M7JNK4b5jv05xLGgwZPGhw44VrQnKUkxzGwLswMw__&Key-Pair-Id=APKAIZL6W5TJO2AK7DOQ>\n\n        </div>\n    </div>\n"
+        },
+        {
+          "widget_name": "location_photo_new",
+          "widget_vars_value": null,
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (start_on_new_page) schema definition -->\n<!-- Variable (row_count_per_page) schema definition -->\n<!-- Variable (col_count_per_page) schema definition -->\n\n    \n    \n        <div id=\"location_based_photos\">\n            <table>\n                \n                    <tr style=\"height: 217pt;\">\n                        \n                        \n                            \n                            \n                                <td style=\"max-height: 217pt;\n                                           max-width: 170pt;\n                                           background-color: #f5f5f5;\n                                           text-align: center;\n                                           border: 5pt solid #fff\">\n                                    <img style=\"display: inline-block;\n                                                margin-top: 5pt;\n                                                width: 155pt;\n                                                height: 187pt;\n                                                object-fit: contain;\n                                                background-color: #eaeaea\"\n                                         src=\"https://cdn-public.arcsiteapp.com/custom_template/new_location_photo.png\">\n                                    <p style=\"height: 14pt; line-height: 10pt;\">\n                                        1\n                                        - 1\n                                    </p>\n                                </td>\n                            \n                        \n                            \n                            \n                                <td style=\"max-height: 217pt;\n                                           max-width: 170pt;\n                                           background-color: #f5f5f5;\n                                           text-align: center;\n                                           border: 5pt solid #fff\">\n                                    <img style=\"display: inline-block;\n                                                margin-top: 5pt;\n                                                width: 155pt;\n                                                height: 187pt;\n                                                object-fit: contain;\n                                                background-color: #eaeaea\"\n                                         src=\"https://cdn-public.arcsiteapp.com/custom_template/new_location_photo.png\">\n                                    <p style=\"height: 14pt; line-height: 10pt;\">\n                                        1\n                                        - 2\n                                    </p>\n                                </td>\n                            \n                        \n                            \n                            \n                                <td style=\"max-height: 217pt;\n                                           max-width: 170pt;\n                                           background-color: #f5f5f5;\n                                           text-align: center;\n                                           border: 5pt solid #fff\">\n                                    <img style=\"display: inline-block;\n                                                margin-top: 5pt;\n                                                width: 155pt;\n                                                height: 187pt;\n                                                object-fit: contain;\n                                                background-color: #eaeaea\"\n                                         src=\"https://cdn-public.arcsiteapp.com/custom_template/new_location_photo.png\">\n                                    <p style=\"height: 14pt; line-height: 10pt;\">\n                                        1\n                                        - 3\n                                    </p>\n                                </td>\n                            \n                        \n                    </tr>\n                \n                    <tr style=\"height: 217pt;\">\n                        \n                        \n                            \n                            \n                                <td style=\"max-height: 217pt;\n                                           max-width: 170pt;\n                                           background-color: #f5f5f5;\n                                           text-align: center;\n                                           border: 5pt solid #fff\">\n                                    <img style=\"display: inline-block;\n                                                margin-top: 5pt;\n                                                width: 155pt;\n                                                height: 187pt;\n                                                object-fit: contain;\n                                                background-color: #eaeaea\"\n                                         src=\"https://cdn-public.arcsiteapp.com/custom_template/new_location_photo.png\">\n                                    <p style=\"height: 14pt; line-height: 10pt;\">\n                                        2\n                                        - 1\n                                    </p>\n                                </td>\n                            \n                        \n                            \n                            \n                                <td style=\"max-height: 217pt;\n                                           max-width: 170pt;\n                                           background-color: #f5f5f5;\n                                           text-align: center;\n                                           border: 5pt solid #fff\">\n                                    <img style=\"display: inline-block;\n                                                margin-top: 5pt;\n                                                width: 155pt;\n                                                height: 187pt;\n                                                object-fit: contain;\n                                                background-color: #eaeaea\"\n                                         src=\"https://cdn-public.arcsiteapp.com/custom_template/new_location_photo.png\">\n                                    <p style=\"height: 14pt; line-height: 10pt;\">\n                                        2\n                                        - 2\n                                    </p>\n                                </td>\n                            \n                        \n                            \n                            \n                                <td style=\"max-height: 217pt;\n                                           max-width: 170pt;\n                                           background-color: #f5f5f5;\n                                           text-align: center;\n                                           border: 5pt solid #fff\">\n                                    <img style=\"display: inline-block;\n                                                margin-top: 5pt;\n                                                width: 155pt;\n                                                height: 187pt;\n                                                object-fit: contain;\n                                                background-color: #eaeaea\"\n                                         src=\"https://cdn-public.arcsiteapp.com/custom_template/new_location_photo.png\">\n                                    <p style=\"height: 14pt; line-height: 10pt;\">\n                                        2\n                                        - 3\n                                    </p>\n                                </td>\n                            \n                        \n                    </tr>\n                \n            </table>\n        </div>\n    \n"
+        },
+        {
+          "display_name": "Paragraph",
+          "html_content": "                                                <p> </p>\n<p> </p>\n<p> </p>\n<p> </p>\n<p> </p>\n<p> </p>",
+          "fragment_type": "EMBED_CONTENT"
+        },
+        {
+          "display_name": "Paragraph",
+          "html_content": "                                        <h3 data-end=\"297\" data-start=\"280\">Terms and Conditions</h3>\n<h4 data-end=\"297\" data-start=\"280\">1. Validity</h4>\n<p data-end=\"447\" data-start=\"298\">This Proposal is valid for <strong data-end=\"336\" data-start=\"325\">30 days</strong> from the issue date. If more than 30 days have elapsed and you require an updated proposal, please contact us.</p>\n<hr data-end=\"452\" data-start=\"449\"/>\n<h4>2. Fence Clearance</h4>\n<p data-end=\"755\" data-start=\"479\">All our fences come with a <strong data-end=\"543\" data-start=\"506\">standard gap underneath the panel</strong>, ranging from 50mm to 80mm.<br data-end=\"574\" data-start=\"571\"/>Should you wish to reduce this gap by adding additional rails, we can provide a customised quote. Please be aware that, due to potentially uneven ground, small gaps may still occur.</p>\n<hr data-end=\"760\" data-start=\"757\"/>\n<h4 data-end=\"798\" data-start=\"762\">3. Signage During Installation</h4>\n<p data-end=\"1175\" data-start=\"799\">During the installation period, a <strong data-end=\"859\" data-start=\"833\">temporary A2 size sign</strong> will be positioned at the property's front.<br data-end=\"906\" data-start=\"903\"/>This sign will remain in place until the installation concludes or until the sliding gate is installed. We find this reduces the inconvenience to the property owner by addressing inquiries proactively.<br data-end=\"1110\" data-start=\"1107\"/>Please inform us if you foresee any issues with this arrangement.</p>\n<hr data-end=\"1180\" data-start=\"1177\"/>\n<h4>4. Payment Terms and Collection Costs</h4>\n<p data-end=\"559\" data-start=\"355\">Final payment is due <strong data-end=\"408\" data-start=\"376\">upon completion of the fence</strong>, with a <strong data-end=\"448\" data-start=\"417\">5-business-day grace period</strong> for funds to clear. If you anticipate any difficulty in meeting this timeframe, please inform us in advance.</p>\n<p data-end=\"838\" data-start=\"561\"><br/>In the event of non-payment and failure to communicate regarding the outstanding balance, Queensland Fencing Specialists reserves the right to take further action, including but not limited to <strong data-end=\"775\" data-start=\"754\">legal proceedings</strong> or the engagement of a <strong>third-party debt collection</strong> agency.</p>\n<p data-end=\"1090\" data-start=\"840\"><br/>You agree that any expenses, costs or disbursements incurred by Queensland Fencing Specialists in recovering any outstanding monies, including debt collection agency fees and solicitor costs, shall be paid by you in addition to the original debt.</p>\n<hr data-end=\"1767\" data-start=\"1764\"/>\n<h4 data-end=\"1794\" data-start=\"1769\">5. Boundary Markers</h4>\n<p data-end=\"2101\" data-start=\"1795\">The <strong data-end=\"1814\" data-start=\"1799\">survey pegs</strong> are the primary indicators of the boundary line.<br data-end=\"1866\" data-start=\"1863\"/>In the event that none are found along the fence line, we will either follow the existing fence line or, if there is no current fence, measure from the curb to your neighbour’s fence to ensure a consistent distance along your boundary.</p>\n<hr data-end=\"2106\" data-start=\"2103\"/>\n<h4 data-end=\"2136\" data-start=\"2108\">6. Installation Timing</h4>\n<p data-end=\"2439\" data-start=\"2137\">Upon invoicing, we will provide an <strong data-end=\"2205\" data-start=\"2172\">approximate installation date</strong>.<br data-end=\"2209\" data-start=\"2206\"/>While we will make every effort to adhere to this schedule, <strong data-end=\"2289\" data-start=\"2269\">delays may occur</strong> due to industry demands and weather conditions.<br data-end=\"2340\" data-start=\"2337\"/>Confirmation of the <strong data-end=\"2411\" data-start=\"2360\">exact date will be emailed the week before</strong> the scheduled installation.</p>\n<hr data-end=\"2444\" data-start=\"2441\"/>\n<h4 data-end=\"2475\" data-start=\"2446\">7. Removal of Old Fence</h4>\n<p data-end=\"2889\" data-start=\"2476\">This proposal does not include the removal and disposal of the old fence <strong data-end=\"2569\" data-start=\"2549\">unless specified</strong>.<br data-end=\"2573\" data-start=\"2570\"/>If we have not quoted removal and disposal, the owner is responsible for <strong data-end=\"2700\" data-start=\"2646\">clearing the new fence line with a 300mm clearance</strong> on either side.<br data-end=\"2719\" data-start=\"2716\"/>If our installers arrive and find this line uncleared, our installer may undertake removal and disposal at a <strong data-end=\"2867\" data-start=\"2828\">minimum fee of $25 per linear meter</strong> to avoid work delays.</p>\n<hr data-end=\"2894\" data-start=\"2891\"/>\n<h4 data-end=\"2935\" data-start=\"2896\">8. Fence Alignment on Uneven Land</h4>\n<p data-end=\"3184\" data-start=\"2936\">Unless specified otherwise in this proposal, fencing will follow the <strong data-end=\"3024\" data-start=\"3005\">lay of the land</strong>, requiring <strong data-end=\"3068\" data-start=\"3036\">raked or stepped adjustments</strong>.<br data-end=\"3072\" data-start=\"3069\"/>For a <strong data-end=\"3106\" data-start=\"3078\">continuously level fence</strong> on uneven land, additional materials and labour costs will need to be quoted.</p>\n<hr data-end=\"3189\" data-start=\"3186\"/>\n<h4 data-end=\"3221\" data-start=\"3191\">9. Customer Cancellation</h4>\n<p data-end=\"3345\" data-start=\"3222\">In the event of a customer-initiated cancellation, a <strong data-end=\"3301\" data-start=\"3275\">processing fee of $300</strong> will be deducted from the refunded deposit.</p>\n<hr data-end=\"3350\" data-start=\"3347\"/>\n<h4 data-end=\"3380\" data-start=\"3352\">10. Landscaping Notice</h4>\n<p data-end=\"3679\" data-start=\"3381\">Although we will make every endeavour to safeguard the landscape, it's important to note that the use of <strong data-end=\"3500\" data-start=\"3486\">excavators</strong> during construction may lead to <strong data-end=\"3555\" data-start=\"3533\">minimal disruption</strong>, including potential <strong data-end=\"3602\" data-start=\"3577\">lawn and plant damage</strong> in the vicinity.<br data-end=\"3622\" data-start=\"3619\"/>Your understanding in this matter is greatly appreciated.</p>\n<hr data-end=\"3684\" data-start=\"3681\"/>\n<h4 data-end=\"3718\" data-start=\"3686\">11. Custom Aluminium Gates</h4>\n<p data-end=\"3795\" data-start=\"3719\">For custom aluminium gates, a <strong data-end=\"3780\" data-start=\"3749\">2-part installation process</strong> is followed:</p>\n<ul data-end=\"3915\" data-start=\"3796\">\n<li data-end=\"3847\" data-start=\"3796\">\n<p data-end=\"3847\" data-start=\"3798\"><strong data-end=\"3822\" data-start=\"3798\">Precise measurements</strong> are taken after the fence installation</p>\n</li>\n<li data-end=\"3915\" data-start=\"3848\">\n<p data-end=\"3915\" data-start=\"3850\"><strong data-end=\"3880\" data-start=\"3850\">Approximately 4 week waiting period</strong> for fabrication and installation</p>\n</li>\n</ul>\n<p data-end=\"4294\" data-start=\"3917\">The property owner is responsible for arranging an appropriate <strong data-end=\"4008\" data-start=\"3980\">power point installation</strong> or engaging an electrician as per inspector instructions.<br/><br data-end=\"4069\" data-start=\"4066\"/>With <strong data-end=\"4096\" data-start=\"4074\">low-voltage motors</strong>, please leave them <strong data-end=\"4130\" data-start=\"4116\">plugged in</strong>, as sudden unplugging can lead to faults with the battery and settings, resulting repairs will not be covered under warranty and will be charged accordingly.</p>\n<hr data-end=\"4299\" data-start=\"4296\"/>\n<h4 data-end=\"4330\" data-start=\"4301\">12. Augering Conditions</h4>\n<p data-end=\"4585\" data-start=\"4331\">Unless stated otherwise, this quoted installation cost does <strong data-end=\"4372\" data-start=\"4365\">not</strong> cover extra or above-effort augering through <strong data-end=\"4465\" data-start=\"4418\">obstructions like rock holes or tree stumps.</strong><br data-end=\"4469\" data-start=\"4466\"/><strong data-end=\"4488\" data-start=\"4469\"><br/>Additional fees</strong>, starting from <strong data-end=\"4520\" data-start=\"4504\">$30 per hole</strong>, may apply and will be advised by the Installer if required..</p>\n<hr data-end=\"4590\" data-start=\"4587\"/>\n<h4 data-end=\"4616\" data-start=\"4592\">13. Excluded Items</h4>\n<p data-end=\"4648\" data-start=\"4617\">Not included in the cost unless stated otherwise:</p>\n<ul data-end=\"4801\" data-start=\"4649\">\n<li data-end=\"4733\" data-start=\"4687\">\n<p data-end=\"4733\" data-start=\"4689\">Additional soil for yard grading/levelling</p>\n</li>\n<li data-end=\"4747\" data-start=\"4734\">\n<p data-end=\"4747\" data-start=\"4736\">Turf/seed</p>\n</li>\n<li>Moving/relocating soil from holes</li>\n<li data-end=\"4801\" data-start=\"4748\">\n<p data-end=\"4801\" data-start=\"4750\">Repair/relocating plumbing or electrical fixtures</p>\n</li>\n</ul>\n<p data-end=\"4927\" data-start=\"4803\">While all care is taken to avoid damage to these services, the Installer will promptly advise if any cables are encountered.</p>\n<p> </p>\n<h3 data-end=\"1124\" data-start=\"1097\"><strong data-end=\"1124\" data-start=\"1101\">Acceptance of Terms</strong></h3>\n<p data-end=\"1284\" data-start=\"1126\">By signing below, you acknowledge that you have read, understood, and agree to the above Terms and Conditions,</p>",
+          "fragment_type": "EMBED_CONTENT"
+        },
+        {
+          "widget_name": "customer_only_signature",
+          "widget_vars_value": {
+            "signature_margin_top": 50,
+            "signature_customer_title": "Customer Signature",
+            "signature_placeholder_for_customer": ""
+          },
+          "fragment_type": "INCLUDE_WIDGET",
+          "render_html": "<!-- Variable (signature_margin_top) schema definition -->\n<!-- Variable (signature_customer_title) schema definition -->\n<!-- Variable (signature_placeholder_for_customer) schema definition -->\n\n<div id=\"signature\"\n     style=\"margin-top: 50pt\">\n    <table>\n        <tr style=\"height: 5px;\">\n            <td style=\"width: 150pt; color: white; vertical-align: bottom;\">\n                <div style=\"margin-top: -30px;\">\n                    \n                    \n  \n    <span style=\"color: white; display: inline-block; width: 150pt; height: 20pt;\">{{signnow_customer_signature}}</span>\n  \n\n                </div>\n            </td>\n            <td style=\"width: 25pt\"></td>\n            <td style=\"width: 50pt; vertical-align: bottom;\">\n                <p style=\"font-size: 8px;\n                          width: 50px;\n                          color: white;\n                          margin-top: -18px;\n                          margin-left: -25px\">\n  \n    <span style=\"color: white; display: inline-block; width: 105pt; height: 10pt;\">{{signnow_customer_date}}</span>\n  \n</p>\n            </td>\n            <td style=\"width: 50pt;\"></td>\n            <td style=\"width: 150pt; color: white; vertical-align: bottom;\"></td>\n            <td style=\"width: 25pt;\"></td>\n            <td style=\"width: 50pt; vertical-align: bottom;\"></td>\n        </tr>\n        <tr style=\"height: 5px;\">\n            <td style=\"width: 150pt; border-top: 1px solid #000\">\n                <p class=\"body text-center\">Customer Signature</p>\n            </td>\n            <td style=\"width: 25pt\"></td>\n            <td style=\"width: 50pt; border-top: 1px solid #000\">\n                <p class=\"body text-center\">Date</p>\n            </td>\n            <td style=\"width: 50pt\"></td>\n            <td style=\"width: 150pt;\"></td>\n            <td style=\"width: 25pt\"></td>\n            <td style=\"width: 50pt;\"></td>\n        </tr>\n    </table>\n</div>"
+        },
+        {
+          "page_config": null,
+          "used_page_config": null,
+          "use_named_header": null,
+          "use_named_footer": null,
+          "fragment_type": "PAGE_BREAK_SETTINGS",
+          "sequence": null
+        },
+        {
+          "display_name": "Paragraph",
+          "html_content": "                                                <h2 data-end=\"5040\" data-start=\"5013\"><strong data-end=\"5040\" data-start=\"5016\">Warranty Information</strong></h2>\n<p data-end=\"5166\" data-start=\"5042\">We at QFS are committed to delivering quality and assurance in our services and products. Alongside the warranties provided:</p>\n<ol data-end=\"6145\" data-start=\"5168\">\n<li data-end=\"5291\" data-start=\"5168\">\n<p data-end=\"5291\" data-start=\"5171\"><strong data-end=\"5209\" data-start=\"5171\">Product Warranty (PVC Components):</strong><br data-end=\"5212\" data-start=\"5209\"/>30 Year Manufacturer's warranty against <strong data-end=\"5290\" data-start=\"5255\">fading or cracking from the sun</strong>.</p>\n</li>\n<li data-end=\"5447\" data-start=\"5293\">\n<p data-end=\"5447\" data-start=\"5296\"><strong data-end=\"5331\" data-start=\"5296\">Installation Warranty (Labour):</strong><br data-end=\"5334\" data-start=\"5331\"/><strong data-end=\"5358\" data-start=\"5337\">12-month coverage</strong> for installation defects, aligning with QBCC standards, activated upon <strong data-end=\"5446\" data-start=\"5430\">full payment</strong>.</p>\n</li>\n<li data-end=\"5594\" data-start=\"5449\">\n<p data-end=\"5594\" data-start=\"5452\"><strong data-end=\"5497\" data-start=\"5452\">Manufacturer’s Warranty for Sliding Gate:</strong><br data-end=\"5500\" data-start=\"5497\"/><strong data-end=\"5524\" data-start=\"5503\">24-month coverage</strong> for <strong data-end=\"5565\" data-start=\"5529\">material and workmanship defects</strong>, under manufacturer’s terms.</p>\n</li>\n<li data-end=\"6003\" data-start=\"5596\">\n<p data-end=\"5635\" data-start=\"5599\"><strong data-end=\"5633\" data-start=\"5599\">CENTSYS Manufacturer Warranty:</strong></p>\n<ul data-end=\"6003\" data-start=\"5639\">\n<li data-end=\"5675\" data-start=\"5639\">\n<p data-end=\"5675\" data-start=\"5641\"><strong data-end=\"5662\" data-start=\"5641\">24-month warranty</strong> for motors</p>\n</li>\n<li data-end=\"6003\" data-start=\"5679\">\n<p data-end=\"6003\" data-start=\"5681\"><strong data-end=\"5701\" data-start=\"5681\">6-month coverage</strong> for internal batteries<br data-end=\"5727\" data-start=\"5724\"/>We offer a <strong data-end=\"5809\" data-start=\"5741\">12-month guarantee on the motor without additional call-out fees</strong>.<br data-end=\"5813\" data-start=\"5810\"/>In the second year, we assess issues on a case-by-case basis. The manufacturer will initially address any concerns, but should you require QFS's intervention, <strong data-end=\"6002\" data-start=\"5975\">call-out fees may apply</strong>.</p>\n</li>\n</ul>\n</li>\n<li data-end=\"6145\" data-start=\"6005\">\n<p data-end=\"6145\" data-start=\"6008\"><strong data-end=\"6062\" data-start=\"6008\">Sliding Gate Motor Installation Warranty (Labour):</strong><br data-end=\"6065\" data-start=\"6062\"/><strong data-end=\"6096\" data-start=\"6068\">24-month defect coverage</strong> in workmanship, effective with <strong data-end=\"6144\" data-start=\"6128\">full payment</strong>.</p>\n</li>\n</ol>\n<hr data-end=\"6150\" data-start=\"6147\"/>\n<p data-end=\"6335\" data-start=\"6152\">For detailed policy information, please refer to the CENTSYS warranty at<br data-end=\"6227\" data-start=\"6224\"/><strong data-end=\"6256\" data-start=\"6227\">CENTSYS Warranty Service:</strong><br data-end=\"6259\" data-start=\"6256\"/><a class=\"\" data-end=\"6335\" data-start=\"6259\" href=\"https://qga.com.au/warranty-service/\" rel=\"noopener\" target=\"_new\">https://qga.com.au/warranty-service/</a></p>",
+          "fragment_type": "EMBED_CONTENT"
+        }
+      ]
+    }
+  }
+}
