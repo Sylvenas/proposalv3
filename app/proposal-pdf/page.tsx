@@ -1,6 +1,5 @@
 import proposalTemplate from './data.json';
-
-type WidgetVars = Record<string, string | number | boolean | string[] | null | undefined>;
+import { proposalPreviewData, type WidgetVars } from './proposal-preview-data';
 
 type IncludeWidgetFragment = {
   fragment_type: 'INCLUDE_WIDGET';
@@ -65,92 +64,7 @@ const pageNumber = templateConfig?.page_number ?? {
   hide_page_number: false,
 };
 
-const sampleData = {
-  company: {
-    name: 'Queensland Fencing Specialists',
-    website: 'www.qfspecialists.com.au',
-    email: 'hello@qfspecialists.com.au',
-    phone: '(07) 3210 4822',
-    addressLine1: '17 Industry Court',
-    addressLine2: 'Brisbane QLD 4000',
-    extra: 'QFS PTY LTD (QBCC: 15281810)',
-    logo:
-      'https://cdn-files-1.arcsite.com/282024757359566/282024757359564/67bbb9cd-d172-4452-a634-075e6af00064_new_company_logo.png?response-content-disposition=attachment;filename%2A%3DUTF-8%27%27new_company_logo.png&Expires=1773834447&Signature=ApCLY2f0NOfUG1njDPbE6tW0ZuGAa6EnBKmnMucgDnYVkpj6aCI9b8wt6DDThE~YaTqz~3GGzEv67OoGMy4W~G7on0RKxL2EtyftU9LuTimVApiFI7jJROroKbgSv0dKKY5Y5L54M3PXy7191Bz5CMGrICbC4Mwd6AYTDaaIfsqffALqGDQ81kqDH-1xUvcQXQr0utUQj7aKikx9tQo3aJUaQduekLIj5aGgOpypJ~Q62bztl461E0FRcqtehyBga5yGwjFvqTSve5Y2K8GCZjBK3bX9nm5q5fvU4f03pqjAhEPz7BBjXLoSBI5HAzppYfTinjW5Fiygov7KZUz5xg__&Key-Pair-Id=APKAIZL6W5TJO2AK7DOQ',
-  },
-  client: {
-    date: '17/03/2026',
-    jobNumber: 'No. 0564132',
-    siteAddress: '14 Sample Terrace, Springfield Lakes, QLD 4300',
-    name: 'Mia Thompson',
-    phones: '(07) 3888 9123 / 0412 555 802',
-    emails: 'mia@example.com / thompson.household@example.com',
-    addressLine1: '14 Sample Terrace',
-    addressLine2: 'Springfield Lakes QLD 4300',
-  },
-  sales: {
-    name: 'Daniel Fraser',
-    phone: '0401 883 420',
-    email: 'daniel.fraser@qfspecialists.com.au',
-  },
-  informationFields: [
-    {
-      label: 'Fence Style',
-      value: 'Queen Victoria 1800mm PVC',
-      block: true,
-    },
-    {
-      label: 'Project Notes',
-      value: 'Rear boundary replacement with double gate access and upgraded motor allowance.',
-      block: true,
-    },
-    {
-      label: 'Switch (Yes / No)',
-      value: 'Yes',
-      alignedRight: true,
-    },
-    {
-      label: 'Dropdown List',
-      value: 'Premium Aluminium Hardware',
-      block: true,
-    },
-    {
-      label: 'Start Window',
-      value: '29/11/2026',
-      alignedRight: true,
-    },
-  ],
-  productRows: [
-    {
-      title: 'Queen Victoria PVC fencing',
-      description: 'Front boundary line including posts, rails and caps',
-      quantity: '32.5 lm',
-      amount: '$20,480.00',
-    },
-    {
-      title: 'Custom aluminium sliding gate',
-      description: 'Powder-coated frame with automated motor preparation',
-      quantity: '1 set',
-      amount: '$12,960.00',
-    },
-    {
-      title: 'Letterbox and latch hardware',
-      description: 'Integrated lockset, hinges and finishing accessories',
-      quantity: '1 package',
-      amount: '$2,116.80',
-    },
-  ],
-  installationItems: ['Set-out and boundary confirmation', 'Fence installation labour', 'Site clean-up and handover'],
-  summary: {
-    subtotal: '$52,996.80',
-    discount: '(-30%) -$15,899.04',
-    tax: '(8.25%) $3,060.57',
-    total: '$40,158.33',
-  },
-  drawingImage:
-    'https://cdn-files-1.arcsite.com/282024757359566/282299796391788/_attach_282299949685195/Sample_Drawing.png?Expires=4927348047&Signature=YBzpQMn50Wy8Nrv43WIoqZi~UdwvS2BZuXKlMr5deBtJVizN6NIUo6K7F3ZO2w3iJqBzHeqKepsqij12ni7qC4lt1sPl-ll5ivBbsmky~wt80~7OHe6v2QHeucTMdKZgrTq3PRRphvTfsZ-faXAJtM-NDcEgwNQIQrtX918~hujgSp6QUdZJD2mleERco3kj3Mhw5G8RXAmJrzpMKnIPoJoEtan9EYiUzIPM~AkL-pmZKyjfvB-lcnsaOZMTlrvsMRC31neoE4fPiKmeoOEfeqJo0TYxGluEsBPHmAS~88Y897M7JNK4b5jv05xLGgwZPGhw44VrQnKUkxzGwLswMw__&Key-Pair-Id=APKAIZL6W5TJO2AK7DOQ',
-  locationPhoto:
-    'https://cdn-public.arcsiteapp.com/custom_template/new_location_photo.png',
-};
+const sampleData = proposalPreviewData;
 
 function getPages(allFragments: Fragment[]) {
   const pages: Fragment[][] = [];
@@ -283,13 +197,13 @@ function renderWidget(fragment: IncludeWidgetFragment) {
                 {getString(vars, 'title_client_detail', 'Client Details')}
               </p>
               <p className="text-stone-950">{sampleData.client.name}</p>
-              {!getBoolean(vars, 'hide_client_phone', false) && (
-                <a className="block text-[#7c4f22] underline underline-offset-2" href="tel:+61738889123">
+              {!getBoolean(vars, 'hide_client_phone', false) && sampleData.client.phones && (
+                <a className="block text-[#7c4f22] underline underline-offset-2" href={`tel:${sampleData.client.phones}`}>
                   {sampleData.client.phones}
                 </a>
               )}
-              {!getBoolean(vars, 'hide_client_email', false) && (
-                <a className="block text-[#7c4f22] underline underline-offset-2" href="mailto:mia@example.com">
+              {!getBoolean(vars, 'hide_client_email', false) && sampleData.client.emails && (
+                <a className="block text-[#7c4f22] underline underline-offset-2" href={`mailto:${sampleData.client.emails}`}>
                   {sampleData.client.emails}
                 </a>
               )}
@@ -303,10 +217,12 @@ function renderWidget(fragment: IncludeWidgetFragment) {
                   {getString(vars, 'title_sales_detail', 'Sales Representative')}
                 </p>
                 <p className="text-stone-950">{sampleData.sales.name}</p>
-                <a className="block text-[#7c4f22] underline underline-offset-2" href={`tel:${sampleData.sales.phone}`}>
-                  {sampleData.sales.phone}
-                </a>
-                {!getBoolean(vars, 'hide_sales_email', false) && (
+                {sampleData.sales.phone && (
+                  <a className="block text-[#7c4f22] underline underline-offset-2" href={`tel:${sampleData.sales.phone}`}>
+                    {sampleData.sales.phone}
+                  </a>
+                )}
+                {!getBoolean(vars, 'hide_sales_email', false) && sampleData.sales.email && (
                   <a
                     className="block text-[#7c4f22] underline underline-offset-2"
                     href={`mailto:${sampleData.sales.email}`}
@@ -447,14 +363,12 @@ function renderWidget(fragment: IncludeWidgetFragment) {
             <div className="grid grid-cols-[1fr_auto] gap-y-2 text-stone-700">
               <span>Subtotal</span>
               <span>{sampleData.summary.subtotal}</span>
-              {!getBoolean(vars, 'hide_total_discount', false) && (
-                <>
-                  <span>Discount</span>
-                  <span>{sampleData.summary.discount}</span>
-                </>
-              )}
-              <span>Sales Tax</span>
-              <span>{sampleData.summary.tax}</span>
+              {sampleData.paymentSummary.map((payment) => (
+                <div key={payment.label} className="contents">
+                  <span>{payment.label}</span>
+                  <span>{payment.value}</span>
+                </div>
+              ))}
             </div>
             {!getBoolean(vars, 'hide_total_price', false) && (
               <div className="mt-3 grid grid-cols-[1fr_auto] border-t border-stone-300 pt-3 text-[14px] font-semibold text-stone-950">
@@ -477,10 +391,16 @@ function renderWidget(fragment: IncludeWidgetFragment) {
             </div>
           )}
           <div
-            className="relative overflow-hidden border border-stone-200 bg-white p-3"
-            style={{ height: `${getNumber(vars, 'drawing_height_ratio', 82) * 7}px` }}
+            className="overflow-hidden border border-stone-200 bg-white p-3"
+            style={{ minHeight: `${getNumber(vars, 'drawing_height_ratio', 82) * 4.2}px` }}
           >
-            <img src={sampleData.drawingImage} alt="Fence drawing" className="h-full w-full object-contain" />
+            <div className="grid grid-cols-3 gap-3">
+              {sampleData.detailPlanImages.map((image, imageIndex) => (
+                <div key={`${image}-${imageIndex}`} className="overflow-hidden rounded-sm border border-stone-200 bg-stone-50">
+                  <img src={image} alt={`Detail plan ${imageIndex + 1}`} className="h-[240px] w-full object-contain" />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       );

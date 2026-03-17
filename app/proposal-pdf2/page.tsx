@@ -1,7 +1,10 @@
 import proposalTemplate from '../proposal-pdf/data.json';
+import { getRawWidgetHtml, type WidgetVars } from '../proposal-pdf/proposal-preview-data';
 
 type Fragment = {
   fragment_type: string;
+  widget_name?: string;
+  widget_vars_value?: WidgetVars | null;
   render_html?: string;
   html_content?: string;
 };
@@ -640,8 +643,9 @@ const ifBlockStyles = ``;
 function buildRawHtml(fragments: Fragment[]) {
   const body = fragments
     .flatMap((fragment) => {
-      if (fragment.fragment_type === 'INCLUDE_WIDGET' && fragment.render_html) {
-        return [fragment.render_html];
+      if (fragment.fragment_type === 'INCLUDE_WIDGET' && fragment.widget_name) {
+        const widgetHtml = getRawWidgetHtml(fragment.widget_name, fragment.widget_vars_value ?? null);
+        return widgetHtml ? [widgetHtml] : [fragment.render_html ?? ''];
       }
 
       if (fragment.fragment_type === 'EMBED_CONTENT' && fragment.html_content) {

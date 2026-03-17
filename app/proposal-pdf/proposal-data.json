@@ -1,0 +1,302 @@
+{
+  "code": 0,
+  "result": "success",
+  "message": "",
+  "data": {
+    "status": "PENDING",
+    "over_paid_amount": null,
+    "is_current": true,
+    "id": "330864",
+    "org_id": "288230925907964007",
+    "name": "Updated Proposal for M8-3992 - James Handyside - 24 Tourmaline CctMango Hill QLD 4509",
+    "reference_type": "PROPOSAL",
+    "reference_id": "189860",
+    "create_time": "2026-03-01T23:45:24.000000Z",
+    "sales_name": "John QFS",
+    "sales_phone": "0735222105",
+    "sales_email": "info@fencingspecialists.au",
+    "customer_name": "James Handyside",
+    "customer_email": "handyside999@hotmail.com",
+    "document_number": null,
+    "project": {
+      "id": "282299998223327",
+      "name": "M8-3992 - James Handyside - 24 Tourmaline Cct\nMango Hill QLD 4509"
+    },
+    "invoice": null,
+    "total": "21867.94",
+    "first_payment_due_date_in_days": null,
+    "auto_send_due_reminder_email": false,
+    "close_note": null,
+    "expired_time": "2026-04-01T13:59:59.000000Z",
+    "options": [
+      {
+        "id": "222422",
+        "name": "Drawing 1 - Current",
+        "description": null,
+        "total": 21867.94,
+        "pdf_url": "https://cdn-files-1.arcsite.com/b836c48d-bdd1-4e10-ad18-dd8c274e194e.pdf?Expires=1774015256&Signature=GuIWwQfHJCtYSbwGK3SrsxpSVfm2EMytYGDAP0pv3p0pYCnCPwOLYIe0jQDstWN4SL-TWS91vkz8TH8weD8JE~-JFm~NcyJ99qW0fJ9P5ixSefarryRYFcknUTWNhUhcT4nfDX8nyOUfpQxx1Z1~5usak0XmXOm~P4V0doWYK5e9W0KsHqJWKlO0V2oiV10Ds6EdURlqF6nZxo~c9Sa9PLiCsXVVQemcI6yAvX8zb583VTe9ytLExdP7Wkm3A-Ssu6Zin~9QZpjmCOolen7TcHgcbsxGmOvRkB6qO90~nME8~kxWXq2htq2H5gCTyXAj0Wqfe0heCiWKxXrWe93ESA__&Key-Pair-Id=APKAIZL6W5TJO2AK7DOQ",
+        "pdf_file_key": "b836c48d-bdd1-4e10-ad18-dd8c274e194e.pdf",
+        "pdf_cover_png_url": "https://cdn-files-1.arcsite.com/33b0388b-a8ca-492a-8231-ec8054b1b351.png?Expires=1773842456&Signature=JByxTMjdqulCidPSWQdWCT5PhCma86P-NdlG3t1-f6euySgpuqUYaLhY5pAV~kJuLuYfy9Jy7PUBaFLISyT5KgT7Ve2gsois6dO5XaEyOCeRah7fwsdu9x8LavLv-4hgCO4ZO887sqXrwCHyJY8nRN~bKx0xxuNui09Y1~f6LxmoNUuKlTDz62Sp2vVMs19ij9AWYgizb~3L~~F8EzJgKw5gRBpjsrWxOqydLuvJjRpX~nAG63xhXfP98NsrjTCsxGVAAW~B-gjVJXbQihkgse1TMkm7oiSVJcTG1hUQMDmYKJSFmqhFsL014vdjlhndzRyi2~shEdOA2tW4cRYoPA__&Key-Pair-Id=APKAIZL6W5TJO2AK7DOQ",
+        "drawing_version": {
+          "drawing_version_id": "282300002451879",
+          "drawing_id": "282300002451870"
+        },
+        "drawing_uuid": "11071D26-E914-496A-8586-B3C71E6AA468",
+        "create_time": "2026-03-01T23:45:24.000000Z",
+        "update_time": "2026-03-01T23:45:24.000000Z",
+        "products": [
+          {
+            "category_name": "MARY",
+            "category_uuid": "cd3e7b2e-6c6b-11ee-b15b-02420aff0762",
+            "products": [
+              {
+                "id": "255017153537660196",
+                "product_name": "Mary 1800H - Panel Kit",
+                "version_id": "977b21ce-f1c3-11f0-b07a-02420aff00e8"
+              },
+              {
+                "id": "288231200954396152",
+                "product_name": "Mary 1800H - Additional Panel Kit",
+                "version_id": "0cd07504-f1cf-11f0-adec-02420aff00e9"
+              },
+              {
+                "id": "255017153537660210",
+                "product_name": "Mary - Line Post",
+                "version_id": "9982b1c0-11f4-11f1-9e2f-02420a000290"
+              },
+              {
+                "id": "255017153537660202",
+                "product_name": "Mary - End Post",
+                "version_id": "01135a2e-11f5-11f1-84f8-02420aff9b60"
+              },
+              {
+                "id": "255017153537660205",
+                "product_name": "Mary - Gate 1800x1000mm (HxW)",
+                "version_id": "d67ceb3e-0d28-11f1-a475-02420aff9a5d"
+              },
+              {
+                "id": "255017153537986168",
+                "product_name": "Mary 1800 - Sliding Gate",
+                "version_id": "78130060-0d28-11f1-b45d-02420aff9a54"
+              }
+            ]
+          },
+          {
+            "category_name": "VICTORIA",
+            "category_uuid": "a3b16996-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "255017153537660320",
+                "product_name": "Victoria - 1800mm Panel Kit",
+                "version_id": "b0b9b070-0d29-11f1-b20c-02420a0002b3"
+              },
+              {
+                "id": "288231200954396157",
+                "product_name": "Victoria - 1800mm Additional Panel Kit",
+                "version_id": "b8a955c4-0d29-11f1-96ff-02420aff9a4e"
+              },
+              {
+                "id": "255017153537660327",
+                "product_name": "Victoria - Line Post",
+                "version_id": "ebd0dfd0-fbdb-11f0-b322-02420aff00ba"
+              },
+              {
+                "id": "255017153537660322",
+                "product_name": "Victoria - End Post",
+                "version_id": "0a0a183a-12ad-11f1-b97b-02420a00020a"
+              }
+            ]
+          },
+          {
+            "category_name": "BLANK POST",
+            "category_uuid": "a3ce4048-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "255017153537660055",
+                "product_name": "Blank Post 3.2m - Large",
+                "version_id": "be3904da-015d-11f1-9123-02420aff0a84"
+              }
+            ]
+          },
+          {
+            "category_name": "CAPS",
+            "category_uuid": "a3b62c2e-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "255017153537660146",
+                "product_name": "Flat Cap - Large",
+                "version_id": "07f5cf6c-fff2-11f0-a7c8-02420a000223"
+              }
+            ]
+          },
+          {
+            "category_name": "INSERT",
+            "category_uuid": "a3b75a18-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "255017153537660279",
+                "product_name": "Post insert 2.6m - Single Opening - Large",
+                "version_id": "0d99ff06-00b5-11f1-9b2f-02420aff06ae"
+              }
+            ]
+          },
+          {
+            "category_name": "HINGE",
+            "category_uuid": "a3c02b5c-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "255017153537660158",
+                "product_name": "Safetech Hinge Pair- Black",
+                "version_id": "4e18c37e-fff1-11f0-80c7-02420a000275"
+              }
+            ]
+          },
+          {
+            "category_name": "BRACKET",
+            "category_uuid": "a3cce248-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "255017153538343215",
+                "product_name": "Bracket Set 3pc for Mary/Bertha/Eleanor",
+                "version_id": "04c17fea-fff1-11f0-b627-02420a000281"
+              }
+            ]
+          },
+          {
+            "category_name": "LATCH",
+            "category_uuid": "a3af3572-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "288231200977616299",
+                "product_name": "Safetech Handle - Black",
+                "version_id": "9fa12168-ffed-11f0-a397-02420affbee4"
+              },
+              {
+                "id": "255017153537660296",
+                "product_name": "Safetech Lock - Viper Gravity Latch Double Sided (Alike)",
+                "version_id": "c113ed90-fff1-11f0-be01-02420a000275"
+              }
+            ]
+          },
+          {
+            "category_name": "OTHER",
+            "category_uuid": "a3ade032-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "255017153537660025",
+                "product_name": "Blank Rail/ Horse Rail",
+                "version_id": "585db5b0-ffec-11f0-8ba6-02420affbf1a"
+              }
+            ]
+          },
+          {
+            "category_name": "MOTOR",
+            "category_uuid": "a3c9f3e4-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "288231200980515890",
+                "product_name": "D3. Low-Voltage Centsys SMART Motor - Kit",
+                "version_id": "dc982fec-0634-11f1-8954-02420a000248"
+              },
+              {
+                "id": "288231200969798774",
+                "product_name": "Sliding Gate Track - Per Meter",
+                "version_id": "03fd0c32-0636-11f1-981d-02420aff9425"
+              },
+              {
+                "id": "288231200969798663",
+                "product_name": "Gear Racking - Per Meter",
+                "version_id": "09db24d6-0636-11f1-92c4-02420aff941f"
+              },
+              {
+                "id": "288231200971181267",
+                "product_name": "Gate Track Support",
+                "version_id": "77f008ec-0a92-11f0-b04d-02420aff0292"
+              }
+            ]
+          },
+          {
+            "category_name": "SERVICE",
+            "category_uuid": "a3ba3008-5e6b-11ee-86a9-02420a000234",
+            "products": [
+              {
+                "id": "288231200956558175",
+                "product_name": "Removal / Disposal Fee - T",
+                "version_id": "043ce8fe-021a-11f1-bf69-02420a00024a"
+              },
+              {
+                "id": "255017153538289200",
+                "product_name": "Temporary Fence Hire",
+                "version_id": "d2ea7852-ffe9-11f0-8dbb-02420affbf08"
+              }
+            ]
+          },
+          {
+            "category_name": "Installation Fee",
+            "category_uuid": "45572074-6c9f-11ee-ab5f-02420aff07b0",
+            "products": [
+              {
+                "id": "288231200986876279",
+                "product_name": "Installation",
+                "version_id": "d00004da-0229-11f1-a281-02420a000239"
+              },
+              {
+                "id": "255017153537984498",
+                "product_name": "Swing Gate Installation",
+                "version_id": "0be517f0-0186-11f1-8174-02420aff468c"
+              },
+              {
+                "id": "255017153537984666",
+                "product_name": "Sliding Gate Installation",
+                "version_id": "1486708e-0186-11f1-912b-02420a0002ec"
+              },
+              {
+                "id": "255017153537984529",
+                "product_name": "Sliding Gate Motor Installation",
+                "version_id": "1be9feb8-0186-11f1-b9b3-02420aff4668"
+              },
+              {
+                "id": "255017153537984499",
+                "product_name": "Fence Installation",
+                "version_id": "95688e82-0229-11f1-ae65-02420aff83dd"
+              }
+            ]
+          }
+        ],
+        "payment_strategy": {
+          "is_customized_payment_phases": false,
+          "phases": [
+            {
+              "purpose": "deposit",
+              "amount": "2146.37",
+              "percentage": 0.1
+            },
+            {
+              "purpose": "balance",
+              "amount": "19721.57",
+              "percentage": 0.9
+            }
+          ]
+        }
+      }
+    ],
+    "approved_option": null,
+    "approved_option_id": null,
+    "recommended_option_id": null,
+    "mail_sending_status": "SENT",
+    "approve_time": null,
+    "receive_email": "handyside999@hotmail.com",
+    "receive_cc": [],
+    "template_id": "56577295001372133",
+    "template_name": "New Quote",
+    "option_count": 1,
+    "esign_required": true,
+    "sales_esign_link": null,
+    "change_history": [],
+    "change_order_enabled": true,
+    "expiration_date_settings": {
+      "enabled": false,
+      "expiration_days": null
+    }
+  }
+}
