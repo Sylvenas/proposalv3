@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { odaOptions, odaProjectInfo, THUMB_BASE_SCOPE, type ODAOption, type ODAItem } from '@/data/odaMockData'
 
 function getItemPrice(item: ODAItem): number {
@@ -60,8 +61,8 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
         </div>
 
         {/* Hero Image */}
-        <div className="w-full h-[300px] overflow-hidden">
-          <img src={emailImage} alt="Project Preview" className="w-full h-full object-cover" />
+        <div className="relative w-full h-[300px] overflow-hidden">
+          <Image src={emailImage} alt="Project Preview" fill className="object-cover" sizes="680px" />
         </div>
 
         {/* Body */}
@@ -155,7 +156,7 @@ function LandingScreen({ onContinue }: { onContinue: () => void }) {
 
         {/* Hero image card with side margins */}
         <div className="relative overflow-hidden" style={{ margin: '0 95px', height: '845px' }}>
-          <img src={heroImage} alt="Architecture" className="w-full h-full object-cover" />
+          <Image src={heroImage} alt="Architecture" fill className="object-cover" sizes="(max-width:1440px) calc(100vw - 190px), 1250px" priority />
 
           {/* Gradient — bottom portion only */}
           <div
@@ -251,23 +252,23 @@ function OptionsScreen({
           >
             {/* Left ghost */}
             <div
-              className="flex-shrink-0 overflow-hidden cursor-pointer"
+              className="relative flex-shrink-0 overflow-hidden cursor-pointer"
               style={{ width: '800px', height: '471px', opacity: 0.3 }}
               onClick={() => onSelect(prev)}
             >
-              <img src={odaOptions[prev].images[0]} alt="" className="w-full h-full object-cover" />
+              <Image src={odaOptions[prev].images[0]} alt="" fill className="object-cover" sizes="800px" />
             </div>
             {/* Center (image-only layer, behind fg card) */}
-            <div className="flex-shrink-0 overflow-hidden" style={{ width: '800px', height: '471px' }}>
-              <img src={option.images[0]} alt="" className="w-full h-full object-cover" />
+            <div className="relative flex-shrink-0 overflow-hidden" style={{ width: '800px', height: '471px' }}>
+              <Image src={option.images[0]} alt="" fill className="object-cover" sizes="800px" priority />
             </div>
             {/* Right ghost */}
             <div
-              className="flex-shrink-0 overflow-hidden cursor-pointer"
+              className="relative flex-shrink-0 overflow-hidden cursor-pointer"
               style={{ width: '800px', height: '471px', opacity: 0.3 }}
               onClick={() => onSelect(next)}
             >
-              <img src={odaOptions[next].images[0]} alt="" className="w-full h-full object-cover" />
+              <Image src={odaOptions[next].images[0]} alt="" fill className="object-cover" sizes="800px" />
             </div>
           </div>
         </div>
@@ -392,7 +393,9 @@ function SummaryGroup({ name, items }: { name: string; items: SummaryLineItem[] 
             {/* Thumbnail: 48x48, rounded-[4px], p-[2px] */}
             <div className="flex-shrink-0 w-12 h-12 rounded-[4px] p-[2px]">
               {item.thumbnailSrc ? (
-                <img src={item.thumbnailSrc} alt="" className="w-full h-full object-cover rounded-[2px]" />
+                <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                  <Image src={item.thumbnailSrc} alt="" fill className="object-cover" sizes="44px" />
+                </div>
               ) : (
                 <div className="w-full h-full rounded-[2px] bg-[#f0f0f0]" />
               )}
@@ -612,7 +615,7 @@ function DetailScreen({
         <div className="flex-1 min-w-0 flex flex-col gap-[10px] sticky" style={{ top: '182px' }}>
           {/* Main image with expand button */}
           <div className="relative overflow-hidden rounded-[8px] bg-[#F0F0F0]" style={{ aspectRatio: '864/633' }}>
-            <img src={option.images[currentImage]} alt="Room view" className="w-full h-full object-cover" />
+            <Image src={option.images[currentImage]} alt="Room view" fill className="object-cover" sizes="(max-width:1500px) calc(100vw - 569px), 900px" priority />
             {/* Expand icon: bottom-right, 32×32 */}
             <button className="absolute bottom-3 right-3 w-8 h-8 bg-white/80 rounded-[4px] flex items-center justify-center hover:bg-white transition-colors">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -627,13 +630,13 @@ function DetailScreen({
               <button
                 key={i}
                 onClick={() => setCurrentImage(i)}
-                className="flex-shrink-0 rounded-[4px] overflow-hidden"
+                className="relative flex-shrink-0 rounded-[4px] overflow-hidden"
                 style={{
                   width: '86px', height: '64px', padding: '2px',
                   border: i === currentImage ? '1.5px solid #262626' : '1.5px solid transparent',
                 }}
               >
-                <img src={img} alt="" className="w-full h-full object-cover rounded-[2px]" />
+                <Image src={img} alt="" fill className="object-cover rounded-[2px]" sizes="86px" />
               </button>
             ))}
           </div>
@@ -740,19 +743,19 @@ function DetailScreen({
                               <button
                                 key={swIdx}
                                 onClick={() => selectAddonSwatch(sectionIdx, item.id, swIdx)}
-                                className="rounded-[4px] overflow-hidden flex-shrink-0"
+                                className="relative rounded-[4px] overflow-hidden flex-shrink-0"
                                 style={{
                                   width: '64px', height: '64px', padding: '2px',
                                   border: item.selectedAddonSwatch === swIdx ? '1.5px solid black' : '1.5px solid transparent',
                                 }}
                               >
-                                <img src={sw} alt="" className="w-full h-full object-cover rounded-[2px]" />
+                                <Image src={sw} alt="" fill className="object-cover rounded-[2px]" sizes="64px" />
                               </button>
                             ))}
                           </div>
                         ) : item.previewImage ? (
-                          <div className="mt-1 p-[2px] rounded-[4px] w-16 h-16">
-                            <img src={item.previewImage} alt="" className="w-full h-full object-cover rounded-[2px]" />
+                          <div className="relative mt-1 p-[2px] rounded-[4px] w-16 h-16 overflow-hidden">
+                            <Image src={item.previewImage!} alt="" fill className="object-cover rounded-[2px]" sizes="64px" />
                           </div>
                         ) : null}
                       </div>
@@ -779,13 +782,13 @@ function DetailScreen({
                               <button
                                 key={swIdx}
                                 onClick={() => selectSwatch(sectionIdx, item.id, swIdx)}
-                                className="rounded-[4px] overflow-hidden flex-shrink-0"
+                                className="relative rounded-[4px] overflow-hidden flex-shrink-0"
                                 style={{
                                   width: '64px', height: '64px', padding: '2px',
                                   border: item.selectedSwatch === swIdx ? '1.5px solid black' : '1.5px solid transparent',
                                 }}
                               >
-                                <img src={sw} alt="" className="w-full h-full object-cover rounded-[2px]" />
+                                <Image src={sw} alt="" fill className="object-cover rounded-[2px]" sizes="64px" />
                               </button>
                             ))}
                           </div>
