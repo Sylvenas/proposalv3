@@ -583,6 +583,12 @@ function DetailScreen({
             <button
               className="border border-[#262626] bg-white text-[#262626] text-[14px] rounded-[4px] hover:bg-[#262626] hover:text-white transition-colors flex-shrink-0"
               style={{ width: '108px', height: '40px' }}
+              onClick={() => {
+                if (summaryRef.current) {
+                  const top = summaryRef.current.getBoundingClientRect().top + window.scrollY - 158
+                  window.scrollTo({ top, behavior: 'smooth' })
+                }
+              }}
             >
               Summary
             </button>
@@ -795,7 +801,12 @@ function DetailScreen({
           {/* Bottom: centered Summary button, pt-[40px] container, icon on LEFT */}
           <div className="flex flex-col items-center" style={{ paddingTop: '40px' }}>
             <button
-              onClick={() => summaryRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => {
+                if (summaryRef.current) {
+                  const top = summaryRef.current.getBoundingClientRect().top + window.scrollY - 158
+                  window.scrollTo({ top, behavior: 'smooth' })
+                }
+              }}
               className="flex items-center justify-center gap-0.5 border border-[#262626] bg-white text-[#262626] rounded-[4px] hover:bg-[#262626] hover:text-white transition-colors"
               style={{ width: '136px', height: '40px', fontSize: '16px' }}
             >
