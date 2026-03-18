@@ -53,6 +53,7 @@ body {
 button,
 a {
   font: inherit;
+  cursor: pointer;
 }
 
 a {
