@@ -63,6 +63,9 @@ const PV_JACUZZI = 'https://www.figma.com/api/mcp/asset/0a035873-0e17-4a86-a1b6-
 const PV_SHOWER = 'https://www.figma.com/api/mcp/asset/ed8cf559-2420-4267-9f3d-2bc1a3550378'
 const PV_HEATED = 'https://www.figma.com/api/mcp/asset/50118257-2c66-49af-9955-3992985f8add'
 
+// Base scope thumbnail (stone texture, used for all base scope line items)
+export const THUMB_BASE_SCOPE = 'https://www.figma.com/api/mcp/asset/cb56900c-d854-42aa-87b9-f5f7ec789ad0'
+
 // ─── Room photo assets (Figma CDN) ────────────────────────────────────────────
 const ROOM_IMG_1 = 'https://www.figma.com/api/mcp/asset/06a51b30-a819-47b0-8913-d1f0466dc7b4'
 const ROOM_IMG_2 = 'https://www.figma.com/api/mcp/asset/5c6c7b76-0991-428c-a6a1-06e8f2c3a0f8'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { odaOptions, odaProjectInfo, type ODAOption, type ODAItem } from '@/data/odaMockData'
+import { odaOptions, odaProjectInfo, THUMB_BASE_SCOPE, type ODAOption, type ODAItem } from '@/data/odaMockData'
 
 function getItemPrice(item: ODAItem): number {
   if (!item.isAddon) {
@@ -845,11 +845,11 @@ function DetailScreen({
                 <SummaryGroup
                   name="Base Scope"
                   items={[
-                    { name: 'Existing Surface Preparation & Demolition', qty: '960', unit: 'sqf.', price: 42900, showChange: false },
-                    { name: 'Wall & Ceiling Preparation', qty: '190', unit: 'sqf.', price: 24100, showChange: false },
-                    { name: 'Flooring Base Installation', qty: '547', unit: 'sqf.', price: 4600, showChange: false },
-                    { name: 'Lighting & Electrical Adjustments', qty: '128', unit: 'hrs.', price: 7270, showChange: false },
-                    { name: 'Installation & Finishing Labor', qty: '1,300', unit: 'hrs.', price: 87580, showChange: false },
+                    { name: 'Existing Surface Preparation & Demolition', qty: '960', unit: 'sqf.', price: 42900, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                    { name: 'Wall & Ceiling Preparation', qty: '190', unit: 'sqf.', price: 24100, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                    { name: 'Flooring Base Installation', qty: '547', unit: 'sqf.', price: 4600, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                    { name: 'Lighting & Electrical Adjustments', qty: '128', unit: 'hrs.', price: 7270, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                    { name: 'Installation & Finishing Labor', qty: '1,300', unit: 'hrs.', price: 87580, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
                   ]}
                 />
 
