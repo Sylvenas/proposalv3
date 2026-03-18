@@ -35,46 +35,46 @@ export type ODAOption = {
   sections: ODASection[]
 }
 
-// ─── Swatch image assets (Figma CDN, valid 7 days from 2026-03-16) ────────────
+// ─── Swatch image assets (local, downloaded from Figma CDN 2026-03-18) ──────────
 // Flooring swatches
-const SW_FLOOR_1 = 'https://www.figma.com/api/mcp/asset/a32ca57a-c511-4de6-a4cd-b799d30d570c'
-const SW_FLOOR_2 = 'https://www.figma.com/api/mcp/asset/dd47064b-459b-4fe3-9778-7400c8c705d3'
-const SW_FLOOR_3 = 'https://www.figma.com/api/mcp/asset/ec1a67d5-273a-47a5-a234-1c44e35ac9c6'
+const SW_FLOOR_1 = '/assets/sw-floor-1.jpg'
+const SW_FLOOR_2 = '/assets/sw-floor-2.png'
+const SW_FLOOR_3 = '/assets/sw-floor-3.png'
 // Wall swatches
-const SW_WALL_1 = 'https://www.figma.com/api/mcp/asset/64b29931-dd31-4338-b476-2351e16d1b7e'
-const SW_WALL_2 = 'https://www.figma.com/api/mcp/asset/4e52502d-b4b6-4583-81a6-30894bdd2052'
-const SW_WALL_3 = 'https://www.figma.com/api/mcp/asset/77aca482-c686-4c65-9791-604db85ba814'
-const SW_WALL_4 = 'https://www.figma.com/api/mcp/asset/63e9a073-9b3a-473f-90a3-e25f76613650'
+const SW_WALL_1 = '/assets/sw-wall-1.png'
+const SW_WALL_2 = '/assets/sw-wall-2.png'
+const SW_WALL_3 = '/assets/sw-wall-3.jpg'
+const SW_WALL_4 = '/assets/sw-wall-4.jpg'
 // Kitchen add-on preview images
-const PV_WINE = 'https://www.figma.com/api/mcp/asset/a64fb8e7-d78f-46b0-8055-8f8b5ab7fec8'
-const PV_FAUCET = 'https://www.figma.com/api/mcp/asset/8bd7f36b-e25b-49a1-97ca-a400f8e49edd'
-const PV_LIGHT = 'https://www.figma.com/api/mcp/asset/a2ae9eb2-4df7-40f5-9de6-75784efc1a1c'
+const PV_WINE = '/assets/pv-wine.png'
+const PV_FAUCET = '/assets/pv-faucet.png'
+const PV_LIGHT = '/assets/pv-light.png'
 // Island countertop swatches (add-on with swatches)
-const SW_ISLAND_1 = 'https://www.figma.com/api/mcp/asset/41dde2c1-b9ab-418c-bfca-838ff49bb8e6'
-const SW_ISLAND_2 = 'https://www.figma.com/api/mcp/asset/b962e903-ff6e-434e-896a-7a695575413b'
-const SW_ISLAND_3 = 'https://www.figma.com/api/mcp/asset/63ec25c7-ebd8-4062-8f7f-a20eb04c9baa'
+const SW_ISLAND_1 = '/assets/sw-island-1.png'
+const SW_ISLAND_2 = '/assets/sw-island-2.jpg'
+const SW_ISLAND_3 = '/assets/sw-island-3.jpg'
 // Vanity swatches
-const SW_VANITY_1 = 'https://www.figma.com/api/mcp/asset/9f2deb76-c21f-4135-a89d-6787b949309f'
-const SW_VANITY_2 = 'https://www.figma.com/api/mcp/asset/283e7f84-99ca-4bb2-a71e-b3e759f5fe50'
-const SW_VANITY_3 = 'https://www.figma.com/api/mcp/asset/2e21c577-9d45-4ce7-a20f-0404781fbdd0'
-const SW_VANITY_4 = 'https://www.figma.com/api/mcp/asset/d4083677-7fc8-4e63-9afc-13f72a5c2187'
+const SW_VANITY_1 = '/assets/sw-vanity-1.jpg'
+const SW_VANITY_2 = '/assets/sw-vanity-2.png'
+const SW_VANITY_3 = '/assets/sw-vanity-3.png'
+const SW_VANITY_4 = '/assets/sw-vanity-4.png'
 // Bathroom add-on previews
-const PV_JACUZZI = 'https://www.figma.com/api/mcp/asset/0a035873-0e17-4a86-a1b6-693eb7c1b2bd'
-const PV_SHOWER = 'https://www.figma.com/api/mcp/asset/ed8cf559-2420-4267-9f3d-2bc1a3550378'
-const PV_HEATED = 'https://www.figma.com/api/mcp/asset/50118257-2c66-49af-9955-3992985f8add'
+const PV_JACUZZI = '/assets/pv-jacuzzi.png'
+const PV_SHOWER = '/assets/pv-shower.jpg'
+const PV_HEATED = '/assets/pv-heated.png'
 
 // Base scope thumbnail (stone texture, used for all base scope line items)
-export const THUMB_BASE_SCOPE = 'https://www.figma.com/api/mcp/asset/cb56900c-d854-42aa-87b9-f5f7ec789ad0'
+export const THUMB_BASE_SCOPE = '/assets/thumb-base-scope.jpg'
 
-// ─── Room photo assets (Figma CDN) ────────────────────────────────────────────
-const ROOM_IMG_1 = 'https://www.figma.com/api/mcp/asset/06a51b30-a819-47b0-8913-d1f0466dc7b4'
-const ROOM_IMG_2 = 'https://www.figma.com/api/mcp/asset/5c6c7b76-0991-428c-a6a1-06e8f2c3a0f8'
-const ROOM_IMG_3 = 'https://www.figma.com/api/mcp/asset/348ff142-30be-46ee-8e92-36ccfa3a76ab'
-const ROOM_IMG_4 = 'https://www.figma.com/api/mcp/asset/fafa7cc7-bb20-47b7-a9bf-5a6cbcc04704'
-const ROOM_IMG_5 = 'https://www.figma.com/api/mcp/asset/ea1ab517-e02f-4ae8-917e-61175e70ac53'
-const ROOM_IMG_6 = 'https://www.figma.com/api/mcp/asset/f0c56bc6-ea38-4158-bc97-cf573f0e470b'
-const ROOM_IMG_7 = 'https://www.figma.com/api/mcp/asset/5e2426c4-a02f-4283-a11e-f4f3365a49a6'
-const ROOM_IMG_8 = 'https://www.figma.com/api/mcp/asset/ae5b11f1-1ff2-425b-80b8-58e3ca8bca1a'
+// ─── Room photo assets (local, downloaded from Figma CDN) ────────────────────
+const ROOM_IMG_1 = '/assets/room-img-1.png'
+const ROOM_IMG_2 = '/assets/room-img-2.png'
+const ROOM_IMG_3 = '/assets/room-img-3.png'
+const ROOM_IMG_4 = '/assets/room-img-4.png'
+const ROOM_IMG_5 = '/assets/room-img-5.png'
+const ROOM_IMG_6 = '/assets/room-img-6.png'
+const ROOM_IMG_7 = '/assets/room-img-7.png'
+const ROOM_IMG_8 = '/assets/room-img-8.png'
 // Fallback Unsplash rooms for options 2 & 3
 const ROOM_A = 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800&q=80'
 const ROOM_B = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80'
@@ -450,6 +450,6 @@ export const odaProjectInfo = {
   companyAddress: '120 Walker Street, New York, NY 10013',
   phone: '+1 (212) 555-0180',
   email: 'proposals@oda-architecture.com',
-  emailImage: 'https://www.figma.com/api/mcp/asset/a8e4749b-be4b-46cf-978e-580aca7bb8fa',
-  heroImage: 'https://www.figma.com/api/mcp/asset/64a60b1c-1baf-4a77-8a5b-aae5470edada',
+  emailImage: '/assets/email-image.png',
+  heroImage: '/assets/hero-image.png',
 }
