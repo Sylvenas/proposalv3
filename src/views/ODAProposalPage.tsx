@@ -916,7 +916,7 @@ function DetailScreen({
             </div>
 
             {/* ── Right column: pricing summary ── */}
-            <div className="flex-shrink-0 flex flex-col" style={{ width: '505px', gap: '23px' }}>
+            <div className="flex-shrink-0 flex flex-col sticky" style={{ width: '505px', gap: '23px', top: '158px' }}>
 
               {/* Title */}
               <div className="flex flex-col text-[#262626]">
