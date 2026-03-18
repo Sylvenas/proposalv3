@@ -50,14 +50,16 @@ body {
     linear-gradient(180deg, #fffdfa, #f7f1eb 56%, #f6efe8);
 }
 
-button,
-a {
-  font: inherit;
-  cursor: pointer;
-}
+@layer base {
+  button,
+  a {
+    font: inherit;
+    cursor: pointer;
+  }
 
-a {
-  text-decoration: none;
+  a {
+    text-decoration: none;
+  }
 }
 
 ::selection {

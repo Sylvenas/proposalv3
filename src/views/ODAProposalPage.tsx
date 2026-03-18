@@ -12,7 +12,7 @@ function getItemPrice(item: ODAItem): number {
   }
 }
 
-type Screen = 'email' | 'landing' | 'options' | 'detail'
+type Screen = 'email' | 'landing' | 'options' | 'detail' | 'approved'
 
 function formatPrice(n: number) {
   return '$' + n.toLocaleString()
@@ -441,7 +441,7 @@ function SummaryGroup({ name, items }: { name: string; items: SummaryLineItem[] 
 }
 
 // ─── Sign & Approve Modal ─────────────────────────────────────────────────────
-function SignModal({ onClose }: { onClose: () => void }) {
+function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () => void }) {
   const [zoom, setZoom] = useState(1)
   const { clientName } = odaProjectInfo
 
@@ -530,6 +530,7 @@ function SignModal({ onClose }: { onClose: () => void }) {
           </p>
           <button
             className="w-full h-10 bg-black text-white font-semibold text-[14px] rounded-[2px] flex items-center justify-center hover:opacity-80 transition-opacity"
+            onClick={() => { onClose(); onApprove() }}
           >
             Next Field (3)
           </button>
@@ -543,9 +544,11 @@ function SignModal({ onClose }: { onClose: () => void }) {
 function DetailScreen({
   option,
   onBack,
+  onApprove,
 }: {
   option: ODAOption
   onBack: () => void
+  onApprove: () => void
 }) {
   const [currentImage, setCurrentImage] = useState(0)
   const [sections, setSections] = useState(option.sections.map(s => ({
@@ -555,6 +558,7 @@ function DetailScreen({
   })))
   const [searchQuery, setSearchQuery] = useState('')
   const [showSignModal, setShowSignModal] = useState(false)
+  const [drawingZoom, setDrawingZoom] = useState(1)
   const summaryRef = useRef<HTMLDivElement>(null)
 
   const toggleSection = (sectionIdx: number) => {
@@ -930,8 +934,86 @@ function DetailScreen({
         <div className="max-w-[1500px] mx-auto w-full px-8 pt-12 pb-16">
           <div className="flex items-start justify-between gap-8">
 
-            {/* ── Left column: items card + reviews card ── */}
+            {/* ── Left column: drawings card + items card + reviews card ── */}
             <div className="flex flex-col flex-shrink-0" style={{ width: '840px', gap: '27px' }}>
+
+              {/* Drawings */}
+              <div
+                className="bg-white rounded-[12px] px-[24px] pb-[24px] flex flex-col"
+                style={{ paddingTop: '16px', gap: '24px', boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+              >
+                {/* Header */}
+                <div className="flex items-center pt-[16px]">
+                  <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">Drawings</p>
+                </div>
+
+                {/* Content area: 792 × 539, image viewport + zoom controls */}
+                <div className="relative" style={{ width: '792px', height: '539px' }}>
+                  {/* Image viewport: fixed size, clips overflow */}
+                  <div className="overflow-hidden relative" style={{ width: '792px', height: '492px' }}>
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        transform: `scale(${drawingZoom})`,
+                        transformOrigin: 'center center',
+                        transition: 'transform 0.15s ease',
+                      }}
+                    >
+                      <Image
+                        src="/assets/drawing-floor-plan.png"
+                        alt="Floor Plan"
+                        fill
+                        className="object-contain"
+                        sizes="792px"
+                      />
+                    </div>
+                  </div>
+
+                  {/* View Controls: absolute bottom-left, px-[32px] py-[24px] */}
+                  <div className="absolute bottom-0 left-0 flex gap-[12px] items-center" style={{ padding: '24px 32px' }}>
+                    {/* Zoom In */}
+                    <button
+                      onClick={() => setDrawingZoom(z => Math.min(z + 0.25, 3))}
+                      className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
+                      style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                    >
+                      <span style={{ paddingLeft: '2px' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                          <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                    </button>
+                    {/* Zoom Out */}
+                    <button
+                      onClick={() => setDrawingZoom(z => Math.max(z - 0.25, 0.5))}
+                      className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
+                      style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                    >
+                      <span style={{ paddingLeft: '2px' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                          <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                    </button>
+                    {/* Fit / Reset */}
+                    <button
+                      onClick={() => setDrawingZoom(1)}
+                      className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
+                      style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                    >
+                      <span style={{ paddingLeft: '2px' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* All Included/Selected Products */}
               <div
@@ -1123,7 +1205,342 @@ function DetailScreen({
         </div>
       </div>
 
-      {showSignModal && <SignModal onClose={() => setShowSignModal(false)} />}
+      {showSignModal && <SignModal onClose={() => setShowSignModal(false)} onApprove={onApprove} />}
+    </div>
+  )
+}
+
+// ─── Screen 5: Approved ───────────────────────────────────────────────────────
+function ApprovedScreen({ option }: { option: ODAOption }) {
+  const [activeTab, setActiveTab] = useState('Project Home')
+  const tabs = ['Project Home', 'Updates', 'Products', 'Drawings', 'Documents', 'Invoices & Payments', 'Previews']
+  const sections = option.sections
+
+  const updates = [
+    {
+      date: '9/18/2027',
+      dateNote: ' <3 days ago>',
+      title: 'Wall & Ceiling Preparation Completed',
+      desc: 'Surface preparation for the walls and ceilings is now complete. The project is moving forward into the next phase of interior finish installation.',
+      photos: ['/assets/update-ps-1.png', '/assets/update-ps-2.png', '/assets/update-ps-3.png'],
+    },
+    {
+      date: '6/02/2027',
+      dateNote: '',
+      title: 'Construction In Progress',
+      desc: 'On-site work has officially started. Our team is currently completing site preparation and beginning the first phase of installation.',
+      photos: [],
+    },
+    {
+      date: '5/25/2027',
+      dateNote: '',
+      title: 'Demolition Work Completed',
+      desc: 'Demolition work has been completed and the project area has been cleared for the next phase of construction. Site preparation and layout work will begin next.',
+      photos: ['/assets/update-ps-4.png'],
+    },
+  ]
+
+  return (
+    <div className="min-h-screen bg-white" style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+
+      {/* Sticky header */}
+      <div className="sticky top-0 z-50 bg-white">
+        <div className="max-w-[1500px] mx-auto w-full">
+
+          {/* Row 1: nav */}
+          <nav className="flex items-center justify-between" style={{ padding: '31px 15.1%' }}>
+            <button className="size-6 flex items-center justify-center text-[#262626] hover:opacity-60">
+              <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+                <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <ODALogo size="sm" />
+            <button className="size-6 flex items-center justify-center text-[#262626] hover:opacity-60">
+              <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+                <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </nav>
+
+          {/* Row 2: tab navigation */}
+          <div
+            className="flex items-center px-8 overflow-x-auto scrollbar-none"
+            style={{ borderBottom: '0.5px solid rgba(0,0,0,0.2)' }}
+          >
+            <div className="flex items-center gap-8">
+              {tabs.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className="flex-shrink-0 flex items-center justify-center text-[14px] text-[rgba(0,0,0,0.85)]"
+                  style={{
+                    height: '32px',
+                    padding: '6px 12px',
+                    borderBottom: activeTab === tab ? '2px solid #262626' : '2px solid transparent',
+                    marginBottom: '-0.5px',
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="max-w-[1500px] mx-auto w-full px-8 pt-8 pb-16 flex items-start gap-8">
+
+        {/* Left column: 840px */}
+        <div className="flex-shrink-0 flex flex-col gap-[27px]" style={{ width: '840px' }}>
+
+          {/* Project Updates */}
+          <div
+            className="bg-white rounded-[12px] px-[24px] pt-[16px] pb-[24px] flex flex-col gap-[24px]"
+            style={{ boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+          >
+            <div className="flex items-center pt-[16px]">
+              <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">Project Updates</p>
+            </div>
+
+            {updates.map((update, i) => (
+              <div key={i} className="flex flex-col pt-[12px] w-full" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
+                {/* Date line */}
+                <p className="text-[12px] leading-normal mb-0">
+                  <span className="font-semibold text-[#737373]">{update.date}</span>
+                  {update.dateNote && <span className="text-[#262626]">{update.dateNote}</span>}
+                </p>
+                {/* Title + info icon */}
+                <div className="flex gap-[2px] items-center w-full">
+                  <p className="text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap leading-normal">{update.title}</p>
+                  <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                    <InfoIcon />
+                  </div>
+                </div>
+                {/* Description */}
+                <p className="text-[12px] text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontWeight: 300 }}>
+                  {update.desc}
+                </p>
+                {/* Photos */}
+                {update.photos.length > 0 && (
+                  <div className="flex items-center gap-[4px] pt-[8px]">
+                    {update.photos.map((photo, j) => (
+                      <div key={j} className="flex-shrink-0 p-[2px] rounded-[4px]" style={{ width: '64px', height: '64px' }}>
+                        <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                          <Image src={photo} alt="" fill className="object-cover" sizes="64px" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Show More */}
+            <div className="flex flex-col justify-center text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap">
+              <button className="underline leading-normal">Show More</button>
+            </div>
+          </div>
+
+          {/* Approved Scope */}
+          <div
+            className="bg-white rounded-[12px] px-[24px] pt-[16px] pb-[24px] flex flex-col gap-[24px]"
+            style={{ boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+          >
+            <div className="flex items-center pt-[16px]">
+              <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">Approved Scope</p>
+            </div>
+            <SummaryGroup
+              name="Base Scope"
+              items={[
+                { name: 'Existing Surface Preparation & Demolition', qty: '960', unit: 'sqf.', price: 42900, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                { name: 'Wall & Ceiling Preparation', qty: '190', unit: 'sqf.', price: 24100, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                { name: 'Flooring Base Installation', qty: '547', unit: 'sqf.', price: 4600, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                { name: 'Lighting & Electrical Adjustments', qty: '128', unit: 'hrs.', price: 7270, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+                { name: 'Installation & Finishing Labor', qty: '1,300', unit: 'hrs.', price: 87580, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
+              ]}
+            />
+            {sections.map(section => {
+              const lineItems: SummaryLineItem[] = section.items
+                .filter(item => !item.isAddon || item.selected)
+                .map(item => ({
+                  name: item.spec,
+                  qty: '1',
+                  unit: 'each',
+                  price: getItemPrice(item),
+                  thumbnailSrc: item.isAddon
+                    ? (item.addonSwatches?.[item.selectedAddonSwatch ?? 0] ?? item.previewImage)
+                    : item.swatches?.[item.selectedSwatch ?? 0],
+                  showChange: false,
+                }))
+              if (lineItems.length === 0) return null
+              return <SummaryGroup key={section.name} name={section.name} items={lineItems} />
+            })}
+          </div>
+
+          {/* Move-In Service */}
+          <div
+            className="bg-white rounded-[12px] overflow-hidden flex"
+            style={{ width: '835px', boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+          >
+            <div className="relative flex-shrink-0" style={{ width: '416px', height: '325px' }}>
+              <Image src="/assets/move-in-service.png" alt="" fill className="object-cover" sizes="416px" />
+            </div>
+            <div className="flex-1 flex flex-col gap-[16px] items-start pl-[48px] pr-[24px] justify-center min-w-0">
+              <p
+                className="text-[24px] text-[#262626] leading-[1.5] tracking-[-0.72px] w-full"
+                style={{ fontFamily: "'Segoe UI Variable', 'Segoe UI', sans-serif", fontWeight: 400 }}
+              >
+                Move-In Service
+              </p>
+              <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] w-full" style={{ fontWeight: 300 }}>
+                Settle into your newly finished home with additional move-in support designed to make the final transition feel effortless, organized, and ready for everyday living.
+              </p>
+              <button
+                className="flex items-center justify-center bg-[#262626] text-white rounded-[2px] hover:opacity-80 transition-opacity"
+                style={{ padding: '6px 12px', fontSize: '9px' }}
+              >
+                Learn More
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right column: 505px, sticky */}
+        <div
+          className="flex-shrink-0 flex flex-col items-center sticky"
+          style={{ width: '505px', gap: '23px', top: '158px' }}
+        >
+
+          {/* Title */}
+          <div className="flex flex-col w-full text-[#262626] leading-normal">
+            <p className="font-semibold text-[20px] w-full">{odaProjectInfo.projectLabel}</p>
+            <p className="text-[14px] w-full">Proposal Approved on 3/18/2026</p>
+          </div>
+
+          {/* Payment Progress + Next Payment */}
+          <div
+            className="flex flex-col gap-[16px] py-[24px] w-full"
+            style={{ borderTop: '0.5px solid rgba(0,0,0,0.2)' }}
+          >
+            {/* Payment Progress */}
+            <div className="flex flex-col gap-[4px] w-full">
+              <p className="text-[14px] text-[#737373] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">
+                Payment Progress <sup style={{ fontSize: '7.1px' }}>1</sup>
+              </p>
+              <div className="flex flex-col items-start w-full">
+                <p className="text-[20px] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">
+                  <span className="text-[#262626]">$100,450 / </span>
+                  <span className="text-[#737373]">$273,090</span>
+                </p>
+                {/* Progress bar: 270px wide, 2px tall */}
+                <div className="flex items-center" style={{ width: '270px', height: '18px' }}>
+                  <div className="flex-shrink-0 h-[2px]" style={{ width: '102px', background: '#262626' }} />
+                  <div className="flex-1 h-[2px]" style={{ background: '#d9d9d9' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Next Payment */}
+            <div className="flex flex-col w-full overflow-hidden text-ellipsis whitespace-nowrap">
+              <p className="text-[14px] text-[#737373] leading-normal">
+                Next Payment <sup style={{ fontSize: '7.1px' }}>2</sup>
+              </p>
+              <p className="text-[32px] text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">$68,000</p>
+              <p className="text-[12px] text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">
+                1/3 balance due at 50% completion{' '}
+                <span style={{ fontWeight: 300 }}>&lt;5/26/2028&gt;</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-col gap-[12px] w-full">
+            {/* Make A Payment */}
+            <button
+              className="w-full h-[40px] bg-[#262626] text-white font-semibold text-[14px] rounded-[4px] flex items-center justify-center hover:opacity-80 transition-opacity"
+            >
+              Make A Payment
+            </button>
+
+            {/* Financing Service */}
+            <button
+              className="w-full h-[40px] border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] text-[14px] rounded-[4px] flex items-center justify-center gap-[2px] hover:bg-[#262626] hover:text-white transition-colors"
+            >
+              <span className="flex items-center justify-center h-full px-[5px]">
+                <svg width="15" height="20" viewBox="0 0 11 14" fill="none" className="flex-shrink-0">
+                  <rect x="0.5" y="0.5" width="10" height="13" rx="1" stroke="currentColor" strokeWidth="1" />
+                  <path d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+                </svg>
+              </span>
+              Financing Service
+            </button>
+
+            {/* Contact Sales + Request Change */}
+            <div className="flex gap-[12px] w-full">
+              <button
+                className="flex-1 h-[40px] border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] text-[14px] rounded-[4px] flex items-center justify-center gap-[2px] hover:bg-[#262626] hover:text-white transition-colors"
+              >
+                <span className="w-6 h-[22px] flex items-center justify-center flex-shrink-0">
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                    <path d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                Contact Sales
+              </button>
+              <button
+                className="flex-1 h-[40px] border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] text-[14px] rounded-[4px] flex items-center justify-center gap-[2px] hover:bg-[#262626] hover:text-white transition-colors"
+              >
+                <span className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM5 8h6M8 5l3 3-3 3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                Request Change
+              </button>
+            </div>
+          </div>
+
+          {/* Download links */}
+          <div className="flex flex-col w-full">
+            <button className="flex items-center gap-[2px] h-[24px] pr-[16px] py-[6px] bg-white rounded-[4px] w-full">
+              <span className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                <svg width="17" height="18" viewBox="0 0 17 18" fill="none">
+                  <path d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[18px]">Download Contract Document [PDF]</span>
+            </button>
+            <button className="flex items-center gap-[2px] h-[24px] pr-[16px] py-[6px] bg-white rounded-[4px] w-full">
+              <span className="w-6 h-[18px] flex items-center justify-center flex-shrink-0 overflow-clip">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="5" width="20" height="14" rx="2" stroke="#262626" strokeWidth="1.5" />
+                  <path d="M2 10h20M7 15h.01M12 15h5" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </span>
+              <span className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[18px]">Payment Schedule &amp; Records</span>
+            </button>
+          </div>
+
+          {/* Footnotes */}
+          <div className="flex flex-col gap-[12px] pt-[24px] w-full">
+            <p className="text-[#262626] tracking-[-0.22px] leading-[0]" style={{ fontWeight: 300 }}>
+              <span className="leading-[1.5] text-[7.1px]">1 </span>
+              <span className="leading-[1.5] text-[11px]">Total project pricing is subject to change based on applicable taxes, fees, payment timing, and any final project adjustments. The final amount presented at the time of payment will control.</span>
+            </p>
+            <p className="text-[#262626] text-[11px] tracking-[-0.22px] leading-[1.5] overflow-hidden text-ellipsis" style={{ fontWeight: 300 }}>
+              <span className="text-[7.1px]">2 </span>
+              Any monthly payment information shown is an estimate only and is not a financing offer. Final payment amounts, interest rates, and loan terms are subject to lender review and will be confirmed during the formal application process.
+            </p>
+            <div className="flex flex-col justify-center text-[11px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap">
+              <button className="underline leading-normal">Read more</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   )
 }
@@ -1133,7 +1550,7 @@ export default function ODAProposalPage({ initialScreen = 'email' }: { initialSc
   const getInitialScreen = (): Screen => {
     if (typeof window !== 'undefined') {
       const param = new URLSearchParams(window.location.search).get('screen') as Screen | null
-      if (param && ['email', 'landing', 'options', 'detail'].includes(param)) return param
+      if (param && ['email', 'landing', 'options', 'detail', 'approved'].includes(param)) return param
     }
     return initialScreen
   }
@@ -1155,6 +1572,12 @@ export default function ODAProposalPage({ initialScreen = 'email' }: { initialSc
         <DetailScreen
           option={odaOptions[selectedOption]}
           onBack={() => setScreen('options')}
+          onApprove={() => setScreen('approved')}
+        />
+      )}
+      {screen === 'approved' && (
+        <ApprovedScreen
+          option={odaOptions[selectedOption]}
         />
       )}
     </>
