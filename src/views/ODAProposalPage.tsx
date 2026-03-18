@@ -440,6 +440,105 @@ function SummaryGroup({ name, items }: { name: string; items: SummaryLineItem[] 
   )
 }
 
+// ─── Sign & Approve Modal ─────────────────────────────────────────────────────
+function SignModal({ onClose }: { onClose: () => void }) {
+  const [zoom, setZoom] = useState(1)
+  const { clientName } = odaProjectInfo
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center"
+      style={{ padding: '32px 64px', backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.6)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-[24px] flex gap-10 w-full relative"
+        style={{ height: '963px', maxHeight: 'calc(100vh - 64px)', padding: '40px 48px' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f0f0] transition-colors text-[#262626]"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        {/* ── Left: scrollable contract document ── */}
+        <div className="flex-1 min-w-0 flex flex-col relative min-h-0">
+          {/* Document scroll area */}
+          <div className="flex-1 overflow-auto border border-[#d9d9d9] min-h-0">
+            <div style={{ width: `${zoom * 100}%`, minWidth: '100%' }}>
+              <Image
+                src="/assets/contract-page.png"
+                alt="Contract"
+                width={2380}
+                height={3368}
+                className="w-full h-auto block"
+              />
+            </div>
+          </div>
+
+          {/* Zoom controls — overlaid at bottom-left */}
+          <div className="absolute bottom-0 left-0 flex gap-3" style={{ padding: '24px 32px' }}>
+            {/* Zoom in */}
+            <button
+              onClick={() => setZoom(z => Math.min(z + 0.25, 2))}
+              className="w-12 h-12 flex items-center justify-center rounded-[4px]"
+              style={{ backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+            {/* Zoom out */}
+            <button
+              onClick={() => setZoom(z => Math.max(z - 0.25, 0.5))}
+              className="w-12 h-12 flex items-center justify-center rounded-[4px]"
+              style={{ backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+            {/* Fit / reset */}
+            <button
+              onClick={() => setZoom(1)}
+              className="w-12 h-12 flex items-center justify-center rounded-[4px]"
+              style={{ backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* ── Right: signing panel ── */}
+        <div className="flex-shrink-0 flex flex-col gap-6" style={{ width: '274px' }}>
+          <p className="text-[16px] text-[#262626]" style={{ letterSpacing: '-0.64px', lineHeight: 'normal' }}>
+            Sign Contract as {clientName}
+          </p>
+          <p className="text-[12px] text-[#262626] leading-[1.5]" style={{ fontWeight: 300 }}>
+            Please review your final project selections and contract details before signing. By signing below, you confirm your acceptance of the scope, pricing, and terms outlined in this agreement.
+          </p>
+          <button
+            className="w-full h-10 bg-black text-white font-semibold text-[14px] rounded-[2px] flex items-center justify-center hover:opacity-80 transition-opacity"
+          >
+            Next Field (3)
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Screen 4: Option Detail ──────────────────────────────────────────────────
 function DetailScreen({
   option,
@@ -455,6 +554,7 @@ function DetailScreen({
     items: s.items.map(item => ({ ...item })),
   })))
   const [searchQuery, setSearchQuery] = useState('')
+  const [showSignModal, setShowSignModal] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
 
   const toggleSection = (sectionIdx: number) => {
@@ -598,6 +698,7 @@ function DetailScreen({
             <button
               className="bg-[#262626] text-white font-semibold text-[14px] rounded-[4px] px-4 hover:bg-black transition-colors flex-shrink-0"
               style={{ height: '40px' }}
+              onClick={() => setShowSignModal(true)}
             >
               Sign &amp; Approve
             </button>
@@ -969,6 +1070,7 @@ function DetailScreen({
                 {/* Sign & Approve */}
                 <button
                   className="w-full h-[40px] bg-[#262626] text-white font-semibold text-[14px] rounded-[4px] hover:bg-black transition-colors flex items-center justify-center"
+                  onClick={() => setShowSignModal(true)}
                 >
                   Sign &amp; Approve
                 </button>
@@ -1021,6 +1123,7 @@ function DetailScreen({
         </div>
       </div>
 
+      {showSignModal && <SignModal onClose={() => setShowSignModal(false)} />}
     </div>
   )
 }
