@@ -105,7 +105,7 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
 
           {/* CTA — left-aligned, not full width */}
           <button
-            onClick={() => window.open('/proposal-v2/view', '_blank')}
+            onClick={() => window.open('/proposal-v2?screen=landing', '_blank')}
             className="h-[40px] px-6 bg-[#262626] text-white text-[13px] hover:bg-black transition-colors mb-7"
           >
             Review My Proposal
@@ -1024,7 +1024,14 @@ function DetailScreen({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ODAProposalPage({ initialScreen = 'email' }: { initialScreen?: Screen }) {
-  const [screen, setScreen] = useState<Screen>(initialScreen)
+  const getInitialScreen = (): Screen => {
+    if (typeof window !== 'undefined') {
+      const param = new URLSearchParams(window.location.search).get('screen') as Screen | null
+      if (param && ['email', 'landing', 'options', 'detail'].includes(param)) return param
+    }
+    return initialScreen
+  }
+  const [screen, setScreen] = useState<Screen>(getInitialScreen)
   const [selectedOption, setSelectedOption] = useState(0)
 
   return (
