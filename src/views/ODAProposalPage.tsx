@@ -719,7 +719,7 @@ function DetailScreen({
                               <p className="text-[14px] text-[#262626] truncate">{item.spec}</p>
                               <InfoIcon />
                             </div>
-                            <p className="font-semibold text-[14px] text-[#737373] text-right">{formatPrice(item.price)}</p>
+                            <p className="font-semibold text-[14px] text-[#737373]">{formatPrice(getItemPrice(item))}</p>
                           </div>
                           {/* 24px checkbox, rounded-[2px], border-black when unchecked */}
                           <div
