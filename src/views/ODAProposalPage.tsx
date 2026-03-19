@@ -910,9 +910,12 @@ type SummaryLineItem = {
   thumbnailSrc?: string
   showChange?: boolean
   description?: string
+  odaItem?: ODAItem
+  sectionName?: string
+  sectionItems?: ODAItem[]
 }
 
-function SummaryGroup({ name, items, layoutAlt }: { name: string; items: SummaryLineItem[]; layoutAlt?: boolean }) {
+function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; items: SummaryLineItem[]; layoutAlt?: boolean; onInfoClick?: (item: SummaryLineItem) => void }) {
   return (
     <div className="flex flex-col w-full">
       {/* Group header: h-[48px], semibold 16px + count badge */}
@@ -955,9 +958,13 @@ function SummaryGroup({ name, items, layoutAlt }: { name: string; items: Summary
                 </div>
                 {/* Actions: w-[112px] */}
                 <div className="flex items-center justify-between flex-shrink-0" style={{ width: '112px' }}>
-                  <div className="w-6 h-6 flex items-center justify-center">
+                  <button
+                    className="w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity"
+                    style={{ cursor: item.odaItem ? 'pointer' : 'default' }}
+                    onClick={() => item.odaItem && onInfoClick?.(item)}
+                  >
                     <InfoIcon />
-                  </div>
+                  </button>
                   {item.showChange ? (
                     <div className="flex items-center gap-2 h-6 cursor-pointer hover:opacity-60">
                       <span className="font-semibold text-[14px] text-[#262626]" style={{ letterSpacing: '-0.56px' }}>Change</span>
@@ -1009,9 +1016,13 @@ function SummaryGroup({ name, items, layoutAlt }: { name: string; items: Summary
               </div>
               {/* Actions: w-[112px] */}
               <div className="flex items-center justify-between flex-shrink-0" style={{ width: '112px' }}>
-                <div className="w-6 h-6 flex items-center justify-center">
+                <button
+                  className="w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity"
+                  style={{ cursor: item.odaItem ? 'pointer' : 'default' }}
+                  onClick={() => item.odaItem && onInfoClick?.(item)}
+                >
                   <InfoIcon />
-                </div>
+                </button>
                 {item.showChange !== false ? (
                   <div className="flex items-center gap-2 h-6 cursor-pointer hover:opacity-60">
                     <span className="font-semibold text-[14px] text-[#262626]" style={{ letterSpacing: '-0.56px' }}>Change</span>
@@ -1131,6 +1142,169 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
   )
 }
 
+// ─── Product Detail Modal (Figma 330:3263) ─────────────────────────────────────
+function ProductDetailModal({
+  item,
+  sectionName,
+  sectionItems,
+  onClose,
+}: {
+  item: ODAItem
+  sectionName: string
+  sectionItems: ODAItem[]
+  onClose: () => void
+}) {
+  const swatches = item.swatches ?? item.addonSwatches ?? []
+  const [activeSwatchIdx, setActiveSwatchIdx] = useState(item.selectedSwatch ?? item.selectedAddonSwatch ?? 0)
+  const [activeThumb, setActiveThumb] = useState(0)
+
+  const thumbs = swatches.length > 0 ? swatches : item.previewImage ? [item.previewImage] : []
+  const mainImage = thumbs[activeThumb] ?? item.previewImage ?? THUMB_BASE_SCOPE
+
+  const alternativeItems = sectionItems.filter(i => i.id !== item.id)
+
+  return (
+    <div
+      className="fixed inset-0 z-[300] flex flex-col justify-end"
+      style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.6)', paddingTop: '113px' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full relative flex flex-col"
+        style={{ height: '767px', borderRadius: '16px 16px 0 0', boxShadow: '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.2)', gap: '16px' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header: close button */}
+        <div className="flex justify-end flex-shrink-0" style={{ padding: '16px 16px 0' }}>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center rounded-[4px] bg-[#F0F0F0] hover:bg-[#e0e0e0] transition-colors"
+            style={{ width: '24px', height: '24px' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 3l10 10M13 3L3 13" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex flex-1 min-h-0" style={{ gap: '40px', padding: '0 64px 24px' }}>
+          {/* Left: Image gallery */}
+          <div className="flex flex-col justify-between" style={{ width: '640px', flexShrink: 0 }}>
+            {/* Main image */}
+            <div className="relative rounded-[8px] overflow-hidden w-full" style={{ aspectRatio: '732/510' }}>
+              {mainImage && (
+                <Image src={mainImage} alt="" fill className="object-cover" sizes="640px" />
+              )}
+            </div>
+            {/* Thumbnails */}
+            {thumbs.length > 1 && (
+              <div className="flex flex-wrap" style={{ gap: '8px' }}>
+                {thumbs.map((src, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setActiveThumb(i); setActiveSwatchIdx(i) }}
+                    className="rounded-[4px] overflow-hidden flex-shrink-0 p-[2px]"
+                    style={{
+                      width: '86px', height: '64px',
+                      border: i === activeThumb ? '1.5px solid #000000' : '1.5px solid transparent',
+                    }}
+                  >
+                    <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                      <Image src={src} alt="" fill className="object-cover" sizes="86px" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Product info */}
+          <div className="flex flex-1 flex-col overflow-y-auto" style={{ gap: '24px', fontFamily: "'Segoe UI', sans-serif" }}>
+            {/* Category & area */}
+            <div className="flex flex-col flex-shrink-0" style={{ gap: '4px' }}>
+              <p className="font-semibold text-[16px] text-[#262626]">{sectionName}</p>
+              <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>1,240 SQF.</p>
+            </div>
+
+            {/* Swatches */}
+            {swatches.length > 0 && (
+              <div className="flex flex-wrap flex-shrink-0" style={{ gap: '10px' }}>
+                {swatches.map((src, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setActiveSwatchIdx(i); setActiveThumb(i < thumbs.length ? i : 0) }}
+                    className="rounded-[4px] overflow-hidden flex-shrink-0 p-[2px]"
+                    style={{
+                      width: '64px', height: '64px',
+                      border: i === activeSwatchIdx ? '1.5px solid #000000' : '1.5px solid transparent',
+                      outline: 'none',
+                    }}
+                  >
+                    <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                      <Image src={src} alt="" fill className="object-cover" sizes="64px" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Title & description */}
+            <div className="flex flex-col flex-shrink-0" style={{ gap: '8px' }}>
+              <p className="font-semibold text-[20px] text-[#262626]" style={{ letterSpacing: '-0.8px' }}>{item.spec}</p>
+              <p className="text-[12px] text-[#262626]" style={{ fontWeight: 300, lineHeight: 1.6 }}>
+                A premium {sectionName.toLowerCase()} upgrade featuring superior craftsmanship and lasting durability.
+                Designed to complement contemporary interiors with an emphasis on quality materials and refined finishes.
+              </p>
+            </div>
+
+            {/* Price */}
+            <p className="text-[24px] text-[#262626] flex-shrink-0" style={{ fontWeight: 300 }}>
+              {getItemPrice(item) > 0 ? formatPrice(getItemPrice(item)) : 'Included'}
+            </p>
+
+            {/* CTA */}
+            <button
+              className="flex items-center justify-center rounded-[4px] flex-shrink-0"
+              style={{ height: '44px', padding: '6px 16px', backgroundColor: '#737373', color: '#333333', fontFamily: 'Roboto, sans-serif', fontWeight: 600, fontSize: '14px' }}
+            >
+              Product Selected
+            </button>
+
+            {/* Similar products */}
+            {alternativeItems.length > 0 && (
+              <div className="flex flex-col" style={{ gap: '8px' }}>
+                <p className="font-semibold text-[14px] text-[#262626]">Similar Products</p>
+                <div className="flex flex-col">
+                  {alternativeItems.map(altItem => (
+                    <div key={altItem.id} className="flex items-center" style={{ gap: '12px', padding: '10px 0', borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
+                      <div className="relative rounded-[4px] overflow-hidden flex-shrink-0" style={{ width: '48px', height: '48px' }}>
+                        {(altItem.swatches?.[0] ?? altItem.addonSwatches?.[0] ?? altItem.previewImage) && (
+                          <Image
+                            src={altItem.swatches?.[0] ?? altItem.addonSwatches?.[0] ?? altItem.previewImage!}
+                            alt="" fill className="object-cover" sizes="48px"
+                          />
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col min-w-0" style={{ gap: '2px' }}>
+                        <p className="text-[14px] font-semibold text-[#262626] truncate">{altItem.name}</p>
+                        <p className="text-[12px] text-[#737373] truncate">{altItem.spec}</p>
+                      </div>
+                      <p className="text-[14px] text-[#262626] flex-shrink-0" style={{ fontWeight: 300 }}>
+                        {getItemPrice(altItem) > 0 ? formatPrice(getItemPrice(altItem)) : 'Included'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Screen 4: Option Detail ──────────────────────────────────────────────────
 function DetailScreen({
   option,
@@ -1153,6 +1327,7 @@ function DetailScreen({
   const [drawingModalOpen, setDrawingModalOpen] = useState(false)
   const [modalZoom, setModalZoom] = useState(1)
   const [productLayoutAlt, setProductLayoutAlt] = useState(false)
+  const [productDetailModal, setProductDetailModal] = useState<{ item: ODAItem; sectionName: string; sectionItems: ODAItem[] } | null>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
 
   const toggleSection = (sectionIdx: number) => {
@@ -1664,9 +1839,24 @@ function DetailScreen({
                         ? (item.addonSwatches?.[item.selectedAddonSwatch ?? 0] ?? item.previewImage)
                         : item.swatches?.[item.selectedSwatch ?? 0],
                       showChange: true,
+                      odaItem: item,
+                      sectionName: section.name,
+                      sectionItems: section.items,
                     }))
                   if (lineItems.length === 0) return null
-                  return <SummaryGroup key={section.name} name={section.name} items={lineItems} layoutAlt={productLayoutAlt} />
+                  return (
+                    <SummaryGroup
+                      key={section.name}
+                      name={section.name}
+                      items={lineItems}
+                      layoutAlt={productLayoutAlt}
+                      onInfoClick={lineItem => lineItem.odaItem && setProductDetailModal({
+                        item: lineItem.odaItem,
+                        sectionName: lineItem.sectionName ?? section.name,
+                        sectionItems: lineItem.sectionItems ?? [],
+                      })}
+                    />
+                  )
                 })}
               </div>
 
@@ -1818,6 +2008,15 @@ function DetailScreen({
       </div>
 
       {showSignModal && <SignModal onClose={() => setShowSignModal(false)} onApprove={onApprove} />}
+
+      {productDetailModal && (
+        <ProductDetailModal
+          item={productDetailModal.item}
+          sectionName={productDetailModal.sectionName}
+          sectionItems={productDetailModal.sectionItems}
+          onClose={() => setProductDetailModal(null)}
+        />
+      )}
 
       {/* Drawing fullscreen modal */}
       {drawingModalOpen && (
