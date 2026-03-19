@@ -374,9 +374,10 @@ type SummaryLineItem = {
   price: number
   thumbnailSrc?: string
   showChange?: boolean
+  description?: string
 }
 
-function SummaryGroup({ name, items }: { name: string; items: SummaryLineItem[] }) {
+function SummaryGroup({ name, items, layoutAlt }: { name: string; items: SummaryLineItem[]; layoutAlt?: boolean }) {
   return (
     <div className="flex flex-col w-full">
       {/* Group header: h-[48px], semibold 16px + count badge */}
@@ -388,7 +389,62 @@ function SummaryGroup({ name, items }: { name: string; items: SummaryLineItem[] 
       </div>
       {/* Line items */}
       <div className="flex flex-col w-full">
-        {items.map((item, i) => (
+        {items.map((item, i) => layoutAlt && item.showChange !== false ? (
+          /* ── Alternative (large image) layout — only for product items with images ── */
+          <div key={i} className="flex items-start py-[12px] w-full" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
+            {/* Image: 300×200, p-[2px], rounded-[4px] outer, rounded-[2px] inner */}
+            <div className="flex-shrink-0 p-[2px] rounded-[4px]">
+              <div className="relative rounded-[2px] overflow-hidden flex-shrink-0" style={{ width: '300px', height: '200px', border: '0.5px solid #d9d9d9' }}>
+                {item.thumbnailSrc ? (
+                  <Image src={item.thumbnailSrc} alt="" fill className="object-cover" sizes="300px" />
+                ) : (
+                  <div className="w-full h-full bg-[#f0f0f0]" />
+                )}
+              </div>
+            </div>
+            {/* Right content */}
+            <div className="flex flex-1 flex-col gap-[24px] py-[4px] min-w-0 self-stretch">
+              {/* Top row: text info + actions */}
+              <div className="flex items-start justify-end w-full">
+                {/* Text: name, qty, price */}
+                <div className="flex flex-1 flex-col gap-[8px] px-[12px] text-[14px] min-w-0">
+                  <p className="text-[#262626] truncate min-w-0">{item.name}</p>
+                  <div className="flex gap-[8px] items-center flex-shrink-0" style={{ width: '130px', fontWeight: 300, color: '#737373' }}>
+                    <p className="flex-shrink-0 whitespace-nowrap">{item.qty}</p>
+                    <p className="flex-shrink-0 w-[32px]">{item.unit}</p>
+                  </div>
+                  <div className="flex gap-[2px] items-center flex-shrink-0" style={{ width: '124px', fontWeight: 300, color: '#262626' }}>
+                    <p className="flex-shrink-0">$</p>
+                    <p className="flex-1 min-w-0">{item.price.toLocaleString()}</p>
+                  </div>
+                </div>
+                {/* Actions: w-[112px] */}
+                <div className="flex items-center justify-between flex-shrink-0" style={{ width: '112px' }}>
+                  <div className="w-6 h-6 flex items-center justify-center">
+                    <InfoIcon />
+                  </div>
+                  {item.showChange ? (
+                    <div className="flex items-center gap-2 h-6 cursor-pointer hover:opacity-60">
+                      <span className="font-semibold text-[14px] text-[#262626]" style={{ letterSpacing: '-0.56px' }}>Change</span>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+                        <path d="M6 4l4 4-4 4" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div style={{ width: '78px' }} />
+                  )}
+                </div>
+              </div>
+              {/* Description row */}
+              {item.description && (
+                <div className="px-[12px]">
+                  <p className="text-[12px] text-[#737373] leading-normal">{item.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ── Compact (small image) layout ── */
           <div key={i} className="flex gap-3 items-start py-3 w-full" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
             {/* Thumbnail: 48x48, rounded-[4px], p-[2px] */}
             <div className="flex-shrink-0 w-12 h-12 rounded-[4px] p-[2px]">
@@ -559,6 +615,7 @@ function DetailScreen({
   const [searchQuery, setSearchQuery] = useState('')
   const [showSignModal, setShowSignModal] = useState(false)
   const [drawingZoom, setDrawingZoom] = useState(1)
+  const [productLayoutAlt, setProductLayoutAlt] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
 
   const toggleSection = (sectionIdx: number) => {
@@ -1021,15 +1078,33 @@ function DetailScreen({
                 style={{ paddingTop: '16px', gap: '24px', boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
               >
                 {/* Card header */}
-                <div className="pt-4">
+                <div className="pt-4 flex items-center justify-between">
                   <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">
                     All Included/Selected Products
                   </p>
+                  {/* Swap Layout toggle */}
+                  <button
+                    onClick={() => setProductLayoutAlt(v => !v)}
+                    className="flex items-center gap-[4px] flex-shrink-0 hover:bg-[#f5f5f5] transition-colors"
+                    style={{ height: '32px', padding: '6px 4px', borderRadius: '4px' }}
+                  >
+                    <div className="flex items-center justify-center overflow-clip flex-shrink-0" style={{ width: '24px', height: '24px', borderRadius: '2px', padding: '1px' }}>
+                      {/* Layout icon: compact ↔ large */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={productLayoutAlt ? '/assets/icon-layout-large.svg' : '/assets/icon-layout-compact.svg'}
+                        alt=""
+                        style={{ width: '15px', height: '14px', display: 'block', flexShrink: 0 }}
+                      />
+                    </div>
+                    <span className="text-[14px] text-[#262626]" style={{ lineHeight: '18px' }}>Swap Layout</span>
+                  </button>
                 </div>
 
                 {/* Base Scope */}
                 <SummaryGroup
                   name="Base Scope"
+                  layoutAlt={productLayoutAlt}
                   items={[
                     { name: 'Existing Surface Preparation & Demolition', qty: '960', unit: 'sqf.', price: 42900, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
                     { name: 'Wall & Ceiling Preparation', qty: '190', unit: 'sqf.', price: 24100, showChange: false, thumbnailSrc: THUMB_BASE_SCOPE },
@@ -1054,7 +1129,7 @@ function DetailScreen({
                       showChange: true,
                     }))
                   if (lineItems.length === 0) return null
-                  return <SummaryGroup key={section.name} name={section.name} items={lineItems} />
+                  return <SummaryGroup key={section.name} name={section.name} items={lineItems} layoutAlt={productLayoutAlt} />
                 })}
               </div>
 
