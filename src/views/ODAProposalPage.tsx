@@ -618,15 +618,34 @@ function OptionsScreen({
   const prev = (selectedOption - 1 + odaOptions.length) % odaOptions.length
   const next = (selectedOption + 1) % odaOptions.length
 
-  // Figma: 1440px page, center card 800px at x=321, arrows at x=222 and x=1171
-  // Arrow center distance from page center: ~474px
-  // Info card is 800px centered → arrows are ~74px outside card edges
+  const [hasSwitched, setHasSwitched] = useState(false)
+  const [compareMode, setCompareMode] = useState(false)
+  const [compareSelected, setCompareSelected] = useState<number[]>([])
+
+  const enterCompare = () => {
+    setCompareMode(true)
+    setCompareSelected([selectedOption])
+  }
+
+  const exitCompare = () => {
+    setCompareMode(false)
+    setCompareSelected([])
+  }
+
+  const toggleCompareOption = (i: number) => {
+    setCompareSelected(prev =>
+      prev.includes(i) ? prev.filter(x => x !== i) : prev.length < 2 ? [...prev, i] : prev
+    )
+  }
+
+  const isChecked = compareSelected.includes(selectedOption)
+  const canCompare = compareSelected.length === 2
 
   return (
     <div className="min-h-screen bg-white"
-      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", paddingBottom: '72px' }}>
 
-      {/* Nav — home | logo | user, symmetric ~15% padding (matches Figma's left-[217px] on 1440px) */}
+      {/* Nav */}
       <nav className="h-[72px] flex items-center justify-between" style={{ padding: '0 15.1%' }}>
         <button className="size-6 flex items-center justify-center text-[#262626]">
           <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
@@ -642,11 +661,10 @@ function OptionsScreen({
         </button>
       </nav>
 
-      {/* ── Main section: carousel + info card + arrows (all relative-positioned together) ── */}
-      <div className="relative">
-
-        {/* Background carousel — 3 × 800px cards, total 2440px, centered → side ghosts clip at viewport edges */}
-        <div className="overflow-hidden" style={{ height: '471px' }}>
+      {/* ── Image carousel + arrows (relative wrapper so arrows can overlay ghost areas) ── */}
+      <div className="relative" style={{ height: '471px' }}>
+        {/* Carousel */}
+        <div className="overflow-hidden absolute inset-0">
           <div
             className="absolute flex"
             style={{ gap: '20px', width: '2440px', left: '50%', transform: 'translateX(-50%)' }}
@@ -655,11 +673,11 @@ function OptionsScreen({
             <div
               className="relative flex-shrink-0 overflow-hidden cursor-pointer"
               style={{ width: '800px', height: '471px', opacity: 0.3 }}
-              onClick={() => onSelect(prev)}
+              onClick={() => { setHasSwitched(true); onSelect(prev) }}
             >
               <Image src={odaOptions[prev].images[0]} alt="" fill className="object-cover" sizes="800px" />
             </div>
-            {/* Center (image-only layer, behind fg card) */}
+            {/* Center */}
             <div className="relative flex-shrink-0 overflow-hidden" style={{ width: '800px', height: '471px' }}>
               <Image src={option.images[0]} alt="" fill className="object-cover" sizes="800px" priority />
             </div>
@@ -667,82 +685,109 @@ function OptionsScreen({
             <div
               className="relative flex-shrink-0 overflow-hidden cursor-pointer"
               style={{ width: '800px', height: '471px', opacity: 0.3 }}
-              onClick={() => onSelect(next)}
+              onClick={() => { setHasSwitched(true); onSelect(next) }}
             >
               <Image src={odaOptions[next].images[0]} alt="" fill className="object-cover" sizes="800px" />
             </div>
           </div>
         </div>
 
-        {/* Foreground info card — sits directly below the carousel image, same 800px width, bg-[#fbfbfb] */}
-        <div
-          className="mx-auto bg-[#fbfbfb] flex flex-col"
-          style={{ width: '800px' }}
-        >
-          <div className="flex flex-col px-7 pt-10 pb-16" style={{ gap: '28px' }}>
-            {/* Title + subtitle */}
-            <div className="flex flex-col" style={{ gap: '8px' }}>
-              <p
-                className="text-[20px] text-[#262626] tracking-[1.6px]"
-                style={{ fontFamily: "'Century Gothic', 'Trebuchet MS', sans-serif" }}
-              >
-                {option.title.replace('—', '-')}
-              </p>
-              <p className="text-[16px] text-[#262626]">
-                Modern Eclecticism, Balancing Comfort and Refinement.
-              </p>
-            </div>
-            {/* Materials (left) + Button (right) */}
-            <div className="flex items-end justify-between">
-              <div className="flex flex-col text-[16px] text-[#262626]" style={{ gap: '8px', width: '230px' }}>
-                <p>{option.materials[0]}</p>
-                <p>{option.deliveryDays} Days Estimate Delivery Time</p>
-                <p>Starting from {formatPrice(option.priceFrom)} USD</p>
-              </div>
-              <button
-                onClick={onContinue}
-                className="flex items-center border border-[#262626] text-black font-semibold text-[14px] hover:bg-[#262626] hover:text-white transition-colors"
-                style={{ height: '40px', gap: '8px', padding: '6px 16px' }}
-              >
-                COUNTINUE CUSTOMIZE
-                <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
-                  <path d="M1 4.5H10M6.5 1L10 4.5L6.5 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Left Arrow — at x≈222 on 1440px → calc(50% - 474px + 24px) = calc(50% - 450px) from left edge */}
+        {/* Left Arrow — x=240, y=356 on 1440px page */}
         <button
-          onClick={() => onSelect(prev)}
-          className="absolute flex items-center justify-center size-[48px] hover:opacity-50 transition-opacity"
-          style={{ left: 'calc(50% - 450px)', top: '577px', transform: 'translateY(-50%)' }}
+          onClick={() => { setHasSwitched(true); onSelect(prev) }}
+          className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
+          style={{ width: '48px', height: '48px', left: 'calc(50% - 480px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px' }}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M13 4L7 10L13 16" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
+            <path d="M8 2L2 8L8 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
-        {/* Right Arrow — at x≈1171 on 1440px → calc(50% + 426px + 24px) = calc(50% + 450px) - 48px */}
+        {/* Right Arrow — x=1152, y=356 on 1440px page */}
         <button
-          onClick={() => onSelect(next)}
-          className="absolute flex items-center justify-center size-[48px] hover:opacity-50 transition-opacity"
-          style={{ left: 'calc(50% + 402px)', top: '577px', transform: 'translateY(-50%)' }}
+          onClick={() => { setHasSwitched(true); onSelect(next) }}
+          className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
+          style={{ width: '48px', height: '48px', left: 'calc(50% + 432px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px' }}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M7 4L13 10L7 16" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
+            <path d="M2 2L8 8L2 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-
       </div>
 
-      {/* Pagination dots — centered, 3 × 40px wide × 4px tall, gap-2 */}
+      {/* ── Info card — bg-[#fbfbfb], 800px, shadow, pb-32 ── */}
+      <div
+        className="mx-auto bg-[#fbfbfb] flex flex-col pb-[32px]"
+        style={{
+          width: '800px',
+          gap: '24px',
+          boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
+        }}
+      >
+        {/* Text content area: px-28, gap-28 */}
+        <div className="flex flex-col px-[28px] pt-[24px]" style={{ gap: '28px' }}>
+
+          {/* Title + subtitle */}
+          <div className="flex flex-col" style={{ gap: '8px' }}>
+            <p className="text-[24px] text-[#262626] tracking-[1.92px]">
+              {option.title.replace('—', '-')}
+            </p>
+            <p className="text-[16px] text-[#262626]" style={{ fontWeight: 300 }}>
+              Modern Eclecticism, Balancing Comfort and Refinement.
+            </p>
+          </div>
+
+          {/* Details: gap-4px, tracking -0.16px, semilight */}
+          <div className="flex flex-col text-[16px] text-[#262626]" style={{ gap: '4px', fontWeight: 300, letterSpacing: '-0.16px' }}>
+            <p>{option.materials[0]}</p>
+            <p>{option.deliveryDays} Days Estimate Delivery Time</p>
+            <p>Starting from {formatPrice(option.priceFrom)} USD</p>
+          </div>
+
+          {/* CTA area: Select & Configure OR Add to comparison checkbox */}
+          {compareMode ? (
+            /* Compare mode: checkbox row (h-44, gap-12) */
+            <button
+              className="flex items-center"
+              style={{ gap: '12px', height: '44px' }}
+              onClick={() => toggleCompareOption(selectedOption)}
+            >
+              <div
+                className="flex items-center justify-center flex-shrink-0"
+                style={{
+                  width: '24px', height: '24px',
+                  backgroundColor: isChecked ? '#262626' : 'transparent',
+                  border: isChecked ? 'none' : '1.5px solid #262626',
+                  borderRadius: '2px',
+                }}
+              >
+                {isChecked && (
+                  <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+                    <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-[16px] text-[#262626]">Add to comparison</span>
+            </button>
+          ) : (
+            /* Default: Select & Configure — full-width dark button */
+            <button
+              onClick={onContinue}
+              className="w-full flex items-center justify-center bg-[#262626] text-white text-[16px] font-semibold rounded-[4px] hover:opacity-90 transition-opacity"
+              style={{ height: '44px', padding: '6px 16px' }}
+            >
+              Select &amp; Configure
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Pagination dots */}
       <div className="flex items-center justify-center mt-6 pb-10" style={{ gap: '8px' }}>
         {odaOptions.map((_, i) => (
           <button
             key={i}
-            onClick={() => onSelect(i)}
+            onClick={() => { setHasSwitched(true); onSelect(i) }}
             className="transition-all duration-300 rounded-[4px]"
             style={{
               width: '40px',
@@ -752,6 +797,95 @@ function OptionsScreen({
           />
         ))}
       </div>
+
+      {/* ── Sticky bottom bar — only shown after user has switched options ── */}
+      {(hasSwitched || compareMode) && <div
+        className="fixed bottom-0 left-0 right-0 bg-white flex items-center"
+        style={{ height: '72px', padding: '0 15.1%', boxShadow: '0px -8px 32px 0px rgba(123,123,123,0.1)', zIndex: 50 }}
+      >
+        {!compareMode ? (
+          /* Default state */
+          <div className="flex items-center w-full" style={{ gap: '24px' }}>
+            <p className="font-semibold text-[14px] text-[#262626] flex-shrink-0">
+              Need support choosing a option?
+            </p>
+            <p className="text-[14px] text-[#262626] flex-1" style={{ fontWeight: 300 }}>
+              Compare different options to help you decide which one fits you best.
+            </p>
+            <button
+              onClick={enterCompare}
+              className="flex-shrink-0 flex items-center border border-[#262626] text-[#262626] text-[14px] hover:bg-[#262626] hover:text-white transition-colors"
+              style={{ height: '40px', padding: '6px 16px', borderRadius: '4px' }}
+            >
+              Compare Options
+            </button>
+          </div>
+        ) : (
+          /* Compare active state */
+          <div className="flex items-center w-full" style={{ gap: '24px' }}>
+            {/* Two option slots */}
+            <div className="flex flex-shrink-0" style={{ gap: '12px' }}>
+              {[0, 1].map(slotIdx => (
+                compareSelected[slotIdx] !== undefined ? (
+                  <div key={slotIdx}
+                    className="flex items-center justify-between"
+                    style={{ width: '240px', height: '40px', border: '1px solid #262626', borderRadius: '4px', padding: '0 16px' }}
+                  >
+                    <span className="text-[12px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap flex-1 mr-2">
+                      {odaOptions[compareSelected[slotIdx]].title.replace('—', '-')}
+                    </span>
+                    <button
+                      className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
+                      onClick={() => setCompareSelected(prev => prev.filter((_, i) => i !== slotIdx))}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M1 1l10 10M11 1L1 11" stroke="#262626" strokeWidth="1.3" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div key={slotIdx}
+                    className="flex items-center justify-center"
+                    style={{ width: '240px', height: '40px', border: '1px solid #bfbfbf', borderRadius: '4px', padding: '0 16px' }}
+                  >
+                    <span className="text-[12px] text-[#737373]">Choose a option</span>
+                  </div>
+                )
+              ))}
+            </div>
+
+            <p className="text-[14px] text-[#262626] flex-1" style={{ fontWeight: 300 }}>
+              Select 2 options to start comparing
+            </p>
+
+            {/* Compare Options button */}
+            <button
+              disabled={!canCompare}
+              onClick={() => canCompare && window.open(`/compare?a=${compareSelected[0]}&b=${compareSelected[1]}`, '_blank')}
+              className="flex-shrink-0 flex items-center text-white text-[14px] transition-opacity"
+              style={{
+                height: '40px', padding: '6px 16px', borderRadius: '4px',
+                backgroundColor: 'rgba(0,0,0,0.85)',
+                opacity: canCompare ? 1 : 0.5,
+                cursor: canCompare ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Compare Options
+            </button>
+
+            {/* Exit compare mode */}
+            <button
+              onClick={exitCompare}
+              className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
+              style={{ width: '30px', height: '30px' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 1l12 12M13 1L1 13" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>}
 
     </div>
   )
@@ -1016,6 +1150,8 @@ function DetailScreen({
   const [searchQuery, setSearchQuery] = useState('')
   const [showSignModal, setShowSignModal] = useState(false)
   const [drawingZoom, setDrawingZoom] = useState(1)
+  const [drawingModalOpen, setDrawingModalOpen] = useState(false)
+  const [modalZoom, setModalZoom] = useState(1)
   const [productLayoutAlt, setProductLayoutAlt] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
 
@@ -1457,9 +1593,9 @@ function DetailScreen({
                         </svg>
                       </span>
                     </button>
-                    {/* Fit / Reset */}
+                    {/* Expand / Open Modal */}
                     <button
-                      onClick={() => setDrawingZoom(1)}
+                      onClick={() => { setModalZoom(1); setDrawingModalOpen(true) }}
                       className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
                       style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
                     >
@@ -1682,6 +1818,89 @@ function DetailScreen({
       </div>
 
       {showSignModal && <SignModal onClose={() => setShowSignModal(false)} onApprove={onApprove} />}
+
+      {/* Drawing fullscreen modal */}
+      {drawingModalOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center"
+          style={{ zIndex: 100, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)' }}
+          onClick={() => setDrawingModalOpen(false)}
+        >
+          <div
+            className="relative bg-white flex flex-col overflow-hidden"
+            style={{ width: '1200px', height: '800px', borderRadius: '24px', padding: '40px 48px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setDrawingModalOpen(false)}
+              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f0f0] transition-colors text-[#262626]"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            {/* Image area */}
+            <div className="relative flex-1 overflow-hidden rounded-[8px]">
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: `scale(${modalZoom})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.15s ease',
+                }}
+              >
+                <Image
+                  src="/assets/drawing-floor-plan.png"
+                  alt="Floor Plan"
+                  fill
+                  className="object-contain"
+                  sizes="1104px"
+                />
+              </div>
+
+              {/* Zoom controls — bottom-left inside image area */}
+              <div className="absolute bottom-[24px] left-[32px] flex gap-[12px] items-center">
+                {/* Zoom In */}
+                <button
+                  onClick={() => setModalZoom(z => Math.min(z + 0.25, 3))}
+                  className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
+                  style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                    <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+                {/* Zoom Out */}
+                <button
+                  onClick={() => setModalZoom(z => Math.max(z - 0.25, 0.5))}
+                  className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
+                  style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                    <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+                {/* Center / Reset */}
+                <button
+                  onClick={() => setModalZoom(1)}
+                  className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
+                  style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
