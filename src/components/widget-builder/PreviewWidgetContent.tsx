@@ -30,6 +30,9 @@ export default function PreviewWidgetContent({
             type="button"
             className="grid aspect-square h-full place-items-center rounded-full bg-[color:var(--builder-deep)] text-white shadow-[0_6px_18px_rgba(15,23,42,0.18)]"
             aria-label="Open help center"
+            onClick={() => {
+              window.alert('Help Center clicked');
+            }}
           >
             <span className="text-[1.1rem] font-semibold leading-none">?</span>
           </button>
@@ -54,7 +57,10 @@ export default function PreviewWidgetContent({
             {widgetPreviewMock.productList.map((item) => (
               <div
                 key={item.name}
-                className="grid grid-cols-[1.7fr_0.65fr_0.8fr] gap-3 border-b border-[color:color-mix(in_oklab,var(--builder-line)_70%,transparent)] py-2 last:border-b-0"
+                className="grid cursor-pointer grid-cols-[1.7fr_0.65fr_0.8fr] gap-3 border-b border-[color:color-mix(in_oklab,var(--builder-line)_70%,transparent)] py-2 transition hover:bg-[color:color-mix(in_oklab,var(--builder-paper)_92%,var(--builder-panel)_8%)] last:border-b-0"
+                onClick={() => {
+                  window.alert(item.name);
+                }}
               >
                 <div>
                   <p className="m-0 font-medium text-[color:var(--builder-deep)]">
