@@ -28,3 +28,10 @@ When implementing UI from a Figma design, you MUST reproduce the design with 100
 3. Read the generated reference code to extract exact dimensions, colors, spacing, font sizes, and border radii.
 4. Implement strictly from the design — no additions, no omissions, no creative reinterpretation.
 5. If a design detail is ambiguous, ask the user before making any assumption.
+
+## Active Technologies
+- TypeScript 5.9 / React 19 + Next.js 15, Tailwind CSS 4, `@dnd-kit/core`, `@dnd-kit/utilities`, `react-rnd` (001-drag-drop-widget-builder)
+- None (prototype — in-memory state only, no persistence) (001-drag-drop-widget-builder)
+
+## Recent Changes
+- 001-drag-drop-widget-builder: Added TypeScript 5.9 / React 19 + Next.js 15, Tailwind CSS 4, `@dnd-kit/core`, `@dnd-kit/utilities`, `react-rnd`

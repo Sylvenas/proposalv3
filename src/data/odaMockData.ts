@@ -3,10 +3,13 @@ export type ODAItem = {
   name: string
   spec: string
   price: number
+  // productImages: 1-3 full-size photos of the currently selected swatch (left gallery default)
+  productImages?: string[]
   // swatches: image URLs (64x64 material photos), used for standard items
   swatches?: string[]
   selectedSwatch?: number
-  swatchPrices?: number[]       // parallel to swatches[], absolute price per swatch
+  swatchPrices?: number[]            // parallel to swatches[], absolute price per swatch
+  swatchProductImages?: string[][]   // parallel to swatches[], per-swatch full-size photos
   // add-on: optional upgrades, shown in bordered card with checkbox
   isAddon?: boolean
   selected?: boolean
@@ -116,19 +119,32 @@ export const odaOptions: ODAOption[] = [
             id: 'if-1',
             name: 'Flooring',
             spec: 'Oak Wood - 600x100mm - Herringbone Pattern',
-            price: 0,
+            price: 38000,
+            productImages: [ROOM_IMG_1, ROOM_IMG_5, ROOM_IMG_8],
             swatches: [SW_FLOOR_1, SW_FLOOR_2, SW_FLOOR_3],
             selectedSwatch: 0,
-            swatchPrices: [0, 3500, 5200],
+            swatchPrices: [38000, 41500, 43200],
+            swatchProductImages: [
+              [ROOM_IMG_1, ROOM_IMG_5, ROOM_IMG_8],
+              [ROOM_IMG_2, ROOM_IMG_6, ROOM_IMG_7],
+              [ROOM_IMG_3, ROOM_IMG_4, ROOM_IMG_1],
+            ],
           },
           {
             id: 'if-2',
             name: 'Walls',
             spec: 'Decorative Plaster Wall Finish - White',
             price: 11000,
+            productImages: [ROOM_IMG_3, ROOM_IMG_4, ROOM_IMG_6],
             swatches: [SW_WALL_1, SW_WALL_2, SW_WALL_3, SW_WALL_4],
             selectedSwatch: 1,
             swatchPrices: [8000, 11000, 13500, 18000],
+            swatchProductImages: [
+              [ROOM_IMG_3, ROOM_IMG_6, ROOM_IMG_8],
+              [ROOM_IMG_4, ROOM_IMG_3, ROOM_IMG_5],
+              [ROOM_IMG_6, ROOM_IMG_1, ROOM_IMG_4],
+              [ROOM_IMG_7, ROOM_IMG_2, ROOM_IMG_3],
+            ],
           },
         ],
       },
@@ -143,6 +159,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: PV_WINE,
+            productImages: [PV_WINE, ROOM_K, ROOM_IMG_7],
           },
           {
             id: 'k-2',
@@ -152,6 +169,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_FAUCET,
+            productImages: [PV_FAUCET, ROOM_K, ROOM_IMG_2],
           },
           {
             id: 'k-3',
@@ -161,6 +179,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_LIGHT,
+            productImages: [PV_LIGHT, ROOM_IMG_2, ROOM_K],
           },
           {
             id: 'k-4',
@@ -169,9 +188,15 @@ export const odaOptions: ODAOption[] = [
             price: 11700,
             isAddon: true,
             selected: true,
+            productImages: [ROOM_K, ROOM_IMG_2, ROOM_IMG_7],
             addonSwatches: [SW_ISLAND_1, SW_ISLAND_2, SW_ISLAND_3],
             selectedAddonSwatch: 0,
             addonSwatchPrices: [11700, 14200, 9800],
+            swatchProductImages: [
+              [ROOM_K, ROOM_IMG_2, ROOM_IMG_7],
+              [ROOM_IMG_2, ROOM_K, ROOM_IMG_5],
+              [ROOM_IMG_7, ROOM_IMG_2, ROOM_K],
+            ],
           },
         ],
       },
@@ -183,9 +208,16 @@ export const odaOptions: ODAOption[] = [
             name: 'Vanity',
             spec: 'Floating Custom Teak Wood Design',
             price: 10500,
+            productImages: [ROOM_IMG_7, ROOM_IMG_8, PV_JACUZZI],
             swatches: [SW_VANITY_1, SW_VANITY_2, SW_VANITY_3, SW_VANITY_4],
             selectedSwatch: 0,
             swatchPrices: [10500, 12000, 8500, 15000],
+            swatchProductImages: [
+              [ROOM_IMG_7, ROOM_IMG_8, PV_JACUZZI],
+              [ROOM_IMG_8, ROOM_IMG_7, PV_SHOWER],
+              [PV_JACUZZI, ROOM_IMG_7, ROOM_IMG_8],
+              [PV_SHOWER, PV_JACUZZI, ROOM_IMG_8],
+            ],
           },
           {
             id: 'b-2',
@@ -195,6 +227,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: PV_JACUZZI,
+            productImages: [PV_JACUZZI, ROOM_IMG_7, ROOM_IMG_8],
           },
           {
             id: 'b-3',
@@ -204,6 +237,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_SHOWER,
+            productImages: [PV_SHOWER, ROOM_IMG_7, PV_JACUZZI],
           },
           {
             id: 'b-4',
@@ -213,6 +247,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_HEATED,
+            productImages: [PV_HEATED, ROOM_IMG_7, ROOM_IMG_8],
           },
         ],
       },
@@ -235,19 +270,31 @@ export const odaOptions: ODAOption[] = [
             id: 'if-1',
             name: 'Flooring',
             spec: 'Polished Concrete - Diamond Polish / Radiant Heat Ready',
-            price: 0,
+            price: 42000,
+            productImages: [ROOM_B, ROOM_A, ROOM_D],
             swatches: [SW_CONCRETE, SW_GREY, SW_WHITE],
             selectedSwatch: 0,
-            swatchPrices: [0, 4200, 6500],
+            swatchPrices: [42000, 46200, 48500],
+            swatchProductImages: [
+              [ROOM_B, ROOM_A, ROOM_D],
+              [ROOM_A, ROOM_D, ROOM_B],
+              [ROOM_D, ROOM_B, ROOM_A],
+            ],
           },
           {
             id: 'if-2',
             name: 'Walls',
             spec: 'Micro-Cement Seamless Wall System',
             price: 18000,
+            productImages: [ROOM_C, ROOM_A, ROOM_F],
             swatches: [SW_WHITE, SW_GREY, SW_MARBLE],
             selectedSwatch: 0,
             swatchPrices: [18000, 14500, 22000],
+            swatchProductImages: [
+              [ROOM_C, ROOM_A, ROOM_F],
+              [ROOM_F, ROOM_C, ROOM_A],
+              [ROOM_A, ROOM_F, ROOM_C],
+            ],
           },
         ],
       },
@@ -262,6 +309,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: ROOM_K,
+            productImages: [ROOM_K, ROOM_B, ROOM_E],
           },
           {
             id: 'k-2',
@@ -271,6 +319,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_AUTOMATE,
+            productImages: [PV_AUTOMATE, ROOM_F, ROOM_B],
           },
           {
             id: 'k-3',
@@ -279,9 +328,15 @@ export const odaOptions: ODAOption[] = [
             price: 19500,
             isAddon: true,
             selected: true,
+            productImages: [ROOM_K, ROOM_B, ROOM_A],
             addonSwatches: [SW_WHITE, SW_MARBLE, SW_GREY],
             selectedAddonSwatch: 0,
             addonSwatchPrices: [19500, 24000, 16800],
+            swatchProductImages: [
+              [ROOM_K, ROOM_B, ROOM_A],
+              [ROOM_B, ROOM_A, ROOM_K],
+              [ROOM_A, ROOM_K, ROOM_B],
+            ],
           },
         ],
       },
@@ -293,9 +348,16 @@ export const odaOptions: ODAOption[] = [
             name: 'Vanity',
             spec: 'Floating Lacquer Cabinet - Custom Handle',
             price: 12500,
+            productImages: [ROOM_D, ROOM_G, PV_STEAM],
             swatches: [SW_WHITE, SW_GREY, SW_WALNUT, SW_GLASS],
             selectedSwatch: 0,
             swatchPrices: [12500, 10800, 14200, 16500],
+            swatchProductImages: [
+              [ROOM_D, ROOM_G, PV_STEAM],
+              [ROOM_G, ROOM_D, PV_STEAM],
+              [PV_STEAM, ROOM_D, ROOM_G],
+              [ROOM_G, PV_STEAM, ROOM_D],
+            ],
           },
           {
             id: 'b-2',
@@ -305,6 +367,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: PV_STEAM,
+            productImages: [PV_STEAM, ROOM_D, ROOM_G],
           },
           {
             id: 'b-3',
@@ -314,6 +377,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_HEATED,
+            productImages: [PV_HEATED, ROOM_D, PV_STEAM],
           },
         ],
       },
@@ -336,19 +400,31 @@ export const odaOptions: ODAOption[] = [
             id: 'if-1',
             name: 'Flooring',
             spec: 'Herringbone Solid Walnut - Hand-Scraped / Site-Finished',
-            price: 0,
+            price: 58000,
+            productImages: [ROOM_D, ROOM_G, ROOM_A],
             swatches: [SW_WALNUT, SW_FLOOR_1, SW_FLOOR_3],
             selectedSwatch: 0,
-            swatchPrices: [0, 7800, 12500],
+            swatchPrices: [58000, 65800, 70500],
+            swatchProductImages: [
+              [ROOM_D, ROOM_G, ROOM_A],
+              [ROOM_G, ROOM_A, ROOM_D],
+              [ROOM_A, ROOM_D, ROOM_G],
+            ],
           },
           {
             id: 'if-2',
             name: 'Walls',
             spec: 'Hand-Applied Venetian Plaster / Master Artisan / Gold Leaf Inlay',
             price: 32000,
+            productImages: [ROOM_C, ROOM_H, ROOM_G],
             swatches: [SW_WALL_1, SW_WALL_4, SW_MARBLE],
             selectedSwatch: 0,
             swatchPrices: [32000, 28500, 42000],
+            swatchProductImages: [
+              [ROOM_C, ROOM_H, ROOM_G],
+              [ROOM_H, ROOM_G, ROOM_C],
+              [ROOM_G, ROOM_C, ROOM_H],
+            ],
           },
         ],
       },
@@ -363,6 +439,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: ROOM_K,
+            productImages: [ROOM_K, ROOM_D, ROOM_G],
           },
           {
             id: 'k-2',
@@ -372,6 +449,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: PV_AUTOMATE,
+            productImages: [PV_AUTOMATE, ROOM_H, ROOM_E],
           },
           {
             id: 'k-3',
@@ -380,9 +458,15 @@ export const odaOptions: ODAOption[] = [
             price: 44000,
             isAddon: true,
             selected: false,
+            productImages: [ROOM_K, ROOM_D, ROOM_A],
             addonSwatches: [SW_MARBLE, SW_WALL_2, SW_WALL_1],
             selectedAddonSwatch: 0,
             addonSwatchPrices: [44000, 38500, 52000],
+            swatchProductImages: [
+              [ROOM_K, ROOM_D, ROOM_A],
+              [ROOM_D, ROOM_A, ROOM_K],
+              [ROOM_A, ROOM_K, ROOM_D],
+            ],
           },
           {
             id: 'k-4',
@@ -392,6 +476,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_OUTDOOR,
+            productImages: [PV_OUTDOOR, ROOM_K, ROOM_G],
           },
         ],
       },
@@ -403,9 +488,16 @@ export const odaOptions: ODAOption[] = [
             name: 'Vanity',
             spec: 'Bespoke Lacquered Cabinet / 12-Coat French Polish',
             price: 22000,
+            productImages: [ROOM_H, ROOM_E, PV_STEAM],
             swatches: [SW_WALL_1, SW_WALNUT, SW_WALL_4, SW_GLASS],
             selectedSwatch: 0,
             swatchPrices: [22000, 19500, 26000, 31000],
+            swatchProductImages: [
+              [ROOM_H, ROOM_E, PV_STEAM],
+              [ROOM_E, PV_STEAM, ROOM_H],
+              [PV_STEAM, ROOM_H, ROOM_E],
+              [ROOM_E, ROOM_H, PV_STEAM],
+            ],
           },
           {
             id: 'b-2',
@@ -415,6 +507,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: false,
             previewImage: PV_STEAM,
+            productImages: [PV_STEAM, ROOM_H, PV_JACUZZI],
           },
           {
             id: 'b-3',
@@ -424,6 +517,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: PV_JACUZZI,
+            productImages: [PV_JACUZZI, PV_STEAM, ROOM_H],
           },
           {
             id: 'b-4',
@@ -433,6 +527,7 @@ export const odaOptions: ODAOption[] = [
             isAddon: true,
             selected: true,
             previewImage: PV_HEATED,
+            productImages: [PV_HEATED, ROOM_H, PV_STEAM],
           },
         ],
       },
