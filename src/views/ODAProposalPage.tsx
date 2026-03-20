@@ -614,11 +614,9 @@ function OptionsScreen({
   onSelect: (i: number) => void
   onContinue: () => void
 }) {
-  const option = odaOptions[selectedOption]
   const prev = (selectedOption - 1 + odaOptions.length) % odaOptions.length
   const next = (selectedOption + 1) % odaOptions.length
 
-  const [hasSwitched, setHasSwitched] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
   const [compareSelected, setCompareSelected] = useState<number[]>([])
 
@@ -638,13 +636,113 @@ function OptionsScreen({
     )
   }
 
-  const isChecked = compareSelected.includes(selectedOption)
   const canCompare = compareSelected.length === 2
 
-  return (
-    <div className="min-h-screen bg-white"
-      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", paddingBottom: '72px' }}>
+  // Render a full option card (image + content as single unit) — Figma 326:6676
+  const renderCard = (optIdx: number, position: 'left' | 'center' | 'right') => {
+    const opt = odaOptions[optIdx]
+    const isCenter = position === 'center'
+    const isChecked = compareSelected.includes(optIdx)
 
+    // left positions: all cards use translateX(-50%), centers at offsets
+    const leftVal = position === 'center'
+      ? '50%'
+      : position === 'left' ? 'calc(50% - 820px)' : 'calc(50% + 820px)'
+
+    return (
+      <div
+        key={optIdx}
+        className="absolute top-0 flex flex-col"
+        style={{
+          width: '800px',
+          left: leftVal,
+          transform: 'translateX(-50%)',
+          backgroundColor: '#fbfbfb',
+          gap: '24px',
+          paddingBottom: '32px',
+          boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
+          opacity: isCenter ? 1 : 0.35,
+          cursor: isCenter ? 'default' : 'pointer',
+          zIndex: isCenter ? 1 : 0,
+        }}
+        onClick={!isCenter ? () => onSelect(optIdx) : undefined}
+      >
+        {/* Hero image: aspect 800/471 */}
+        <div className="relative w-full shrink-0" style={{ aspectRatio: '800/471' }}>
+          <Image src={opt.images[0]} alt="" fill className="object-cover" sizes="800px" priority={isCenter} />
+        </div>
+
+        {/* Content: px-28, gap-28 — Figma 326:6678 */}
+        <div className="flex flex-col items-start px-[28px]" style={{ gap: '28px' }}>
+
+          {/* Title + subtitle: gap-8 — Figma 326:6693 */}
+          <div className="flex flex-col items-start w-full" style={{ gap: '8px', lineHeight: 'normal', fontStyle: 'normal' }}>
+            <p style={{ fontSize: '24px', fontWeight: 400, color: '#262626', letterSpacing: '1.92px', width: '100%' }}>
+              {opt.title}
+            </p>
+            <p style={{ fontSize: '16px', fontWeight: 300, color: '#262626', width: '100%' }}>
+              {opt.subtitle}
+            </p>
+          </div>
+
+          {/* Details: gap-4, tracking -0.16px, semilight — Figma 326:6697 */}
+          <div className="flex flex-col items-start w-full" style={{ gap: '4px', fontSize: '16px', fontWeight: 300, color: '#262626', letterSpacing: '-0.16px', lineHeight: 'normal', fontStyle: 'normal' }}>
+            <p>{opt.materials[0]}</p>
+            <p>{opt.deliveryDays} Days Estimate Delivery Time</p>
+            <p>Starting from {formatPrice(opt.priceFrom)} USD</p>
+          </div>
+
+          {/* CTA row: justify-end, full-width button — Figma 326:6683 */}
+          <div className="flex items-center justify-end w-full">
+            {compareMode && isCenter ? (
+              /* Compare mode on active card: checkbox + label */
+              <button
+                className="flex items-center"
+                style={{ gap: '12px', height: '44px', flex: '1 0 0' }}
+                onClick={e => { e.stopPropagation(); toggleCompareOption(optIdx) }}
+              >
+                <div
+                  className="flex items-center justify-center flex-shrink-0"
+                  style={{
+                    width: '24px', height: '24px',
+                    backgroundColor: isChecked ? '#262626' : 'transparent',
+                    border: isChecked ? 'none' : '1.5px solid #262626',
+                    borderRadius: '2px',
+                  }}
+                >
+                  {isChecked && (
+                    <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+                      <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+                <span style={{ fontSize: '16px', color: '#262626' }}>Add to comparison</span>
+              </button>
+            ) : (
+              /* Select & Configure — flex-[1_0_0] h-44 bg-[#262626] — Figma 326:6702 */
+              <button
+                onClick={isCenter ? onContinue : () => onSelect(optIdx)}
+                className="flex items-center justify-center hover:opacity-90 transition-opacity rounded-[4px]"
+                style={{
+                  flex: '1 0 0', height: '44px', padding: '6px 16px',
+                  backgroundColor: '#262626', color: 'white',
+                  fontSize: '16px', fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
+                }}
+              >
+                Select &amp; Configure
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="min-h-screen bg-white"
+      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", paddingBottom: '72px' }}
+    >
       {/* Nav */}
       <nav className="h-[72px] flex items-center justify-between" style={{ padding: '0 15.1%' }}>
         <button className="size-6 flex items-center justify-center text-[#262626]">
@@ -661,53 +759,110 @@ function OptionsScreen({
         </button>
       </nav>
 
-      {/* ── Image carousel + arrows (relative wrapper so arrows can overlay ghost areas) ── */}
-      <div className="relative" style={{ height: '471px' }}>
-        {/* Carousel */}
-        <div className="overflow-hidden absolute inset-0">
-          <div
-            className="absolute flex"
-            style={{ gap: '20px', width: '2440px', left: '50%', transform: 'translateX(-50%)' }}
-          >
-            {/* Left ghost */}
-            <div
-              className="relative flex-shrink-0 overflow-hidden cursor-pointer"
-              style={{ width: '800px', height: '471px', opacity: 0.3 }}
-              onClick={() => { setHasSwitched(true); onSelect(prev) }}
-            >
-              <Image src={odaOptions[prev].images[0]} alt="" fill className="object-cover" sizes="800px" />
-            </div>
-            {/* Center */}
-            <div className="relative flex-shrink-0 overflow-hidden" style={{ width: '800px', height: '471px' }}>
-              <Image src={option.images[0]} alt="" fill className="object-cover" sizes="800px" priority />
-            </div>
-            {/* Right ghost */}
-            <div
-              className="relative flex-shrink-0 overflow-hidden cursor-pointer"
-              style={{ width: '800px', height: '471px', opacity: 0.3 }}
-              onClick={() => { setHasSwitched(true); onSelect(next) }}
-            >
-              <Image src={odaOptions[next].images[0]} alt="" fill className="object-cover" sizes="800px" />
-            </div>
-          </div>
+      {/* ── Cards carousel container ──
+          overflow-x-hidden clips side cards; center card in normal flow sets height.
+          Side cards are absolute top-0 with same structure → same height.
+      */}
+      <div className="relative overflow-hidden">
+        {/* Side cards (absolutely positioned, clipped by overflow-hidden) */}
+        {renderCard(prev, 'left')}
+        {renderCard(next, 'right')}
+
+        {/* Center card — in normal flow to set container height */}
+        <div style={{ width: '800px', marginLeft: 'auto', marginRight: 'auto', position: 'relative', zIndex: 1 }}>
+          {/* Render center card inline (not via renderCard) to keep in flow */}
+          {(() => {
+            const opt = odaOptions[selectedOption]
+            const isChecked = compareSelected.includes(selectedOption)
+            return (
+              <div
+                className="flex flex-col"
+                style={{
+                  width: '800px',
+                  backgroundColor: '#fbfbfb',
+                  gap: '24px',
+                  paddingBottom: '32px',
+                  boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
+                  border: compareMode && isChecked ? '2px solid #000000' : '2px solid transparent',
+                }}
+              >
+                <div className="relative w-full shrink-0" style={{ aspectRatio: '800/471' }}>
+                  <Image src={opt.images[0]} alt="" fill className="object-cover" sizes="800px" priority />
+                </div>
+                <div className="flex flex-col items-start px-[28px]" style={{ gap: '28px' }}>
+                  <div className="flex flex-col items-start w-full" style={{ gap: '8px', lineHeight: 'normal', fontStyle: 'normal' }}>
+                    <p style={{ fontSize: '24px', fontWeight: 400, color: '#262626', letterSpacing: '1.92px', width: '100%' }}>
+                      {opt.title}
+                    </p>
+                    <p style={{ fontSize: '16px', fontWeight: 300, color: '#262626', width: '100%' }}>
+                      {opt.subtitle}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-start w-full" style={{ gap: '4px', fontSize: '16px', fontWeight: 300, color: '#262626', letterSpacing: '-0.16px', lineHeight: 'normal', fontStyle: 'normal' }}>
+                    <p>{opt.materials[0]}</p>
+                    <p>{opt.deliveryDays} Days Estimate Delivery Time</p>
+                    <p>Starting from {formatPrice(opt.priceFrom)} USD</p>
+                  </div>
+                  <div className="flex items-center justify-end w-full">
+                    {compareMode ? (
+                      <button
+                        className="flex items-center"
+                        style={{ gap: '12px', height: '44px', flex: '1 0 0' }}
+                        onClick={() => toggleCompareOption(selectedOption)}
+                      >
+                        <div
+                          className="flex items-center justify-center flex-shrink-0"
+                          style={{
+                            width: '24px', height: '24px',
+                            backgroundColor: isChecked ? '#262626' : 'transparent',
+                            border: isChecked ? 'none' : '1.5px solid #262626',
+                            borderRadius: '2px',
+                          }}
+                        >
+                          {isChecked && (
+                            <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+                              <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '16px', color: '#262626' }}>Add to comparison</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={onContinue}
+                        className="flex items-center justify-center hover:opacity-90 transition-opacity rounded-[4px]"
+                        style={{
+                          flex: '1 0 0', height: '44px', padding: '6px 16px',
+                          backgroundColor: '#262626', color: 'white',
+                          fontSize: '16px', fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
+                        }}
+                      >
+                        Select &amp; Configure
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
-        {/* Left Arrow — x=240, y=356 on 1440px page */}
+        {/* Left arrow — Figma: left:240px, top:467px from page; relative to container: left:calc(50%-480px), top:356px */}
         <button
-          onClick={() => { setHasSwitched(true); onSelect(prev) }}
+          onClick={() => onSelect(prev)}
           className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
-          style={{ width: '48px', height: '48px', left: 'calc(50% - 480px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px' }}
+          style={{ width: '48px', height: '48px', left: 'calc(50% - 480px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px', zIndex: 2 }}
         >
           <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
             <path d="M8 2L2 8L8 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
-        {/* Right Arrow — x=1152, y=356 on 1440px page */}
+        {/* Right arrow — Figma: left:1152px, top:467px from page; relative to container: left:calc(50%+432px), top:356px */}
         <button
-          onClick={() => { setHasSwitched(true); onSelect(next) }}
+          onClick={() => onSelect(next)}
           className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
-          style={{ width: '48px', height: '48px', left: 'calc(50% + 432px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px' }}
+          style={{ width: '48px', height: '48px', left: 'calc(50% + 432px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px', zIndex: 2 }}
         >
           <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
             <path d="M2 2L8 8L2 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -715,115 +870,51 @@ function OptionsScreen({
         </button>
       </div>
 
-      {/* ── Info card — bg-[#fbfbfb], 800px, shadow, pb-32 ── */}
-      <div
-        className="mx-auto bg-[#fbfbfb] flex flex-col pb-[32px]"
-        style={{
-          width: '800px',
-          gap: '24px',
-          boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
-        }}
-      >
-        {/* Text content area: px-28, gap-28 */}
-        <div className="flex flex-col px-[28px] pt-[24px]" style={{ gap: '28px' }}>
-
-          {/* Title + subtitle */}
-          <div className="flex flex-col" style={{ gap: '8px' }}>
-            <p className="text-[24px] text-[#262626] tracking-[1.92px]">
-              {option.title.replace('—', '-')}
-            </p>
-            <p className="text-[16px] text-[#262626]" style={{ fontWeight: 300 }}>
-              Modern Eclecticism, Balancing Comfort and Refinement.
-            </p>
-          </div>
-
-          {/* Details: gap-4px, tracking -0.16px, semilight */}
-          <div className="flex flex-col text-[16px] text-[#262626]" style={{ gap: '4px', fontWeight: 300, letterSpacing: '-0.16px' }}>
-            <p>{option.materials[0]}</p>
-            <p>{option.deliveryDays} Days Estimate Delivery Time</p>
-            <p>Starting from {formatPrice(option.priceFrom)} USD</p>
-          </div>
-
-          {/* CTA area: Select & Configure OR Add to comparison checkbox */}
-          {compareMode ? (
-            /* Compare mode: checkbox row (h-44, gap-12) */
-            <button
-              className="flex items-center"
-              style={{ gap: '12px', height: '44px' }}
-              onClick={() => toggleCompareOption(selectedOption)}
-            >
-              <div
-                className="flex items-center justify-center flex-shrink-0"
-                style={{
-                  width: '24px', height: '24px',
-                  backgroundColor: isChecked ? '#262626' : 'transparent',
-                  border: isChecked ? 'none' : '1.5px solid #262626',
-                  borderRadius: '2px',
-                }}
-              >
-                {isChecked && (
-                  <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
-                    <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-[16px] text-[#262626]">Add to comparison</span>
-            </button>
-          ) : (
-            /* Default: Select & Configure — full-width dark button */
-            <button
-              onClick={onContinue}
-              className="w-full flex items-center justify-center bg-[#262626] text-white text-[16px] font-semibold rounded-[4px] hover:opacity-90 transition-opacity"
-              style={{ height: '44px', padding: '6px 16px' }}
-            >
-              Select &amp; Configure
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Pagination dots */}
-      <div className="flex items-center justify-center mt-6 pb-10" style={{ gap: '8px' }}>
+      {/* Pagination dots — Figma 209:926: gap-8, h-4, w-40 each */}
+      <div className="flex items-center justify-center" style={{ gap: '8px', paddingTop: '24px', paddingBottom: '40px' }}>
         {odaOptions.map((_, i) => (
           <button
             key={i}
-            onClick={() => { setHasSwitched(true); onSelect(i) }}
+            onClick={() => onSelect(i)}
             className="transition-all duration-300 rounded-[4px]"
             style={{
-              width: '40px',
-              height: '4px',
+              width: '40px', height: '4px',
               backgroundColor: i === selectedOption ? '#262626' : '#f1f0f0',
             }}
           />
         ))}
       </div>
 
-      {/* ── Sticky bottom bar — only shown after user has switched options ── */}
-      {(hasSwitched || compareMode) && <div
+      {/* ── Sticky bottom bar — always visible — Figma 326:6704 ── */}
+      <div
         className="fixed bottom-0 left-0 right-0 bg-white flex items-center"
-        style={{ height: '72px', padding: '0 15.1%', boxShadow: '0px -8px 32px 0px rgba(123,123,123,0.1)', zIndex: 50 }}
+        style={{ height: '72px', padding: '0 80px', boxShadow: '0px -8px 32px 0px rgba(123,123,123,0.1)', zIndex: 50 }}
       >
         {!compareMode ? (
-          /* Default state */
-          <div className="flex items-center w-full" style={{ gap: '24px' }}>
-            <p className="font-semibold text-[14px] text-[#262626] flex-shrink-0">
+          /* Default — Figma 326:6705 */
+          <div className="flex items-center flex-1" style={{ gap: '24px', height: '48px', padding: '0 8px' }}>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: '#262626', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 'normal' }}>
               Need support choosing a option?
             </p>
-            <p className="text-[14px] text-[#262626] flex-1" style={{ fontWeight: 300 }}>
+            <p style={{ fontSize: '14px', fontWeight: 300, color: '#262626', flex: '1 0 0', textAlign: 'right', lineHeight: 'normal' }}>
               Compare different options to help you decide which one fits you best.
             </p>
+            {/* Compare Options button — Figma 326:6811: border, h-40, rounded-4 */}
             <button
               onClick={enterCompare}
-              className="flex-shrink-0 flex items-center border border-[#262626] text-[#262626] text-[14px] hover:bg-[#262626] hover:text-white transition-colors"
-              style={{ height: '40px', padding: '6px 16px', borderRadius: '4px' }}
+              style={{
+                height: '40px', padding: '6px 16px',
+                border: '1px solid #262626', borderRadius: '4px',
+                backgroundColor: 'white', color: 'rgba(0,0,0,0.85)',
+                fontSize: '14px', fontWeight: 400, flexShrink: 0, lineHeight: 'normal',
+              }}
             >
               Compare Options
             </button>
           </div>
         ) : (
           /* Compare active state */
-          <div className="flex items-center w-full" style={{ gap: '24px' }}>
-            {/* Two option slots */}
+          <div className="flex items-center flex-1" style={{ gap: '24px' }}>
             <div className="flex flex-shrink-0" style={{ gap: '12px' }}>
               {[0, 1].map(slotIdx => (
                 compareSelected[slotIdx] !== undefined ? (
@@ -832,7 +923,7 @@ function OptionsScreen({
                     style={{ width: '240px', height: '40px', border: '1px solid #262626', borderRadius: '4px', padding: '0 16px' }}
                   >
                     <span className="text-[12px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap flex-1 mr-2">
-                      {odaOptions[compareSelected[slotIdx]].title.replace('—', '-')}
+                      {odaOptions[compareSelected[slotIdx]].title}
                     </span>
                     <button
                       className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
@@ -853,27 +944,22 @@ function OptionsScreen({
                 )
               ))}
             </div>
-
-            <p className="text-[14px] text-[#262626] flex-1" style={{ fontWeight: 300 }}>
+            <p style={{ fontSize: '14px', fontWeight: 300, color: '#262626', flex: 1 }}>
               Select 2 options to start comparing
             </p>
-
-            {/* Compare Options button */}
             <button
               disabled={!canCompare}
               onClick={() => canCompare && window.open(`/compare?a=${compareSelected[0]}&b=${compareSelected[1]}`, '_blank')}
-              className="flex-shrink-0 flex items-center text-white text-[14px] transition-opacity"
               style={{
                 height: '40px', padding: '6px 16px', borderRadius: '4px',
-                backgroundColor: 'rgba(0,0,0,0.85)',
+                backgroundColor: 'rgba(0,0,0,0.85)', color: 'white',
+                fontSize: '14px', flexShrink: 0,
                 opacity: canCompare ? 1 : 0.5,
                 cursor: canCompare ? 'pointer' : 'not-allowed',
               }}
             >
               Compare Options
             </button>
-
-            {/* Exit compare mode */}
             <button
               onClick={exitCompare}
               className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
@@ -885,8 +971,7 @@ function OptionsScreen({
             </button>
           </div>
         )}
-      </div>}
-
+      </div>
     </div>
   )
 }
@@ -1143,25 +1228,48 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
 }
 
 // ─── Product Detail Modal (Figma 330:3263) ─────────────────────────────────────
+// Left gallery: 3 product photos of the CURRENTLY SELECTED variant (clicking thumb → main image)
+// Right swatches: alternative material/variant options — clicking a swatch:
+//   1. updates left gallery to that variant's photos
+//   2. updates displayed price
+//   3. changes button state (selected vs not selected)
 function ProductDetailModal({
   item,
   sectionName,
-  sectionItems,
+  onSelect,
   onClose,
 }: {
   item: ODAItem
   sectionName: string
-  sectionItems: ODAItem[]
+  onSelect: (swatchIdx: number) => void
   onClose: () => void
 }) {
   const swatches = item.swatches ?? item.addonSwatches ?? []
-  const [activeSwatchIdx, setActiveSwatchIdx] = useState(item.selectedSwatch ?? item.selectedAddonSwatch ?? 0)
+  const initialSwatch = item.selectedSwatch ?? item.selectedAddonSwatch ?? 0
+  const [activeSwatchIdx, setActiveSwatchIdx] = useState(initialSwatch)
   const [activeThumb, setActiveThumb] = useState(0)
 
-  const thumbs = swatches.length > 0 ? swatches : item.previewImage ? [item.previewImage] : []
-  const mainImage = thumbs[activeThumb] ?? item.previewImage ?? THUMB_BASE_SCOPE
+  // Left gallery images: use per-swatch photos if available, else fall back to item's productImages
+  const getImagesForSwatch = (idx: number): string[] => {
+    if (item.swatchProductImages?.[idx]?.length) return item.swatchProductImages[idx]
+    if (item.productImages?.length) return item.productImages
+    if (item.previewImage) return [item.previewImage]
+    return [THUMB_BASE_SCOPE]
+  }
+  const currentImages = getImagesForSwatch(activeSwatchIdx)
+  const mainImage = currentImages[activeThumb] ?? currentImages[0]
 
-  const alternativeItems = sectionItems.filter(i => i.id !== item.id)
+  // Price for the currently displayed swatch variant
+  const swatchPrices = item.swatchPrices ?? item.addonSwatchPrices
+  const displayPrice = swatchPrices?.[activeSwatchIdx] ?? getItemPrice(item)
+
+  // Button state: is the currently shown swatch the one already saved as selected?
+  const isCurrentlySelected = activeSwatchIdx === initialSwatch
+
+  const handleSwatchClick = (idx: number) => {
+    setActiveSwatchIdx(idx)
+    setActiveThumb(0) // reset to first photo of the new variant
+  }
 
   return (
     <div
@@ -1170,11 +1278,11 @@ function ProductDetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-white w-full relative flex flex-col"
-        style={{ height: '767px', borderRadius: '16px 16px 0 0', boxShadow: '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.2)', gap: '16px' }}
+        className="bg-white w-full flex flex-col"
+        style={{ height: '767px', borderRadius: '16px 16px 0 0', boxShadow: '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.20)', gap: '16px' }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header: close button */}
+        {/* Header row: close button pinned right — padding 16px top, 16px horizontal */}
         <div className="flex justify-end flex-shrink-0" style={{ padding: '16px 16px 0' }}>
           <button
             onClick={onClose}
@@ -1187,117 +1295,117 @@ function ProductDetailModal({
           </button>
         </div>
 
-        {/* Body */}
+        {/* Body: flex row, gap 40px, padding 0 64px */}
         <div className="flex flex-1 min-h-0" style={{ gap: '40px', padding: '0 64px 24px' }}>
-          {/* Left: Image gallery */}
-          <div className="flex flex-col justify-between" style={{ width: '640px', flexShrink: 0 }}>
-            {/* Main image */}
-            <div className="relative rounded-[8px] overflow-hidden w-full" style={{ aspectRatio: '732/510' }}>
-              {mainImage && (
-                <Image src={mainImage} alt="" fill className="object-cover" sizes="640px" />
-              )}
+
+          {/* Left column: 840px wide, flex col, justify-between */}
+          <div className="flex flex-col justify-between flex-shrink-0" style={{ width: '840px', paddingBottom: '24px' }}>
+            {/* Hero image: aspect 732:510, border-radius 8px */}
+            <div className="relative w-full rounded-[8px] overflow-hidden" style={{ aspectRatio: '732/510' }}>
+              <Image src={mainImage} alt="" fill className="object-cover" sizes="840px" />
             </div>
-            {/* Thumbnails */}
-            {thumbs.length > 1 && (
-              <div className="flex flex-wrap" style={{ gap: '8px' }}>
-                {thumbs.map((src, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setActiveThumb(i); setActiveSwatchIdx(i) }}
-                    className="rounded-[4px] overflow-hidden flex-shrink-0 p-[2px]"
-                    style={{
-                      width: '86px', height: '64px',
-                      border: i === activeThumb ? '1.5px solid #000000' : '1.5px solid transparent',
-                    }}
-                  >
-                    <div className="relative w-full h-full rounded-[2px] overflow-hidden">
-                      <Image src={src} alt="" fill className="object-cover" sizes="86px" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+
+            {/* Thumbnail strip: 3 photos of the current product — gap 8px, 86×64 each */}
+            <div className="flex" style={{ gap: '8px' }}>
+              {currentImages.map((src, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveThumb(i)}
+                  className="flex-shrink-0 rounded-[4px] p-[2px]"
+                  style={{
+                    width: '86px', height: '64px',
+                    border: i === activeThumb ? '1.5px solid #000000' : '1.5px solid transparent',
+                  }}
+                >
+                  <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                    <Image src={src} alt="" fill className="object-cover" sizes="86px" />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Right: Product info */}
-          <div className="flex flex-1 flex-col overflow-y-auto" style={{ gap: '24px', fontFamily: "'Segoe UI', sans-serif" }}>
-            {/* Category & area */}
-            <div className="flex flex-col flex-shrink-0" style={{ gap: '4px' }}>
-              <p className="font-semibold text-[16px] text-[#262626]">{sectionName}</p>
-              <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>1,240 SQF.</p>
-            </div>
+          {/* Right column — matches Figma 330:3285: flex-[1_0_0] h-full items-start gap-24px */}
+          <div
+            className="flex flex-col items-start overflow-y-auto"
+            style={{
+              flex: '1 0 0', height: '100%',
+              gap: '24px',
+              fontFamily: "'Segoe UI', sans-serif",
+              minWidth: 0,
+            }}
+          >
+            {/* Top info block: shrink-0, gap 32px, items-start, w-full — Figma 330:3589 */}
+            <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: '32px' }}>
 
-            {/* Swatches */}
-            {swatches.length > 0 && (
-              <div className="flex flex-wrap flex-shrink-0" style={{ gap: '10px' }}>
-                {swatches.map((src, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setActiveSwatchIdx(i); setActiveThumb(i < thumbs.length ? i : 0) }}
-                    className="rounded-[4px] overflow-hidden flex-shrink-0 p-[2px]"
-                    style={{
-                      width: '64px', height: '64px',
-                      border: i === activeSwatchIdx ? '1.5px solid #000000' : '1.5px solid transparent',
-                      outline: 'none',
-                    }}
-                  >
-                    <div className="relative w-full h-full rounded-[2px] overflow-hidden">
-                      <Image src={src} alt="" fill className="object-cover" sizes="64px" />
-                    </div>
-                  </button>
-                ))}
+              {/* Header block: gap 12px, items-start, shrink-0 — Figma 330:3577 */}
+              <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: '12px' }}>
+                {/* Labels: gap 4px, leading-normal, not-italic — Figma 330:3613 */}
+                <div className="flex flex-col items-start w-full" style={{ gap: '4px', lineHeight: 'normal', fontStyle: 'normal' }}>
+                  <p style={{ fontSize: '16px', fontWeight: 600, color: '#262626', width: '100%' }}>{sectionName}</p>
+                  <p style={{ fontSize: '16px', fontWeight: 400, color: '#737373', letterSpacing: '-0.64px', width: '100%' }}>1,240 SQF.</p>
+                </div>
+
+                {/* Alternative product swatches — gap 10px, items-center, shrink-0 — Figma 330:3605 */}
+                {swatches.length > 0 && (
+                  <div className="flex items-center flex-shrink-0" style={{ gap: '10px' }}>
+                    {swatches.map((src, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleSwatchClick(i)}
+                        className="flex-shrink-0 rounded-[4px]"
+                        style={{
+                          width: '64px', height: '64px',
+                          border: i === activeSwatchIdx ? '1.5px solid #000000' : '1.5px solid transparent',
+                          padding: '2px',
+                          outline: 'none',
+                        }}
+                      >
+                        <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                          <Image src={src} alt="" fill className="object-cover" sizes="64px" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* Title & description */}
-            <div className="flex flex-col flex-shrink-0" style={{ gap: '8px' }}>
-              <p className="font-semibold text-[20px] text-[#262626]" style={{ letterSpacing: '-0.8px' }}>{item.spec}</p>
-              <p className="text-[12px] text-[#262626]" style={{ fontWeight: 300, lineHeight: 1.6 }}>
-                A premium {sectionName.toLowerCase()} upgrade featuring superior craftsmanship and lasting durability.
-                Designed to complement contemporary interiors with an emphasis on quality materials and refined finishes.
-              </p>
+              {/* Product title + description: gap 16px, items-start, shrink-0 — Figma 330:3614 */}
+              <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: '16px', lineHeight: 'normal', fontStyle: 'normal' }}>
+                <p style={{ fontSize: '20px', fontWeight: 600, color: '#262626', letterSpacing: '-0.8px', width: '100%' }}>
+                  {item.spec}
+                </p>
+                <p style={{ fontSize: '12px', fontWeight: 300, color: '#262626', width: '100%' }}>
+                  A timeless {sectionName.toLowerCase()} upgrade that brings warmth and character to your home.
+                  The natural finish pairs with a considered layout to create a more elevated, custom-designed look.
+                </p>
+              </div>
+
+              {/* Price — updates per swatch — Figma 330:3592 */}
+              <div className="flex flex-col items-start w-full flex-shrink-0">
+                <p style={{ fontSize: '24px', fontWeight: 300, color: '#262626', lineHeight: 'normal', fontStyle: 'normal', width: '100%' }}>
+                  {formatPrice(displayPrice)}
+                </p>
+              </div>
             </div>
 
-            {/* Price */}
-            <p className="text-[24px] text-[#262626] flex-shrink-0" style={{ fontWeight: 300 }}>
-              {getItemPrice(item) > 0 ? formatPrice(getItemPrice(item)) : 'Included'}
-            </p>
-
-            {/* CTA */}
+            {/* CTA button — Figma 330:3583: shrink-0, auto-width (parent has items-start) */}
+            {/* selected → gray bg #737373 text #333; unselected → dark bg #262626 text #fff */}
             <button
-              className="flex items-center justify-center rounded-[4px] flex-shrink-0"
-              style={{ height: '44px', padding: '6px 16px', backgroundColor: '#737373', color: '#333333', fontFamily: 'Roboto, sans-serif', fontWeight: 600, fontSize: '14px' }}
+              className="flex items-center justify-center flex-shrink-0 rounded-[4px] transition-colors"
+              style={{
+                height: '44px', padding: '6px 16px',
+                backgroundColor: isCurrentlySelected ? '#737373' : '#262626',
+                color: isCurrentlySelected ? '#333333' : '#ffffff',
+                fontFamily: 'Roboto, sans-serif', fontWeight: 600, fontSize: '14px', lineHeight: '18px',
+                whiteSpace: 'nowrap',
+                cursor: isCurrentlySelected ? 'default' : 'pointer',
+              }}
+              onClick={() => { if (!isCurrentlySelected) onSelect(activeSwatchIdx) }}
             >
-              Product Selected
+              {isCurrentlySelected ? 'Product Selected' : 'Select Product'}
             </button>
 
-            {/* Similar products */}
-            {alternativeItems.length > 0 && (
-              <div className="flex flex-col" style={{ gap: '8px' }}>
-                <p className="font-semibold text-[14px] text-[#262626]">Similar Products</p>
-                <div className="flex flex-col">
-                  {alternativeItems.map(altItem => (
-                    <div key={altItem.id} className="flex items-center" style={{ gap: '12px', padding: '10px 0', borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
-                      <div className="relative rounded-[4px] overflow-hidden flex-shrink-0" style={{ width: '48px', height: '48px' }}>
-                        {(altItem.swatches?.[0] ?? altItem.addonSwatches?.[0] ?? altItem.previewImage) && (
-                          <Image
-                            src={altItem.swatches?.[0] ?? altItem.addonSwatches?.[0] ?? altItem.previewImage!}
-                            alt="" fill className="object-cover" sizes="48px"
-                          />
-                        )}
-                      </div>
-                      <div className="flex flex-1 flex-col min-w-0" style={{ gap: '2px' }}>
-                        <p className="text-[14px] font-semibold text-[#262626] truncate">{altItem.name}</p>
-                        <p className="text-[12px] text-[#737373] truncate">{altItem.spec}</p>
-                      </div>
-                      <p className="text-[14px] text-[#262626] flex-shrink-0" style={{ fontWeight: 300 }}>
-                        {getItemPrice(altItem) > 0 ? formatPrice(getItemPrice(altItem)) : 'Included'}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1327,7 +1435,7 @@ function DetailScreen({
   const [drawingModalOpen, setDrawingModalOpen] = useState(false)
   const [modalZoom, setModalZoom] = useState(1)
   const [productLayoutAlt, setProductLayoutAlt] = useState(false)
-  const [productDetailModal, setProductDetailModal] = useState<{ item: ODAItem; sectionName: string; sectionItems: ODAItem[] } | null>(null)
+  const [productDetailModal, setProductDetailModal] = useState<{ item: ODAItem; sectionName: string; onSelect: (swatchIdx: number) => void } | null>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
 
   const toggleSection = (sectionIdx: number) => {
@@ -1594,7 +1702,22 @@ function DetailScreen({
                             <p className="font-semibold text-[14px] text-[#262626] truncate">{item.name}</p>
                             <div className="flex items-center gap-2">
                               <p className="text-[14px] text-[#262626] truncate">{item.spec}</p>
-                              <InfoIcon />
+                              <button
+                                className="flex-shrink-0 hover:opacity-60 transition-opacity"
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  setProductDetailModal({
+                                    item,
+                                    sectionName: item.name,
+                                    onSelect: (swatchIdx: number) => {
+                                      selectAddonSwatch(sectionIdx, item.id, swatchIdx)
+                                      setProductDetailModal(null)
+                                    },
+                                  })
+                                }}
+                              >
+                                <InfoIcon />
+                              </button>
                             </div>
                             <p className="font-semibold text-[14px] text-[#737373]">{formatPrice(getItemPrice(item))}</p>
                           </div>
@@ -1643,7 +1766,21 @@ function DetailScreen({
                           </div>
                           <div className="flex items-center gap-2">
                             <p className="text-[14px] text-[#262626] truncate">{item.spec}</p>
-                            <InfoIcon />
+                            <button
+                              className="flex-shrink-0 hover:opacity-60 transition-opacity"
+                              onClick={() => {
+                                setProductDetailModal({
+                                  item,
+                                  sectionName: item.name,
+                                  onSelect: (swatchIdx: number) => {
+                                    selectSwatch(sectionIdx, item.id, swatchIdx)
+                                    setProductDetailModal(null)
+                                  },
+                                })
+                              }}
+                            >
+                              <InfoIcon />
+                            </button>
                           </div>
                           <p className="font-semibold text-[14px] text-[#737373]">
                             $ {getItemPrice(item).toLocaleString()}
@@ -1827,7 +1964,7 @@ function DetailScreen({
                 />
 
                 {/* Dynamic sections: standard items always shown, add-ons only if selected */}
-                {sections.map(section => {
+                {sections.map((section, sectionIdx) => {
                   const lineItems: SummaryLineItem[] = section.items
                     .filter(item => !item.isAddon || item.selected)
                     .map(item => ({
@@ -1840,8 +1977,6 @@ function DetailScreen({
                         : item.swatches?.[item.selectedSwatch ?? 0],
                       showChange: true,
                       odaItem: item,
-                      sectionName: section.name,
-                      sectionItems: section.items,
                     }))
                   if (lineItems.length === 0) return null
                   return (
@@ -1850,11 +1985,22 @@ function DetailScreen({
                       name={section.name}
                       items={lineItems}
                       layoutAlt={productLayoutAlt}
-                      onInfoClick={lineItem => lineItem.odaItem && setProductDetailModal({
-                        item: lineItem.odaItem,
-                        sectionName: lineItem.sectionName ?? section.name,
-                        sectionItems: lineItem.sectionItems ?? [],
-                      })}
+                      onInfoClick={lineItem => {
+                        if (!lineItem.odaItem) return
+                        const theItem = lineItem.odaItem
+                        setProductDetailModal({
+                          item: theItem,
+                          sectionName: theItem.name,
+                          onSelect: (swatchIdx: number) => {
+                            if (theItem.isAddon) {
+                              selectAddonSwatch(sectionIdx, theItem.id, swatchIdx)
+                            } else {
+                              selectSwatch(sectionIdx, theItem.id, swatchIdx)
+                            }
+                            setProductDetailModal(null)
+                          },
+                        })
+                      }}
                     />
                   )
                 })}
@@ -2013,7 +2159,7 @@ function DetailScreen({
         <ProductDetailModal
           item={productDetailModal.item}
           sectionName={productDetailModal.sectionName}
-          sectionItems={productDetailModal.sectionItems}
+          onSelect={productDetailModal.onSelect}
           onClose={() => setProductDetailModal(null)}
         />
       )}

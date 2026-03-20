@@ -1,0 +1,87 @@
+export const widgetPreviewMock = {
+  companyInfo: {
+    name: 'Northwind Outdoor Living',
+    tagline: 'Custom landscape builds for residential renovation projects.',
+    address: '250 Harbor Blvd, Suite 400, San Mateo, CA',
+    website: 'northwindoutdoor.com',
+  },
+  salesInfo: {
+    name: 'Mia Johnson',
+    title: 'Senior Design Consultant',
+    phone: '+1 (415) 555-0182',
+    email: 'mia.johnson@northwindoutdoor.com',
+    region: 'Bay Area / Peninsula',
+  },
+  productList: [
+    {
+      name: 'Travertine Paver Set',
+      subtitle: 'Premium exterior stone finish',
+      quantity: '24 pcs',
+      amount: '$1,920.00',
+    },
+    {
+      name: 'Outdoor Lighting Kit',
+      subtitle: 'Warm path lighting with controller',
+      quantity: '12 sets',
+      amount: '$840.00',
+    },
+    {
+      name: 'Custom Pergola Frame',
+      subtitle: 'Powder-coated aluminum structure',
+      quantity: '1 unit',
+      amount: '$3,250.00',
+    },
+    {
+      name: 'Drainage & Disposal',
+      subtitle: 'Site prep and waste handling',
+      quantity: '1 lot',
+      amount: '$1,180.00',
+    },
+  ],
+  productSummary: [
+    { label: 'Subtotal', value: '$7,190.00' },
+    { label: 'Markup', value: '$1,438.00' },
+    { label: 'Sales Tax', value: '$712.14' },
+    { label: 'Total', value: '$9,340.14' },
+  ],
+  plainProductList: {
+    headline: 'We proposal to install',
+    items: [
+      '20 ft 6’ Cedar PostMaster Fence',
+      '2 5’ Wide 6’ Tall Cedar PostMaster Gate',
+      '62.8 sq ft 5’ Wide 6’ Area',
+      '186.08 ft Fence removal and haul off',
+      '5 Other Fence Material',
+      '12 Add option Top Cap and Trim',
+    ],
+  },
+  paymentPlan: {
+    total: 18600,
+    stages: [
+      { label: 'Deposit', percent: 40, amount: 7440 },
+      { label: 'Mid Project', percent: 35, amount: 6510 },
+      { label: 'Final Sign-off', percent: 25, amount: 4650 },
+    ],
+  },
+  paymentSummary: [
+    { label: 'Example Category', value: '$16.00' },
+    { label: 'Line Products', value: '$17,328.00' },
+    { label: 'Area Products', value: '$26,300.00' },
+    { label: 'Shape Products', value: '$500.00' },
+    { label: 'Other Items', value: '$20.00' },
+  ],
+  paymentDetails: [
+    { label: 'Total investment', value: '$52,996.80', emphatic: true },
+    { label: 'Discount amount', value: '(-30%) -$15,899.04' },
+    { label: 'Sales tax', value: '(8.25%) $3,060.57' },
+    { label: 'Total contract price', value: '$40,158.33', emphatic: true },
+    { label: 'Deposit required', value: '' },
+    { label: 'Deposit paid', value: '$7,951.65' },
+    { label: 'Amount due upon completion', value: '$32,206.68', emphatic: true },
+    { label: 'Payment method', value: 'Financing' },
+    { label: 'Estimated monthly payment', value: '$893.75', nested: true },
+    { label: 'Loan amount', value: '$30,000.00', nested: true },
+    { label: 'Term', value: '36 months', nested: true },
+    { label: 'Interest rate', value: '4.6%', nested: true },
+  ],
+};

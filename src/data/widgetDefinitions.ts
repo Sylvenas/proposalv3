@@ -1,0 +1,86 @@
+import type { Widget } from '@/components/widget-builder/types';
+
+export const WIDGETS: Widget[] = [
+  {
+    id: 'company-info',
+    label: 'Company Info',
+    category: 'Company',
+    icon: '◧',
+    accent: 'var(--builder-accent-amber)',
+    defaultSize: { w: 300, h: 160 },
+    fields: [
+      { key: 'name', label: 'Name', placeholder: 'Company name placeholder', type: 'text' },
+      { key: 'logo', label: 'Logo', placeholder: 'Brand mark area', type: 'image' },
+      { key: 'tagline', label: 'Summary', placeholder: 'Short company summary used for layout', type: 'text' },
+    ],
+  },
+  {
+    id: 'sales-info',
+    label: 'Sales Info',
+    category: 'Sales',
+    icon: '◇',
+    accent: 'var(--builder-accent-sage)',
+    defaultSize: { w: 280, h: 200 },
+    fields: [
+      { key: 'name', label: 'Name', placeholder: 'Sales rep placeholder', type: 'text' },
+      { key: 'phone', label: 'Phone', placeholder: 'Phone number placeholder', type: 'text' },
+      { key: 'email', label: 'Email', placeholder: 'Email placeholder', type: 'text' },
+      { key: 'region', label: 'Region', placeholder: 'Region or team placeholder', type: 'text' },
+    ],
+  },
+  {
+    id: 'product-list-priced',
+    label: 'Priced List',
+    category: 'Products',
+    group: 'Product List',
+    icon: '▤',
+    accent: 'var(--builder-accent-coral)',
+    defaultSize: { w: 480, h: 300 },
+    fields: [
+      { key: 'item-1', label: 'Item 1', placeholder: 'Travertine Tile × 24 · $1,920', type: 'list' },
+      { key: 'item-2', label: 'Item 2', placeholder: 'Outdoor Lighting Kit × 12 · $840', type: 'list' },
+      { key: 'item-3', label: 'Item 3', placeholder: 'Pergola Frame × 1 · $3,250', type: 'list' },
+      { key: 'media', label: 'Image', placeholder: 'Product thumbnail area', type: 'image' },
+    ],
+  },
+  {
+    id: 'product-list-plain',
+    label: 'Plain List',
+    category: 'Products',
+    group: 'Product List',
+    icon: '≣',
+    accent: 'var(--builder-accent-coral)',
+    defaultSize: { w: 440, h: 240 },
+    fields: [
+      { key: 'headline', label: 'Headline', placeholder: 'We propose to install', type: 'text' },
+      { key: 'bullet-1', label: 'Bullet 1', placeholder: 'Primary scope item', type: 'list' },
+      { key: 'bullet-2', label: 'Bullet 2', placeholder: 'Secondary scope item', type: 'list' },
+      { key: 'bullet-3', label: 'Bullet 3', placeholder: 'Additional scope item', type: 'list' },
+    ],
+  },
+  {
+    id: 'payment-plan',
+    label: 'Payment Plan',
+    category: 'Payment',
+    icon: '△',
+    accent: 'var(--builder-accent-ink)',
+    defaultSize: { w: 420, h: 340 },
+    fields: [
+      { key: 'total', label: 'Total', placeholder: 'Project total amount', type: 'text' },
+      { key: 'phase-1', label: 'Deposit', placeholder: 'Payment phase one', type: 'text' },
+      { key: 'phase-2', label: 'Mid Payment', placeholder: 'Payment phase two', type: 'text' },
+      { key: 'phase-3', label: 'Final Payment', placeholder: 'Payment final phase', type: 'text' },
+    ],
+  },
+  {
+    id: 'help-center',
+    label: 'Help Bubble',
+    category: 'Help Center',
+    icon: '◎',
+    accent: 'var(--builder-accent-ink)',
+    defaultSize: { w: 72, h: 72 },
+    fields: [
+      { key: 'icon', label: 'Icon', placeholder: 'Help icon', type: 'image' },
+    ],
+  },
+];
