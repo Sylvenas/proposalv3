@@ -1,5 +1,11 @@
-import proposalTemplate from '../../proposal-pdf/data.json';
-import { getRawWidgetHtml, type WidgetVars } from '../../proposal-pdf/proposal-preview-data';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import proposalTemplate from '@/shared/proposal-pdf/data.json';
+import {
+  getRawWidgetHtml,
+  type WidgetVars,
+} from '@/shared/proposal-pdf/proposal-preview-data';
 
 type Fragment = {
   fragment_type: string;
@@ -183,7 +189,10 @@ function buildRawHtml(fragments: Fragment[]) {
   const body = fragments
     .flatMap((fragment) => {
       if (fragment.fragment_type === 'INCLUDE_WIDGET' && fragment.widget_name) {
-        const widgetHtml = getRawWidgetHtml(fragment.widget_name, fragment.widget_vars_value ?? null);
+        const widgetHtml = getRawWidgetHtml(
+          fragment.widget_name,
+          fragment.widget_vars_value ?? null
+        );
         return widgetHtml ? [widgetHtml] : [fragment.render_html ?? ''];
       }
 
@@ -206,7 +215,7 @@ function buildRawHtml(fragments: Fragment[]) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Proposal PDF Raw Embed</title>
+    <title>Proposal HTML Render</title>
     ${styleTag}
   </head>
   <body>
@@ -215,20 +224,36 @@ function buildRawHtml(fragments: Fragment[]) {
 </html>`;
 }
 
-export default function ProposalPdf2EmbedPage() {
+function escapeAttribute(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+export default function ProposalHtmlRenderPage() {
   const fragments = proposalTemplate.data.template_object.fragments as Fragment[];
-  const srcDoc = buildRawHtml(fragments);
+  const innerSrcDoc = buildRawHtml(fragments);
+
+  const htmlPath = path.join(process.cwd(), 'public', 'proposal-pdf3', 'index.html');
+  const outerHtml = fs.readFileSync(htmlPath, 'utf8');
+
+  const htmlWithEmbeddedModule = outerHtml.replace(
+    'src="/proposal-pdf3/embed"',
+    `srcdoc="${escapeAttribute(innerSrcDoc)}" src="about:blank"`
+  );
 
   return (
     <iframe
-      title="Proposal PDF raw embed"
-      srcDoc={srcDoc}
+      title="Proposal HTML render"
+      srcDoc={htmlWithEmbeddedModule}
       style={{
         width: '100%',
-        minHeight: '3600px',
+        minHeight: '100vh',
         border: '0',
         display: 'block',
-        background: '#fff',
+        background: '#fafafa',
       }}
     />
   );

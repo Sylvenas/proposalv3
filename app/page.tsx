@@ -1,5 +1,77 @@
-import App from '../src/App';
+import Link from 'next/link';
 
-export default function Page() {
-  return <App />;
+const pages = [
+  {
+    href: '/proposal-future-blueprint',
+    title: 'Proposal Future Blueprint',
+    description:
+      'A future-facing blueprint page that outlines the proposal direction and goals for the next one to two years.',
+  },
+  {
+    href: '/proposal-html-render',
+    title: 'Proposal HTML Render',
+    description:
+      'An updated proposal experience that keeps the existing structure but renders the PDF area using HTML.',
+  },
+  {
+    href: '/homeowner-site-proposal-builder',
+    title: 'Homeowner Site Proposal Builder',
+    description:
+      'Build the overall layout and content of a homeowner proposal site through drag-and-drop widgets, similar to assembling a personalized campaign page.',
+  },
+  {
+    href: '/initial-draft',
+    title: 'Initial Draft',
+    description:
+      'The first draft version of the proposal experience, preserved as the earliest prototype.',
+  },
+];
+
+export default function HomePage() {
+  return (
+    <main className="min-h-screen px-6 py-8 text-[color:var(--arc-ink)] sm:px-8 lg:px-10">
+      <div className="mx-auto max-w-6xl">
+        <header className="border-b border-[color:var(--arc-border)] pb-5">
+          <p className="m-0 text-[12px] tracking-[0.16em] text-[color:var(--arc-muted)]">
+            Project Navigation
+          </p>
+          <h1 className="m-0 mt-2 text-[1.8rem] font-semibold tracking-[-0.04em]">
+            Proposal Prototype Pages
+          </h1>
+          <p className="m-0 mt-2 max-w-3xl text-[14px] leading-6 text-[color:var(--arc-muted)]">
+            Use this page as the index for all current prototype routes. Each card
+            includes a short description and a direct link.
+          </p>
+        </header>
+
+        <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {pages.map((page) => (
+            <Link
+              key={page.href}
+              href={page.href}
+              className="group rounded-lg border border-[color:var(--arc-border)] bg-white px-4 py-4 transition hover:border-[color:var(--arc-orange)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="m-0 text-[1.05rem] font-semibold tracking-[-0.02em] text-[color:var(--arc-ink)]">
+                    {page.title}
+                  </h2>
+                  <p className="m-0 mt-2 text-[13px] leading-6 text-[color:var(--arc-muted)]">
+                    {page.description}
+                  </p>
+                </div>
+                <span className="mt-0.5 text-[13px] text-[color:var(--arc-orange)] transition group-hover:translate-x-0.5">
+                  Open
+                </span>
+              </div>
+
+              <div className="mt-3 border-t border-[color:var(--arc-border)] pt-3 text-[12px] text-[color:var(--arc-muted)]">
+                {page.href}
+              </div>
+            </Link>
+          ))}
+        </section>
+      </div>
+    </main>
+  );
 }

@@ -1,5 +1,5 @@
 import WidgetBuilderEditor from '@/components/widget-builder/WidgetBuilderEditor';
 
-export default function DynamicProposalBuilderPage() {
+export default function HomeownerSiteProposalBuilderPage() {
   return <WidgetBuilderEditor />;
 }

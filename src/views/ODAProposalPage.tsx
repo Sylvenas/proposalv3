@@ -481,7 +481,7 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
                         {/* CTA */}
                         <div className="bg-black flex items-center justify-center px-[16px] py-[6px] rounded-[2px] flex-shrink-0" style={{ height: 40 }}>
                           <button
-                            onClick={() => window.open('/proposal-v2?screen=landing', '_blank')}
+                            onClick={() => window.open('/proposal-future-blueprint?screen=landing', '_blank')}
                             className="font-semibold text-[14px] text-white leading-[18px] text-center whitespace-nowrap"
                           >
                             Review My Proposal
