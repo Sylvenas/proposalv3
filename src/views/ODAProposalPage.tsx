@@ -1,11 +1,16 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import Image from 'next/image'
 import { odaOptions, odaProjectInfo, THUMB_BASE_SCOPE, type ODAOption, type ODAItem } from '@/data/odaMockData'
 
 // Scale helper: pure CSS clamp — no JS resize listener needed, zero jitter
-const sv = (px: number) => `calc(${px} / 1440 * clamp(1440px, 100vw, 3840px))`
+const sv = (px: number) => `calc(${px} / 1440 * clamp(1280px, 100vw, 2560px))`
+
+const COMPARE_BASE_SCOPE = 'https://www.figma.com/api/mcp/asset/51981941-368d-42cc-b857-4efc43e45491'
+const COMPARE_INFO_ICON = 'https://www.figma.com/api/mcp/asset/18c9139d-35d9-423f-bba5-b49a22d84866'
+const INSPECTION_CLOSE_ICON = 'https://www.figma.com/api/mcp/asset/2f985f51-8ed2-4b21-a3f4-6ea1b0c78488'
+const INSPECTION_PHONE_ICON = 'https://www.figma.com/api/mcp/asset/0f6108b8-708f-4590-af43-3a49d4fe79ca'
 
 function getItemPrice(item: ODAItem): number {
   if (!item.isAddon) {
@@ -21,33 +26,22 @@ function formatPrice(n: number) {
   return '$' + n.toLocaleString()
 }
 
-// ─── ODA Geometric Logo ───────────────────────────────────────────────────────
-function ODALogo({ color = '#262626', size = 'md' }: { color?: string; size?: 'sm' | 'md' | 'lg' }) {
-  const scales = { sm: 0.7, md: 1, lg: 1.4 }
+// ─── Company Logo ─────────────────────────────────────────────────────────────
+function ODALogo({ size = 'md' }: { color?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const scales = { sm: 1, md: 1.12, lg: 1.4 }
   const s = scales[size]
-  const svgW = Math.round(52 * s)
-  const svgH = Math.round(18 * s)
-  const fontSize = Math.round(9 * s)
-  const letterSpacing = Math.round(2.5 * s) / 10
+  const width = 124 * s
+  const height = 24 * s
+
   return (
-    <div className="flex items-center" style={{ gap: sv(8) }}>
-      <svg style={{ width: sv(svgW), height: sv(svgH) }} viewBox="0 0 52 18" fill="none">
-        {/* O — solid circle */}
-        <circle cx="9" cy="9" r="8.5" fill={color} />
-        {/* D — outline circle */}
-        <circle cx="26" cy="9" r="7.5" stroke={color} strokeWidth="2" fill="none" />
-        {/* A — solid triangle */}
-        <polygon points="43,0.5 52,17.5 34,17.5" fill={color} />
-      </svg>
-      <div>
-        <div style={{ color, fontSize: sv(fontSize), letterSpacing: `${letterSpacing}em`, fontWeight: 400, lineHeight: 1.2, textTransform: 'uppercase' }}>
-          Design &amp;
-        </div>
-        <div style={{ color, fontSize: sv(fontSize), letterSpacing: `${letterSpacing}em`, fontWeight: 400, lineHeight: 1.2, textTransform: 'uppercase' }}>
-          Architecture
-        </div>
-      </div>
-    </div>
+    <Image
+      src="/assets/company-logo-figma.png"
+      alt="Design & Architecture"
+      width={Math.round(width)}
+      height={Math.round(height)}
+      priority={size !== 'lg'}
+      style={{ width: sv(width), height: sv(height) }}
+    />
   )
 }
 
@@ -548,68 +542,453 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
   )
 }
 
-// ─── Screen 2: Landing ────────────────────────────────────────────────────────
-function LandingScreen({ onContinue }: { onContinue: () => void }) {
-  const { heroImage } = odaProjectInfo
+type InspectionMedia = {
+  type: 'image' | 'video'
+  src: string
+  thumbSrc?: string
+}
+
+type InspectionEntry = {
+  id: number
+  title: string
+  description: string
+  media: InspectionMedia[]
+}
+
+function InspectionDetailModal({
+  entries,
+  activeEntryIndex,
+  activeMediaIndex,
+  onClose,
+  onChangeEntry,
+  onChangeMedia,
+}: {
+  entries: InspectionEntry[]
+  activeEntryIndex: number
+  activeMediaIndex: number
+  onClose: () => void
+  onChangeEntry: (index: number) => void
+  onChangeMedia: (index: number) => void
+}) {
+  const entry = entries[activeEntryIndex]
+  const media = entry.media[activeMediaIndex] ?? entry.media[0]
+  const hasPrev = activeEntryIndex > 0
+  const hasNext = activeEntryIndex < entries.length - 1
 
   return (
-    <div className="min-h-screen bg-white"
-      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-      {/* Content container: scales from 1440px base, centered, max 3840px */}
-      <div style={{ width: sv(1440), margin: '0 auto', paddingBottom: sv(77) }}>
-
-        {/* Logo — above image on white background */}
-        <div style={{ padding: `${sv(39)} 0 ${sv(24)} ${sv(95)}` }}>
-          <ODALogo size="sm" />
-        </div>
-
-        {/* Hero image card with side margins */}
-        <div className="relative overflow-hidden" style={{ margin: `0 ${sv(95)}`, height: sv(845) }}>
-          <Image src={heroImage} alt="Architecture" fill className="object-cover" sizes="(max-width:1440px) calc(100vw - 190px), 1250px" priority />
-
-          {/* Gradient — bottom portion only */}
-          <div
-            className="absolute bottom-0 left-0 right-0 pointer-events-none"
-            style={{ height: sv(216), background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.5))' }}
-          />
-
-          {/* Title — bottom left of image */}
-          <div className="absolute" style={{ left: sv(44), bottom: sv(38) }}>
-            <p className="text-white m-0 leading-tight" style={{ fontSize: sv(48), fontWeight: 300, letterSpacing: sv(-2.4) }}>
-              HOME RENOVATION
-            </p>
-            <p className="text-white m-0 leading-tight" style={{ fontSize: sv(48), fontWeight: 300, letterSpacing: sv(-2.4) }}>
-              PROPOSAL
-            </p>
-          </div>
-
-          {/* Tagline + CTA — bottom right, same row */}
-          <div
-            className="absolute flex items-center"
-            style={{ right: sv(44), bottom: sv(32), gap: sv(24) }}
+    <div
+      className="fixed inset-0 z-[220] flex flex-col items-center justify-end"
+      style={{ paddingTop: sv(113), backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.6)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white flex flex-col items-start w-full"
+        style={{
+          height: sv(767),
+          borderTopLeftRadius: sv(16),
+          borderTopRightRadius: sv(16),
+          boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.12), 0px 4px 24px 0px rgba(0,0,0,0.2)',
+          gap: sv(16),
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-end w-full" style={{ paddingTop: sv(16), paddingLeft: sv(16), paddingRight: sv(16) }}>
+          <button
+            onClick={onClose}
+            className="bg-[#f0f0f0] flex items-center justify-center hover:opacity-80 transition-opacity"
+            style={{ width: sv(24), height: sv(24), borderRadius: sv(4) }}
           >
-            <p className="text-white m-0 whitespace-nowrap" style={{ fontSize: sv(14) }}>
-              Where curation meets legacy, define your singular dimensions.
-            </p>
-            <button
-              onClick={onContinue}
-              className="flex-shrink-0 flex items-center justify-center text-white font-semibold uppercase transition-opacity hover:opacity-80"
-              style={{
-                height: sv(40),
-                padding: `0 ${sv(16)}`,
-                fontSize: sv(14),
-                letterSpacing: sv(1),
-                background: 'rgba(116,116,116,0.7)',
-                border: `${sv(1)} solid white`,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              EXPLORE OPTIONS
-            </button>
+            <img src={INSPECTION_CLOSE_ICON} alt="" style={{ width: sv(10.506), height: sv(10.506) }} />
+          </button>
+        </div>
+        <div className="flex items-start w-full flex-1 min-h-0" style={{ gap: sv(40), paddingLeft: sv(64), paddingRight: sv(64) }}>
+          <div className="flex flex-col justify-between h-full flex-shrink-0" style={{ width: sv(840), paddingBottom: sv(24) }}>
+            <div className="relative overflow-hidden" style={{ width: '100%', aspectRatio: '732 / 510', borderRadius: sv(8) }}>
+              <Image src={media.src} alt="" fill className="object-cover" sizes="840px" />
+              {media.type === 'video' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ backgroundColor: 'rgba(0,0,0,0.14)' }}>
+                  <div className="flex items-center justify-center rounded-full" style={{ width: sv(72), height: sv(72), backgroundColor: 'rgba(255,255,255,0.92)' }}>
+                    <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(28), height: sv(28), marginLeft: sv(4) }}>
+                      <path d="M8 5.5v13l10-6.5-10-6.5Z" fill="#262626" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center w-full" style={{ gap: sv(8) }}>
+              {entry.media.map((item, index) => {
+                const isActive = index === activeMediaIndex
+                return (
+                  <button
+                    key={`${entry.id}-${index}`}
+                    onClick={() => onChangeMedia(index)}
+                    className="flex flex-col items-start"
+                    style={{
+                      width: sv(86),
+                      height: sv(64),
+                      padding: sv(2),
+                      borderRadius: sv(4),
+                      border: isActive ? '1.5px solid #000000' : '1.5px solid transparent',
+                    }}
+                  >
+                    <div className="relative flex-1 w-full overflow-hidden" style={{ borderRadius: sv(2) }}>
+                      <Image src={item.thumbSrc ?? item.src} alt="" fill className="object-cover" sizes="86px" />
+                      {item.type === 'video' && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ backgroundColor: 'rgba(0,0,0,0.08)' }}>
+                          <div className="flex items-center justify-center rounded-full" style={{ width: sv(20), height: sv(20), backgroundColor: 'rgba(255,255,255,0.95)' }}>
+                            <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(10), height: sv(10), marginLeft: sv(1) }}>
+                              <path d="M8 5.5v13l10-6.5-10-6.5Z" fill="#262626" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="flex flex-col flex-1 min-w-0 h-full" style={{ gap: sv(24), paddingBottom: sv(127) }}>
+            <div className="flex flex-col flex-1 min-h-0" style={{ gap: sv(32) }}>
+              <div className="flex flex-col w-full" style={{ gap: sv(16) }}>
+                <p className="font-semibold text-[#262626]" style={{ fontSize: sv(20), letterSpacing: sv(-0.8), lineHeight: 'normal' }}>INSPECTION DETAILS</p>
+                <div className="bg-[#262626] flex items-center justify-center" style={{ width: sv(32), height: sv(32), borderRadius: sv(2) }}>
+                  <p style={{ fontSize: sv(16), color: '#ffffff', lineHeight: 'normal' }}>{entry.id}</p>
+                </div>
+                <div className="text-[#262626]" style={{ fontSize: sv(14), fontWeight: 300, lineHeight: 'normal', whiteSpace: 'pre-wrap' }}>
+                  {entry.description}
+                </div>
+              </div>
+              <button
+                className="bg-white border border-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                style={{ width: sv(132), height: sv(40), borderRadius: sv(4), gap: sv(2), color: 'rgba(0,0,0,0.85)', fontSize: sv(14) }}
+              >
+                <img src={INSPECTION_PHONE_ICON} alt="" style={{ width: sv(24), height: sv(22) }} />
+                <span>Contact Sales</span>
+              </button>
+            </div>
+            <div className="flex items-start w-full">
+              <div className="flex items-center justify-between w-full">
+                <button
+                  onClick={() => hasPrev && onChangeEntry(activeEntryIndex - 1)}
+                  className="bg-white border border-[#262626] flex items-center justify-center transition-colors"
+                  style={{ width: sv(96), height: sv(40), borderRadius: sv(4), fontSize: sv(14), color: 'rgba(0,0,0,0.85)', opacity: hasPrev ? 1 : 0.4, cursor: hasPrev ? 'pointer' : 'default' }}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => hasNext && onChangeEntry(activeEntryIndex + 1)}
+                  className="bg-white border border-[#262626] flex items-center justify-center transition-colors"
+                  style={{ width: sv(96), height: sv(40), borderRadius: sv(4), fontSize: sv(14), color: 'rgba(0,0,0,0.85)', opacity: hasNext ? 1 : 0.4, cursor: hasNext ? 'pointer' : 'default' }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Screen 2: Landing ────────────────────────────────────────────────────────
+function LandingScreen({ onContinue, onHome }: { onContinue: () => void; onHome: () => void }) {
+  const { heroImage } = odaProjectInfo
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [inspectionModal, setInspectionModal] = useState<{ entryIndex: number; mediaIndex: number } | null>(null)
+
+  // One-way scroll trigger: snap to section 2 when scrolling DOWN past 50vh
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
+    let prevScrollTop = 0
+    let snapping = false
+    const onScroll = () => {
+      if (snapping) return
+      const scrollTop = container.scrollTop
+      const vh = container.clientHeight
+      if (scrollTop > prevScrollTop && scrollTop >= vh * 0.5 && scrollTop < vh) {
+        snapping = true
+        container.scrollTo({ top: vh, behavior: 'smooth' })
+        setTimeout(() => { snapping = false }, 700)
+      }
+      prevScrollTop = scrollTop
+    }
+    container.addEventListener('scroll', onScroll, { passive: true })
+    return () => container.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const scrollToInspection = () => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.clientHeight, behavior: 'smooth' })
+  }
+
+  const inspectionItems: InspectionEntry[] = [
+    {
+      id: 1,
+      title: 'Walkthrough video recorded for pre-Construction reference.',
+      description: 'Walkthrough video recorded for pre-Construction reference.',
+      media: [
+        { type: 'video', src: '/assets/update-ps-1.png', thumbSrc: '/assets/update-ps-1.png' },
+        { type: 'image', src: '/assets/update-ps-2.png' },
+      ],
+    },
+    {
+      id: 2,
+      title: 'Existing flooring to be removed in main living area.',
+      description: 'Existing flooring to be removed in main living area. Current flooring material in the main living area shows visible wear, uneven transitions, and inconsistent patch repairs. Full removal is recommended to support proper substrate preparation and new finish installation.',
+      media: [
+        { type: 'image', src: '/assets/update-ps-1.png' },
+        { type: 'image', src: '/assets/update-ps-2.png' },
+      ],
+    },
+    {
+      id: 3,
+      title: 'HVAC vent position may need adjustment.',
+      description: 'HVAC vent position may need adjustment. Current vent placement may conflict with the proposed ceiling treatment and lighting layout. Recommend coordination during construction planning to confirm final positioning.',
+      media: [
+        { type: 'image', src: '/assets/update-ps-3.png' },
+        { type: 'image', src: '/assets/update-ps-4.png' },
+      ],
+    },
+    {
+      id: 4,
+      title: 'Kitchen plumbing access should be verified before cabinet installation.',
+      description: 'Kitchen plumbing access should be verified before cabinet installation. Existing plumbing locations appear serviceable, but access and alignment should be rechecked once demolition is complete. Final cabinet and appliance layout may require localized plumbing adjustment.',
+      media: [
+        { type: 'image', src: '/assets/update-ps-1.png' },
+        { type: 'image', src: '/assets/update-ps-4.png' },
+      ],
+    },
+    {
+      id: 5,
+      title: 'Moisture risk observed around bathroom shower wall.',
+      description: 'Moisture risk observed around bathroom shower wall. Moisture staining was observed along the lower portion of the shower-adjacent wall. Recommend opening the affected area during demolition to inspect for concealed water damage, compromised substrate, or mold-related issues before finish installation.',
+      media: [
+        { type: 'image', src: '/assets/update-ps-2.png' },
+        { type: 'image', src: '/assets/update-ps-3.png' },
+        { type: 'image', src: '/assets/update-ps-4.png' },
+      ],
+    },
+  ]
+
+  const floorPlanMarkers = [
+    { id: 1, x: '82.6%', y: '43.1%' },
+    { id: 2, x: '69.4%', y: '15.3%' },
+    { id: 3, x: '46.2%', y: '88.0%' },
+    { id: 4, x: '73.3%', y: '64.1%' },
+    { id: 5, x: '5.2%', y: '35.1%' },
+    { id: 6, x: '10.4%', y: '68.5%' },
+  ]
+
+  const openInspectionModal = (entryIndex: number, mediaIndex = 0) => {
+    setInspectionModal({ entryIndex, mediaIndex })
+  }
+
+  const InspectionNavBar = () => (
+    <nav className="flex justify-between items-center" style={{ padding: `${sv(24)} ${sv(217)}` }}>
+      <button onClick={onHome} className="flex items-center justify-center text-[#262626]" style={{ width: sv(24), height: sv(24) }}>
+        <svg style={{ width: sv(18), height: sv(16) }} viewBox="0 0 18 16" fill="none">
+          <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <ODALogo size="sm" />
+      <button className="flex items-center justify-center text-[#737373]" style={{ width: sv(24), height: sv(24) }}>
+        <svg style={{ width: sv(17), height: sv(17) }} viewBox="0 0 17 17" fill="none">
+          <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      </button>
+    </nav>
+  )
+
+  return (
+    <div
+      ref={scrollRef}
+      style={{ height: '100vh', overflowY: 'scroll', fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" }}
+    >
+
+      {/* ── Section 1: Hero (100vh) ── */}
+      <section className="bg-white" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div className="flex flex-col flex-1 overflow-hidden" style={{ width: sv(1440), margin: '0 auto' }}>
+
+          {/* Logo */}
+          <div style={{ padding: `${sv(39)} 0 ${sv(24)} ${sv(95)}`, flexShrink: 0 }}>
+            <ODALogo size="sm" />
+          </div>
+
+          {/* Hero image — fills remaining height, dynamically cropped */}
+          <div className="relative flex-1 overflow-hidden" style={{ margin: `0 ${sv(95)} ${sv(40)}` }}>
+            <Image src={heroImage} alt="Architecture" fill className="object-cover" sizes="(max-width:1280px) calc(100vw - 190px), 1250px" priority />
+
+            {/* Gradient */}
+            <div
+              className="absolute bottom-0 left-0 right-0 pointer-events-none"
+              style={{ height: sv(216), background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.5))' }}
+            />
+
+            {/* Title — bottom left */}
+            <div className="absolute" style={{ left: sv(44), bottom: sv(38) }}>
+              <p className="text-white m-0 leading-tight" style={{ fontSize: sv(48), fontWeight: 300, letterSpacing: sv(-2.4) }}>HOME RENOVATION</p>
+              <p className="text-white m-0 leading-tight" style={{ fontSize: sv(48), fontWeight: 300, letterSpacing: sv(-2.4) }}>PROPOSAL</p>
+            </div>
+
+            {/* Tagline + buttons — bottom right */}
+            <div className="absolute flex items-center" style={{ right: sv(44), bottom: sv(32), gap: sv(16) }}>
+              <p className="text-white m-0 whitespace-nowrap" style={{ fontSize: sv(14) }}>
+                Where curation meets legacy, define your singular dimensions.
+              </p>
+              <button
+                onClick={scrollToInspection}
+                className="flex-shrink-0 flex items-center justify-center text-white font-semibold uppercase transition-opacity hover:opacity-80"
+                style={{ height: sv(40), padding: `0 ${sv(16)}`, fontSize: sv(14), letterSpacing: sv(1), background: 'rgba(116,116,116,0.7)', border: `${sv(1)} solid white`, whiteSpace: 'nowrap' }}
+              >
+                INSPECTION REPORT
+              </button>
+              <button
+                onClick={onContinue}
+                className="flex-shrink-0 flex items-center justify-center font-semibold uppercase transition-opacity hover:opacity-80"
+                style={{ height: sv(40), padding: `0 ${sv(16)}`, fontSize: sv(14), letterSpacing: sv(1), background: 'rgba(255,255,255,0.9)', border: `${sv(1)} solid white`, color: '#333', whiteSpace: 'nowrap' }}
+              >
+                EXPLORE OPTIONS
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── Section 2: Inspection Details (free-scrolls after snap) ── */}
+      <section style={{ backgroundColor: '#f5f5f5', paddingBottom: sv(64) }}>
+
+        {/* Sticky header: nav + inspection details bar */}
+        <div className="bg-white" style={{ position: 'sticky', top: 0, zIndex: 20, borderBottom: `0.5px solid rgba(0,0,0,0.2)` }}>
+          <div style={{ width: sv(1440), margin: '0 auto' }}>
+            <InspectionNavBar />
+          </div>
+          <div className="flex items-center justify-between" style={{ width: sv(1440), margin: '0 auto', padding: `${sv(16)} ${sv(99)}` }}>
+            <div className="flex flex-col" style={{ gap: sv(2) }}>
+              <p style={{ fontSize: sv(20), fontWeight: 600, color: '#262626', lineHeight: 'normal' }}>INSPECTION DETAILS</p>
+              <p style={{ fontSize: sv(14), fontWeight: 400, color: '#262626', lineHeight: 'normal' }}>Home Renovation — Suite 2505, Broadway Tower</p>
+            </div>
+            <div className="flex items-center" style={{ gap: sv(8) }}>
+              <button
+                className="flex items-center justify-center"
+                style={{ height: sv(40), padding: `0 ${sv(16)}`, gap: sv(6), border: `${sv(1)} solid #262626`, borderRadius: sv(4), backgroundColor: 'white', color: 'rgba(0,0,0,0.85)', fontSize: sv(14), lineHeight: 'normal' }}
+              >
+                <svg style={{ width: sv(16), height: sv(16) }} viewBox="0 0 16 16" fill="none">
+                  <path d="M2 1.5h3.5l1.5 4-2 1.5c.9 1.8 2.5 3.4 4.5 4.5L11 9l4 1.5v3.5C8 15 .5 7.5 2 1.5z" stroke="#262626" strokeWidth="1.2" strokeLinejoin="round" />
+                </svg>
+                <span>Contact Sales</span>
+              </button>
+              <button
+                className="flex items-center justify-center"
+                style={{ height: sv(40), padding: `0 ${sv(16)}`, backgroundColor: '#262626', color: 'white', borderRadius: sv(4), fontSize: sv(14), fontWeight: 600, lineHeight: 'normal' }}
+                onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                Explore Options
+              </button>
+            </div>
           </div>
         </div>
 
-      </div>
+        {/* Cards */}
+        <div style={{ width: sv(1440), margin: '0 auto' }}>
+          <div style={{ padding: `${sv(32)} ${sv(95)}`, display: 'flex', flexDirection: 'column', gap: sv(24) }}>
+
+            {/* INSPECTION REPORT card */}
+            <div className="bg-white flex flex-col" style={{ borderRadius: sv(12), padding: `${sv(32)} ${sv(24)} ${sv(24)}`, gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}>
+              <p style={{ fontSize: sv(16), fontWeight: 600, color: '#262626', lineHeight: 'normal' }}>INSPECTION REPORT</p>
+              {inspectionItems.map((item, itemIndex) => (
+                <div key={item.id} className="flex flex-col w-full" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: sv(12), gap: sv(8) }}>
+                  <div className="flex items-start w-full" style={{ gap: sv(12) }}>
+                    <div className="flex items-center justify-center flex-shrink-0" style={{ width: sv(24), height: sv(24), borderRadius: sv(2), backgroundColor: '#262626', color: 'white', fontSize: sv(16), fontWeight: 700, lineHeight: 1 }}>
+                      {item.id}
+                    </div>
+                    <p style={{ fontSize: sv(14), fontWeight: 300, color: '#262626', lineHeight: 1.5 }}>{item.description}</p>
+                  </div>
+                  {item.media.length > 0 && (
+                    <div className="flex items-center" style={{ paddingLeft: sv(36), gap: sv(4) }}>
+                      {item.media.map((media, mediaIndex) => (
+                        <button
+                          key={mediaIndex}
+                          onClick={() => openInspectionModal(itemIndex, mediaIndex)}
+                          className="relative flex-shrink-0 overflow-hidden"
+                          style={{ width: sv(64), height: sv(64), borderRadius: sv(2) }}
+                        >
+                          <Image src={media.thumbSrc ?? media.src} alt="" fill className="object-cover" sizes="64px" />
+                          {media.type === 'video' && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ backgroundColor: 'rgba(0,0,0,0.12)' }}>
+                              <div className="flex items-center justify-center rounded-full" style={{ width: sv(22), height: sv(22), backgroundColor: 'rgba(255,255,255,0.95)' }}>
+                                <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(10), height: sv(10), marginLeft: sv(1) }}>
+                                  <path d="M8 5.5v13l10-6.5-10-6.5Z" fill="#262626" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <p className="text-center" style={{ fontSize: sv(14), color: 'rgba(0,0,0,0.85)', textDecoration: 'underline', cursor: 'pointer' }}>Show More</p>
+            </div>
+
+            {/* INSPECTION DRAWING card */}
+            <div className="bg-white flex flex-col" style={{ borderRadius: sv(12), padding: `${sv(32)} ${sv(24)} ${sv(24)}`, gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}>
+              <p style={{ fontSize: sv(16), fontWeight: 600, color: '#262626', lineHeight: 'normal' }}>INSPECTION DRAWING</p>
+              <div className="flex justify-center">
+                <div className="relative" style={{ width: sv(909), height: sv(685) }}>
+                  <Image src="/assets/drawing-floor-plan.png" alt="Floor plan" fill className="object-cover" sizes="909px" />
+                  {floorPlanMarkers.map(marker => (
+                    <button
+                      key={marker.id}
+                      onClick={() => marker.id <= 5 && openInspectionModal(marker.id - 1, 0)}
+                      className="absolute flex items-center justify-center"
+                      style={{ left: marker.x, top: marker.y, transform: 'translate(-50%, -50%)', width: sv(44), height: sv(44), borderRadius: sv(2), backgroundColor: '#262626', color: 'white', fontSize: sv(24), fontWeight: 700, lineHeight: 1, cursor: marker.id <= 5 ? 'pointer' : 'default' }}
+                    >
+                      {marker.id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center" style={{ gap: sv(12), padding: `0 ${sv(32)}` }}>
+                <button className="flex items-center justify-center" style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  <svg style={{ width: sv(22), height: sv(22) }} viewBox="0 0 22 22" fill="none">
+                    <circle cx="10" cy="10" r="7" stroke="white" strokeWidth="1.5" />
+                    <path d="M10 7v6M7 10h6M20 20l-4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <button className="flex items-center justify-center" style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  <svg style={{ width: sv(22), height: sv(22) }} viewBox="0 0 22 22" fill="none">
+                    <circle cx="10" cy="10" r="7" stroke="white" strokeWidth="1.5" />
+                    <path d="M7 10h6M20 20l-4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <button className="flex items-center justify-center" style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  <svg style={{ width: sv(22), height: sv(22) }} viewBox="0 0 22 22" fill="none">
+                    <path d="M2 8V2h6M14 2h6v6M20 14v6h-6M8 20H2v-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {inspectionModal && (
+        <InspectionDetailModal
+          entries={inspectionItems}
+          activeEntryIndex={inspectionModal.entryIndex}
+          activeMediaIndex={inspectionModal.mediaIndex}
+          onClose={() => setInspectionModal(null)}
+          onChangeEntry={entryIndex => setInspectionModal({ entryIndex, mediaIndex: 0 })}
+          onChangeMedia={mediaIndex => setInspectionModal(prev => prev ? { ...prev, mediaIndex } : prev)}
+        />
+      )}
+
     </div>
   )
 }
@@ -619,130 +998,256 @@ function OptionsScreen({
   selectedOption,
   onSelect,
   onContinue,
+  onHome,
 }: {
   selectedOption: number
   onSelect: (i: number) => void
   onContinue: () => void
+  onHome: () => void
 }) {
-  const prev = (selectedOption - 1 + odaOptions.length) % odaOptions.length
-  const next = (selectedOption + 1) % odaOptions.length
+  const compareRef = useRef<HTMLDivElement>(null)
 
-  const [compareMode, setCompareMode] = useState(false)
-  const [compareSelected, setCompareSelected] = useState<number[]>([])
+  const scrollToCompare = () => compareRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
-  const enterCompare = () => {
-    setCompareMode(true)
-    setCompareSelected([selectedOption])
-  }
+  // Schedule & Pricing data (3 options × 3 metrics)
+  const scheduleData: Array<Array<{ label: string; value: string }>> = [
+    [
+      { label: 'Base Scope Cost', value: '$250,000' },
+      { label: 'Maximum Project Cost', value: '$341,700' },
+      { label: 'Estimate Completion Time', value: '120 Days' },
+    ],
+    [
+      { label: 'Base Scope Cost', value: '$125,800' },
+      { label: 'Maximum Project Cost', value: '$211,000' },
+      { label: 'Estimate Completion Time', value: '90 Days' },
+    ],
+    [
+      { label: 'Base Scope Cost', value: '$650,000' },
+      { label: 'Maximum Project Cost', value: '$1,233,000' },
+      { label: 'Estimate Completion Time', value: '180 Days' },
+    ],
+  ]
 
-  const exitCompare = () => {
-    setCompareMode(false)
-    setCompareSelected([])
-  }
+  // Comparison line item type
+  type CItem = { name: string; qty: string; unit: string; img: string; imageStyle?: CSSProperties }
+  type CDash = { dash: true }
 
-  const toggleCompareOption = (i: number) => {
-    setCompareSelected(prev =>
-      prev.includes(i) ? prev.filter(x => x !== i) : prev.length < 2 ? [...prev, i] : prev
+  // Comparison line item thumbnails — exact Figma assets for node 412:5599
+  const IF1 = 'https://www.figma.com/api/mcp/asset/839abaa6-99cb-4cb6-acc4-b8757be02aa5'
+  const IF2 = 'https://www.figma.com/api/mcp/asset/d2d53416-1c9e-4f51-9dce-7ebeb8605507'
+  const IF3 = 'https://www.figma.com/api/mcp/asset/f260401f-d99d-48b4-a548-bbc84c8d405e'
+  const IF4 = 'https://www.figma.com/api/mcp/asset/5bb5b811-b579-412c-994d-dd7886732a14'
+  const IF5 = 'https://www.figma.com/api/mcp/asset/5ebfaeae-68b9-4675-b96a-e3d29543abdd'
+  const IF6 = 'https://www.figma.com/api/mcp/asset/175eb359-f0c7-458e-ac60-a1c129e88689'
+  const IF7 = 'https://www.figma.com/api/mcp/asset/48e8f73b-06ed-4c27-b398-3ef76be60cd3'
+  const IF8 = 'https://www.figma.com/api/mcp/asset/17793a24-f973-407f-8da0-92c61ffc2e1e'
+  const IF9 = 'https://www.figma.com/api/mcp/asset/c4fcc113-156d-4050-a038-d5a2c6ead8b6'
+  const KT1 = 'https://www.figma.com/api/mcp/asset/da5f585e-4864-406d-8727-0df12a6a41a8'
+  const KT2 = 'https://www.figma.com/api/mcp/asset/aa23928a-01f8-49a3-ac44-9d5a77276f28'
+  const KT3 = 'https://www.figma.com/api/mcp/asset/91b15597-7f23-4f5f-8189-884511344971'
+  const KT4 = 'https://www.figma.com/api/mcp/asset/56750a6f-bc62-4cc3-8067-e5c5d7602c2a'
+  const KT5 = 'https://www.figma.com/api/mcp/asset/7e23b8db-6b7a-4934-bb71-451c895a6c41'
+  const KT6 = 'https://www.figma.com/api/mcp/asset/cbf92a3d-10dd-4f84-9272-e902be412313'
+  const KT7 = 'https://www.figma.com/api/mcp/asset/806874b1-4718-4494-b168-e74baf12dbf3'
+  const KT8 = 'https://www.figma.com/api/mcp/asset/76d03b51-8070-4de7-a371-f502a5f8964f'
+  const KT9 = 'https://www.figma.com/api/mcp/asset/c948e0a1-84e0-42c8-98c6-1e36f7605c83'
+  const BT1 = 'https://www.figma.com/api/mcp/asset/76332eb0-9285-4c53-baa5-2e60879fe2b5'
+  const BT2 = 'https://www.figma.com/api/mcp/asset/9347fafe-c738-417b-af43-ce7de369166c'
+  const BT3 = 'https://www.figma.com/api/mcp/asset/0e90cde4-e32e-4997-81a8-a7bf544fc203'
+  const BT4 = 'https://www.figma.com/api/mcp/asset/753bd493-f005-4731-bddd-2aba4b3bd45b'
+  const BT5 = 'https://www.figma.com/api/mcp/asset/92bcb3db-ba5a-430d-aa4b-9dcc907ddc4d'
+  const BT6 = 'https://www.figma.com/api/mcp/asset/732b4b18-6007-4b15-939d-e6edc9904a24'
+  const BT7 = 'https://www.figma.com/api/mcp/asset/c61c9b83-e90e-433b-83c5-92619b816e06'
+  const BT8 = 'https://www.figma.com/api/mcp/asset/451cc17e-b5c0-4bf5-b5fc-be1937f8a16a'
+  const PC1 = 'https://www.figma.com/api/mcp/asset/1a5fcdf7-b33f-49f7-b351-4fb6ecc98b2c'
+  const PC3 = 'https://www.figma.com/api/mcp/asset/93027c17-568b-4628-86d5-4e1224adad23'
+
+  const compareSections: Array<{ title: string; columns: (CItem | CDash)[][] }> = [
+    {
+      title: 'Base Scope',
+      columns: [
+        [
+          { name: 'Existing Surface Preparation & Demolition', qty: '960', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Wall & Ceiling Preparation', qty: '190', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Flooring Base Installation', qty: '547', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Lighting & Electrical Adjustments', qty: '128', unit: 'hrs.', img: COMPARE_BASE_SCOPE },
+          { name: 'Installation & Finishing Labor', qty: '1,300', unit: 'hrs.', img: COMPARE_BASE_SCOPE },
+        ],
+        [
+          { name: 'Existing Surface Preparation & Demolition', qty: '720', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Wall & Ceiling Preparation', qty: '190', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Flooring Base Installation', qty: '400', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Lighting & Electrical Adjustments', qty: '72', unit: 'hrs.', img: COMPARE_BASE_SCOPE },
+          { name: 'Installation & Finishing Labor', qty: '900', unit: 'hrs.', img: COMPARE_BASE_SCOPE },
+        ],
+        [
+          { name: 'Existing Surface Preparation & Demolition', qty: '720', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Wall & Ceiling Preparation', qty: '190', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Flooring Base Installation', qty: '400', unit: 'sqf.', img: COMPARE_BASE_SCOPE },
+          { name: 'Lighting & Electrical Adjustments', qty: '300', unit: 'hrs.', img: COMPARE_BASE_SCOPE },
+          { name: 'Installation & Finishing Labor', qty: '2,600', unit: 'hrs.', img: COMPARE_BASE_SCOPE },
+        ],
+      ],
+    },
+    {
+      title: 'Interior Finishes',
+      columns: [
+        [
+          { name: 'Oak Wood - 600x100mm - Herringbone Pattern', qty: '1,240', unit: 'sqf.', img: IF1 },
+          { name: 'Decorative Plaster Wall Finish - White', qty: '2,280', unit: 'sqf.', img: IF2 },
+        ],
+        [
+          { name: 'Wide-Plank Oak Wood Flooring – Natural Matte Finish', qty: '1,240', unit: 'sqf.', img: IF3 },
+          { name: 'Microcement Wall Finish – Warm Light Greige', qty: '2,280', unit: 'sqf.', img: IF4 },
+          { name: 'Flush Baseboard & Trim Detail – Soft White', qty: '420', unit: 'lf.', img: IF5 },
+        ],
+        [
+          { name: 'Dark Walnut Wood Flooring – Chevron Pattern', qty: '1,240', unit: 'sqf.', img: IF6 },
+          { name: 'Decorative Wall Panel Molding – Warm Ivory', qty: '2,280', unit: 'sqf.', img: IF7 },
+          { name: 'Black Marble Floor Border Inlay – Polished Finish', qty: '420', unit: 'lf.', img: IF8 },
+          { name: 'Ceiling Medallion & Trim Detail Package – Soft White', qty: '6', unit: 'sets', img: IF9 },
+        ],
+      ],
+    },
+    {
+      title: 'Kitchen',
+      columns: [
+        [
+          { name: 'Liebherr WKb 4612 Barrique Wine Cabinet (195 bottles, Glass Door)', qty: '1', unit: 'pcs.', img: KT1 },
+          { name: 'Extended Stone Edge Countertop', qty: '5', unit: 'sqf.', img: KT2 },
+          { name: 'Handleless Cabinet Front Upgrade – Natural Oak Veneer', qty: '42', unit: 'pcs.', img: KT3 },
+        ],
+        [
+          { name: 'Integrated Panel-Ready Refrigerator', qty: '1', unit: 'pcs.', img: KT4 },
+          { name: 'Waterfall Stone Island Countertop – Honed Beige Quartzite', qty: '5', unit: 'sqf.', img: KT5 },
+        ],
+        [
+          { name: 'Built-In Espresso Walnut Cabinetry – Brass Detail Trim', qty: '42', unit: 'pcs.', img: KT6 },
+          { name: 'Calacatta Gold Marble Countertop – Polished Finish', qty: '5', unit: 'sqf.', img: KT7 },
+          { name: 'Fluted Glass Bar Cabinet – Backlit Display Shelving', qty: '1', unit: 'pcs.', img: KT8 },
+          { name: 'Statement Pendant Lighting – Aged Brass Finish', qty: '3', unit: 'pcs.', img: KT9 },
+        ],
+      ],
+    },
+    {
+      title: 'Bathroom',
+      columns: [
+        [
+          { name: 'Floating Custom Teak Wood Design Vanity', qty: '3', unit: 'pcs.', img: BT1 },
+          { name: 'Royal Infinity J-480 (seats 7-8)', qty: '2', unit: 'pcs.', img: BT2 },
+          { name: 'Kohler Moxie Showerhead with Wireless Speaker', qty: '4', unit: 'sets', img: BT3 },
+        ],
+        [
+          {
+            name: 'Frameless Glass Shower Enclosure – Clear Low-Iron Glass',
+            qty: '2',
+            unit: 'sets',
+            img: BT4,
+            imageStyle: { width: '100.82%', height: '134.43%', left: '-0.82%', top: '-0.17%', maxWidth: 'none' },
+          },
+          { name: 'Rain Shower System – Brushed Nickel', qty: '2', unit: 'pcs.', img: BT5 },
+        ],
+        [
+          { name: 'Custom Walnut Vanity – Stone Top with Brass Hardware', qty: '2', unit: 'sets', img: BT6 },
+          { name: 'Bookmatched Marble Feature Wall – Polished Finish', qty: '2', unit: 'sets', img: BT7 },
+          { name: 'Rain Shower System – Brushed Nickel', qty: '2', unit: 'pcs.', img: BT8 },
+        ],
+      ],
+    },
+    {
+      title: 'Post-Construction Service',
+      columns: [
+        [
+          { name: 'Surface Care Package', qty: '1', unit: 'srv.', img: PC1 },
+        ],
+        [
+          { dash: true as const },
+        ],
+        [
+          { name: 'Post-Construction White Glove Styling & Setup', qty: '1', unit: 'srv.', img: COMPARE_BASE_SCOPE },
+          { name: 'Luxury Surface Care & Maintenance Package', qty: '2', unit: 'srv.', img: PC3 },
+        ],
+      ],
+    },
+  ]
+
+  const optionNames = ['OPTION 1 - THE TIME LESS ORIGINAL', 'OPTION 2 - THE ZEN SANCTUARY', 'OPTION 3 - THE GATSBY HERITAGE']
+
+  // Reusable option card — image uses Figma's exact crop: h=126.97%, top=-19.53%
+  const OptionCard = ({ optIdx }: { optIdx: number }) => {
+    const opt = odaOptions[optIdx]
+    // Only Option 1 (index 0) uses whitespace-nowrap on subtitle per Figma design
+    const subtitleWhiteSpace = optIdx === 0 ? 'nowrap' : 'normal'
+    return (
+      <div className="flex flex-col items-center" style={{ flex: '1 0 0', minWidth: 0, minHeight: 0, backgroundColor: '#fbfbfb', gap: sv(24), paddingBottom: sv(32) }}>
+        <div className="relative w-full shrink-0" style={{ aspectRatio: '800/471' }}>
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={opt.images[0]}
+              alt=""
+              style={{ position: 'absolute', height: '126.97%', width: '100%', left: 0, top: '-19.53%', maxWidth: 'none', objectFit: 'cover' }}
+            />
+          </div>
+        </div>
+        <div className="flex flex-col items-start w-full" style={{ padding: `0 ${sv(28)}`, gap: sv(4), lineHeight: 'normal' }}>
+          <p style={{ fontSize: sv(16), fontWeight: 600, color: '#262626', width: '100%' }}>{opt.title}</p>
+          <p style={{ fontSize: sv(14), color: '#737373', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: subtitleWhiteSpace, height: sv(38) }}>{opt.subtitle}</p>
+        </div>
+        <div className="flex flex-col items-start w-full" style={{ padding: `0 ${sv(28)}`, gap: sv(28) }}>
+          <div className="flex flex-col w-full" style={{ gap: sv(4), fontSize: sv(14), color: '#262626', letterSpacing: sv(-0.14), lineHeight: 'normal' }}>
+            <p style={{ fontWeight: 400 }}>{opt.materials[0]}</p>
+            <p style={{ fontWeight: 400 }}>{opt.deliveryDays} Days Estimate Delivery Time</p>
+            <p style={{ fontWeight: 600 }}>Starting from {formatPrice(opt.priceFrom)} USD</p>
+          </div>
+          <div className="flex items-center justify-end w-full">
+            <button
+              onClick={() => { onSelect(optIdx); onContinue() }}
+              className="flex items-center justify-center hover:opacity-90 transition-opacity"
+              style={{ flex: '1 0 0', height: sv(40), padding: `${sv(6)} ${sv(16)}`, backgroundColor: '#262626', color: 'white', fontSize: sv(14), fontWeight: 600, lineHeight: sv(18), borderRadius: sv(4) }}
+            >
+              Select &amp; Configure
+            </button>
+          </div>
+        </div>
+      </div>
     )
   }
 
-  const canCompare = compareSelected.length === 2
-
-  // Render a full option card (image + content as single unit) — Figma 326:6676
-  const renderCard = (optIdx: number, position: 'left' | 'center' | 'right') => {
-    const opt = odaOptions[optIdx]
-    const isCenter = position === 'center'
-    const isChecked = compareSelected.includes(optIdx)
-
-    // left positions: all cards use translateX(-50%), centers at scaled offsets
-    const leftVal = position === 'center'
-      ? '50%'
-      : position === 'left' ? `calc(50% - ${sv(820)})` : `calc(50% + ${sv(820)})`
-
-    return (
-      <div
-        key={optIdx}
-        className="absolute top-0 flex flex-col"
-        style={{
-          width: sv(800),
-          left: leftVal,
-          transform: 'translateX(-50%)',
-          backgroundColor: '#fbfbfb',
-          gap: sv(24),
-          paddingBottom: sv(32),
-          boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
-          opacity: isCenter ? 1 : 0.35,
-          cursor: isCenter ? 'default' : 'pointer',
-          zIndex: isCenter ? 1 : 0,
-        }}
-        onClick={!isCenter ? () => onSelect(optIdx) : undefined}
-      >
-        {/* Hero image: aspect 800/471 */}
-        <div className="relative w-full shrink-0" style={{ aspectRatio: '800/471' }}>
-          <Image src={opt.images[0]} alt="" fill className="object-cover" sizes="800px" priority={isCenter} />
+  // Comparison line item row — matches Figma exactly
+  const LineItem = ({ item }: { item: CItem | CDash }) => {
+    if ('dash' in item) {
+      return (
+        <div className="flex items-start" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: sv(12), paddingBottom: sv(12), backgroundColor: 'white' }}>
+          <div className="flex flex-1 items-center min-w-0" style={{ paddingRight: sv(4) }}>
+            <p style={{ flex: '1 0 0', fontSize: sv(14), color: '#262626', lineHeight: 'normal', minWidth: 0 }}>-</p>
+          </div>
         </div>
-
-        {/* Content: px-28, gap-28 — Figma 326:6678 */}
-        <div className="flex flex-col items-start" style={{ padding: `0 ${sv(28)}`, gap: sv(28) }}>
-
-          {/* Title + subtitle: gap-8 — Figma 326:6693 */}
-          <div className="flex flex-col items-start w-full" style={{ gap: sv(8), lineHeight: 'normal', fontStyle: 'normal' }}>
-            <p style={{ fontSize: sv(24), fontWeight: 400, color: '#262626', letterSpacing: sv(1.92), width: '100%' }}>
-              {opt.title}
-            </p>
-            <p style={{ fontSize: sv(16), fontWeight: 300, color: '#262626', width: '100%' }}>
-              {opt.subtitle}
-            </p>
+      )
+    }
+    return (
+      <div className="flex items-start" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: sv(12), paddingBottom: sv(12), gap: sv(12), backgroundColor: 'white' }}>
+        <div className="flex-shrink-0 flex flex-col items-start" style={{ width: sv(48), height: sv(48), padding: sv(2), borderRadius: sv(4) }}>
+          <div className="relative overflow-hidden" style={{ width: '100%', height: '100%', borderRadius: sv(2) }}>
+            <img
+              src={item.img}
+              alt=""
+              className="absolute pointer-events-none"
+              style={item.imageStyle ?? { inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           </div>
-
-          {/* Details: gap-4, tracking -0.16px, semilight — Figma 326:6697 */}
-          <div className="flex flex-col items-start w-full" style={{ gap: sv(4), fontSize: sv(16), fontWeight: 300, color: '#262626', letterSpacing: sv(-0.16), lineHeight: 'normal', fontStyle: 'normal' }}>
-            <p>{opt.materials[0]}</p>
-            <p>{opt.deliveryDays} Days Estimate Delivery Time</p>
-            <p>Starting from {formatPrice(opt.priceFrom)} USD</p>
-          </div>
-
-          {/* CTA row: justify-end, full-width button — Figma 326:6683 */}
-          <div className="flex items-center justify-end w-full">
-            {compareMode && isCenter ? (
-              /* Compare mode on active card: checkbox + label */
-              <button
-                className="flex items-center"
-                style={{ gap: sv(12), height: sv(44), flex: '1 0 0' }}
-                onClick={e => { e.stopPropagation(); toggleCompareOption(optIdx) }}
-              >
-                <div
-                  className="flex items-center justify-center flex-shrink-0"
-                  style={{
-                    width: sv(24), height: sv(24),
-                    backgroundColor: isChecked ? '#262626' : 'transparent',
-                    border: isChecked ? 'none' : `${sv(1.5)} solid #262626`,
-                    borderRadius: sv(2),
-                  }}
-                >
-                  {isChecked && (
-                    <svg style={{ width: sv(14), height: sv(10) }} viewBox="0 0 14 10" fill="none">
-                      <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-                <span style={{ fontSize: sv(16), color: '#262626' }}>Add to comparison</span>
-              </button>
-            ) : (
-              /* Select & Configure — flex-[1_0_0] h-44 bg-[#262626] — Figma 326:6702 */
-              <button
-                onClick={isCenter ? onContinue : () => onSelect(optIdx)}
-                className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                style={{
-                  flex: '1 0 0', height: sv(44), padding: `${sv(6)} ${sv(16)}`,
-                  backgroundColor: '#262626', color: 'white',
-                  fontSize: sv(16), fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
-                  borderRadius: sv(4),
-                }}
-              >
-                Select &amp; Configure
-              </button>
-            )}
+        </div>
+        <div className="flex flex-1 items-center min-w-0" style={{ gap: sv(12), paddingRight: sv(4) }}>
+          <p style={{ flex: '1 0 0', fontSize: sv(14), color: '#262626', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 'normal', minWidth: 0 }}>{item.name}</p>
+          <div className="flex items-center flex-shrink-0" style={{ width: sv(116), justifyContent: 'flex-end' }}>
+            <div className="flex items-center justify-center flex-shrink-0" style={{ width: sv(24), height: sv(24) }}>
+              <img src={COMPARE_INFO_ICON} alt="" className="pointer-events-none" style={{ width: sv(16.333), height: sv(16.333) }} />
+            </div>
+            <div className="flex items-center flex-shrink-0" style={{ width: sv(97), gap: sv(8), fontSize: sv(14), fontWeight: 300, color: '#262626', lineHeight: 'normal' }}>
+              <p className="flex-1 text-right min-w-0">{item.qty}</p>
+              <p className="flex-shrink-0" style={{ width: sv(32) }}>{item.unit}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -750,19 +1255,14 @@ function OptionsScreen({
   }
 
   return (
-    <div
-      className="min-h-screen bg-white"
-      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", paddingBottom: sv(72) }}
-    >
-      {/* Content container: scales from 1440px base, centered */}
+    <div className="bg-white" style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+
+      {/* ── Top area: Nav + Title + Cards ── */}
       <div style={{ width: sv(1440), margin: '0 auto' }}>
 
-        {/* Nav — Figma Frame 6887: y=31, h=24, x=217; cards at y=111 → nav total height=111 */}
-        <nav
-          className="flex justify-between"
-          style={{ height: sv(111), padding: `${sv(31)} ${sv(217)} 0`, alignItems: 'flex-start' }}
-        >
-          <button className="flex items-center justify-center text-[#262626]" style={{ width: sv(24), height: sv(24) }}>
+        {/* Nav — height sv(99): 31px top pad + 24px icons + 44px gap to title = 99px matches Figma y=99 */}
+        <nav className="flex justify-between" style={{ height: sv(99), padding: `${sv(31)} ${sv(217)} 0`, alignItems: 'flex-start' }}>
+          <button onClick={onHome} className="flex items-center justify-center text-[#262626]" style={{ width: sv(24), height: sv(24) }}>
             <svg style={{ width: sv(18), height: sv(16) }} viewBox="0 0 18 16" fill="none">
               <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
             </svg>
@@ -776,229 +1276,120 @@ function OptionsScreen({
           </button>
         </nav>
 
-        {/* ── Cards carousel container ──
-            overflow-hidden clips side cards; center card in normal flow sets height.
-        */}
-        <div className="relative overflow-hidden">
-          {/* Side cards (absolutely positioned, clipped by overflow-hidden) */}
-          {renderCard(prev, 'left')}
-          {renderCard(next, 'right')}
+        {/* Page title — Figma: Segoe UI Regular 24px tracking-[1.92px] centered */}
+        <p className="text-center whitespace-nowrap" style={{ fontSize: sv(24), fontWeight: 400, color: '#262626', letterSpacing: sv(1.92), lineHeight: 'normal', paddingBottom: sv(40) }}>
+          SELECT YOUR OPTION
+        </p>
 
-          {/* Center card — in normal flow to set container height */}
-          <div style={{ width: sv(800), marginLeft: 'auto', marginRight: 'auto', position: 'relative', zIndex: 1 }}>
-            {(() => {
-              const opt = odaOptions[selectedOption]
-              const isChecked = compareSelected.includes(selectedOption)
-              return (
-                <div
-                  className="flex flex-col"
-                  style={{
-                    width: sv(800),
-                    backgroundColor: '#fbfbfb',
-                    gap: sv(24),
-                    paddingBottom: sv(32),
-                    boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
-                    border: `${sv(2)} solid ${compareMode && isChecked ? '#000000' : 'transparent'}`,
-                  }}
-                >
-                  <div className="relative w-full shrink-0" style={{ aspectRatio: '800/471' }}>
-                    <Image src={opt.images[0]} alt="" fill className="object-cover" sizes="800px" priority />
-                  </div>
-                  <div className="flex flex-col items-start" style={{ padding: `0 ${sv(28)}`, gap: sv(28) }}>
-                    <div className="flex flex-col items-start w-full" style={{ gap: sv(8), lineHeight: 'normal', fontStyle: 'normal' }}>
-                      <p style={{ fontSize: sv(24), fontWeight: 400, color: '#262626', letterSpacing: sv(1.92), width: '100%' }}>
-                        {opt.title}
-                      </p>
-                      <p style={{ fontSize: sv(16), fontWeight: 300, color: '#262626', width: '100%' }}>
-                        {opt.subtitle}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-start w-full" style={{ gap: sv(4), fontSize: sv(16), fontWeight: 300, color: '#262626', letterSpacing: sv(-0.16), lineHeight: 'normal', fontStyle: 'normal' }}>
-                      <p>{opt.materials[0]}</p>
-                      <p>{opt.deliveryDays} Days Estimate Delivery Time</p>
-                      <p>Starting from {formatPrice(opt.priceFrom)} USD</p>
-                    </div>
-                    <div className="flex items-center justify-end w-full">
-                      {compareMode ? (
-                        <button
-                          className="flex items-center"
-                          style={{ gap: sv(12), height: sv(44), flex: '1 0 0' }}
-                          onClick={() => toggleCompareOption(selectedOption)}
-                        >
-                          <div
-                            className="flex items-center justify-center flex-shrink-0"
-                            style={{
-                              width: sv(24), height: sv(24),
-                              backgroundColor: isChecked ? '#262626' : 'transparent',
-                              border: isChecked ? 'none' : `${sv(1.5)} solid #262626`,
-                              borderRadius: sv(2),
-                            }}
-                          >
-                            {isChecked && (
-                              <svg style={{ width: sv(14), height: sv(10) }} viewBox="0 0 14 10" fill="none">
-                                <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </div>
-                          <span style={{ fontSize: sv(16), color: '#262626' }}>Add to comparison</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={onContinue}
-                          className="flex items-center justify-center hover:opacity-90 transition-opacity"
-                          style={{
-                            flex: '1 0 0', height: sv(44), padding: `${sv(6)} ${sv(16)}`,
-                            backgroundColor: '#262626', color: 'white',
-                            fontSize: sv(16), fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
-                            borderRadius: sv(4),
-                          }}
-                        >
-                          Select &amp; Configure
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-
-          {/* Left arrow — Figma: page x=240, y=467; carousel-relative: calc(50%-480px), top=356px */}
-          <button
-            onClick={() => onSelect(prev)}
-            className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
-            style={{
-              width: sv(48), height: sv(48),
-              left: `calc(50% - ${sv(480)})`, top: sv(356),
-              backgroundColor: '#333333', borderRadius: sv(6), zIndex: 2,
-            }}
-          >
-            <svg style={{ width: sv(10), height: sv(16) }} viewBox="0 0 10 16" fill="none">
-              <path d="M8 2L2 8L8 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-
-          {/* Right arrow — Figma: page x=1152, y=467; carousel-relative: calc(50%+432px), top=356px */}
-          <button
-            onClick={() => onSelect(next)}
-            className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
-            style={{
-              width: sv(48), height: sv(48),
-              left: `calc(50% + ${sv(432)})`, top: sv(356),
-              backgroundColor: '#333333', borderRadius: sv(6), zIndex: 2,
-            }}
-          >
-            <svg style={{ width: sv(10), height: sv(16) }} viewBox="0 0 10 16" fill="none">
-              <path d="M2 2L8 8L2 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+        {/* 3-column option cards */}
+        <div className="flex" style={{ gap: sv(32), padding: `0 ${sv(80)}` }}>
+          {odaOptions.map((_, i) => <OptionCard key={i} optIdx={i} />)}
         </div>
 
-        {/* Pagination dots — Figma 209:926: top=910, cards bottom=870 → paddingTop=40; dots bottom=914, bar top=952 → paddingBottom=38 */}
-        <div className="flex items-center justify-center" style={{ gap: sv(8), paddingTop: sv(40), paddingBottom: sv(38) }}>
-          {odaOptions.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => onSelect(i)}
-              className="transition-all duration-300"
-              style={{
-                width: sv(40), height: sv(4), borderRadius: sv(4),
-                backgroundColor: i === selectedOption ? '#262626' : '#f1f0f0',
-              }}
-            />
+        {/* Need support + Compare Options button */}
+        <div className="flex flex-col items-center" style={{ gap: sv(16), paddingTop: sv(24), paddingBottom: sv(80) }}>
+          <div className="flex flex-col items-center text-center" style={{ gap: sv(4), lineHeight: 'normal' }}>
+            <p style={{ fontSize: sv(14), fontWeight: 600, color: '#262626' }}>Need support choosing a option?</p>
+            <p style={{ fontSize: sv(14), fontWeight: 300, color: '#262626' }}>Compare different options to help you decide which one fits you best.</p>
+          </div>
+          <button
+            onClick={scrollToCompare}
+            className="flex items-center justify-center hover:opacity-80 transition-opacity"
+            style={{ height: sv(32), padding: `${sv(6)} ${sv(4)}`, borderRadius: sv(4), gap: sv(4), color: '#262626', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {/* double-chevron-down icon */}
+            <svg style={{ width: sv(24), height: sv(24) }} viewBox="0 0 24 24" fill="none">
+              <path d="M8 8L12 12L16 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 13L12 17L16 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span style={{ fontSize: sv(14), lineHeight: 'normal', whiteSpace: 'nowrap' }}>Compare Options</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Comparison section ── */}
+      <div ref={compareRef}>
+
+        {/* Sticky comparison header — full viewport width */}
+        <div className="bg-white" style={{
+          position: 'sticky', top: 0, zIndex: 20,
+          borderBottom: '0.5px solid rgba(0,0,0,0.2)',
+          boxShadow: '0px 4px 3px 0px rgba(123,123,123,0.1)',
+          display: 'flex', alignItems: 'center',
+          gap: sv(32), padding: `0 ${sv(80)}`,
+        }}>
+          {optionNames.map((name, i) => (
+            <div key={i} className="flex items-center" style={{ flex: '1 0 0', height: sv(48), padding: `0 ${sv(8)}`, gap: sv(4) }}>
+              <p style={{ fontSize: sv(14), fontWeight: 600, color: '#262626', whiteSpace: 'nowrap' }}>{name}</p>
+              {/* chevron-down */}
+              <svg style={{ width: sv(16), height: sv(16), flexShrink: 0 }} viewBox="0 0 16 16" fill="none">
+                <path d="M4 6L8 10L12 6" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
           ))}
         </div>
 
-      </div>{/* end sv(1440) container */}
+        {/* Comparison tables — 1280px centered (matches Figma frame width) */}
+        <div style={{ width: sv(1280), margin: '0 auto', paddingTop: sv(48), paddingBottom: sv(80) }}>
 
-      {/* ── Sticky bottom bar — Figma 326:6704: y=952, h=72, px=80 ── */}
-      <div
-        className="fixed bottom-0 left-0 right-0 bg-white"
-        style={{ height: sv(72), boxShadow: '0px -8px 32px 0px rgba(123,123,123,0.1)', zIndex: 50 }}
-      >
-        {/* Inner container aligned to page content width */}
-        <div style={{ width: sv(1440), margin: '0 auto', height: '100%', display: 'flex', alignItems: 'center', padding: `0 ${sv(80)}` }}>
-          {!compareMode ? (
-            /* Default — Figma 326:6705 */
-            <div className="flex items-center flex-1" style={{ gap: sv(24), height: sv(48), padding: `0 ${sv(8)}` }}>
-              <p style={{ fontSize: sv(14), fontWeight: 600, color: '#262626', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 'normal' }}>
-                Need support choosing a option?
-              </p>
-              <p style={{ fontSize: sv(14), fontWeight: 300, color: '#262626', flex: '1 0 0', textAlign: 'right', lineHeight: 'normal' }}>
-                Compare different options to help you decide which one fits you best.
-              </p>
-              {/* Compare Options button — Figma 326:6811: border, h-40, rounded-4 */}
-              <button
-                onClick={enterCompare}
-                style={{
-                  height: sv(40), padding: `${sv(6)} ${sv(16)}`,
-                  border: `${sv(1)} solid #262626`, borderRadius: sv(4),
-                  backgroundColor: 'white', color: 'rgba(0,0,0,0.85)',
-                  fontSize: sv(14), fontWeight: 400, flexShrink: 0, lineHeight: 'normal',
-                }}
-              >
-                Compare Options
-              </button>
+          {/* Schedule and Pricing — title Semibold 28px centered, metrics with border-top */}
+          <div style={{ marginBottom: sv(64) }}>
+            <p style={{ fontSize: sv(28), fontWeight: 600, color: '#262626', textAlign: 'center', lineHeight: 'normal', marginBottom: sv(48) }}>
+              Schedule and Pricing
+            </p>
+            <div className="flex" style={{ gap: sv(32) }}>
+              {scheduleData.map((col, ci) => (
+                <div key={ci} style={{ flex: '1 0 0' }}>
+                  {col.map((item, i) => (
+                    <div key={i} style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: sv(16), paddingBottom: sv(16), textAlign: 'center' }}>
+                      <p style={{ fontSize: sv(14), fontWeight: 400, color: '#737373', letterSpacing: sv(-0.14), lineHeight: 'normal', textAlign: 'center' }}>{item.label}</p>
+                      <p style={{ fontSize: sv(24), fontWeight: 600, color: '#262626', lineHeight: 'normal', textAlign: 'center' }}>{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
-          ) : (
-            /* Compare active state */
-            <div className="flex items-center flex-1" style={{ gap: sv(24) }}>
-              <div className="flex flex-shrink-0" style={{ gap: sv(12) }}>
-                {[0, 1].map(slotIdx => (
-                  compareSelected[slotIdx] !== undefined ? (
-                    <div key={slotIdx}
-                      className="flex items-center justify-between"
-                      style={{ width: sv(240), height: sv(40), border: `${sv(1)} solid #262626`, borderRadius: sv(4), padding: `0 ${sv(16)}` }}
-                    >
-                      <span className="overflow-hidden text-ellipsis whitespace-nowrap flex-1" style={{ fontSize: sv(12), color: '#262626', marginRight: sv(8) }}>
-                        {odaOptions[compareSelected[slotIdx]].title}
-                      </span>
-                      <button
-                        className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
-                        onClick={() => setCompareSelected(prev => prev.filter((_, i) => i !== slotIdx))}
-                      >
-                        <svg style={{ width: sv(12), height: sv(12) }} viewBox="0 0 12 12" fill="none">
-                          <path d="M1 1l10 10M11 1L1 11" stroke="#262626" strokeWidth="1.3" strokeLinecap="round" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <div key={slotIdx}
-                      className="flex items-center justify-center"
-                      style={{ width: sv(240), height: sv(40), border: `${sv(1)} solid #bfbfbf`, borderRadius: sv(4), padding: `0 ${sv(16)}` }}
-                    >
-                      <span style={{ fontSize: sv(12), color: '#737373' }}>Choose a option</span>
-                    </div>
-                  )
+          </div>
+
+          {/* Comparison sections — title Semibold 28px centered, line items */}
+          {compareSections.map((section) => (
+            <div key={section.title} style={{ marginBottom: sv(64) }}>
+              <p style={{ fontSize: sv(28), fontWeight: 600, color: '#262626', textAlign: 'center', lineHeight: 'normal', marginBottom: sv(48) }}>
+                {section.title}
+              </p>
+              <div className="mx-auto flex" style={{ width: sv(1264), gap: sv(32), alignItems: 'flex-start' }}>
+                {section.columns.map((items, ci) => (
+                  <div key={ci} style={{ width: sv(400), flex: `0 0 ${sv(400)}` }}>
+                    {items.map((item, i) => <LineItem key={i} item={item} />)}
+                  </div>
                 ))}
               </div>
-              <p style={{ fontSize: sv(14), fontWeight: 300, color: '#262626', flex: 1 }}>
-                Select 2 options to start comparing
-              </p>
-              <button
-                disabled={!canCompare}
-                onClick={() => canCompare && window.open(`/compare?a=${compareSelected[0]}&b=${compareSelected[1]}`, '_blank')}
-                style={{
-                  height: sv(40), padding: `${sv(6)} ${sv(16)}`, borderRadius: sv(4),
-                  backgroundColor: 'rgba(0,0,0,0.85)', color: 'white',
-                  fontSize: sv(14), flexShrink: 0,
-                  opacity: canCompare ? 1 : 0.5,
-                  cursor: canCompare ? 'pointer' : 'not-allowed',
-                }}
-              >
-                Compare Options
-              </button>
-              <button
-                onClick={exitCompare}
-                className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
-                style={{ width: sv(30), height: sv(30) }}
-              >
-                <svg style={{ width: sv(14), height: sv(14) }} viewBox="0 0 14 14" fill="none">
-                  <path d="M1 1l12 12M13 1L1 13" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
             </div>
-          )}
+          ))}
+        </div>
+      </div>
+
+      {/* ── Decision made section ── */}
+      <div style={{ width: sv(1440), margin: '0 auto', paddingTop: sv(80), paddingBottom: sv(110) }}>
+        <div className="flex flex-col items-center" style={{ gap: sv(2), marginBottom: sv(40) }}>
+          <p style={{ fontSize: sv(36), fontWeight: 600, color: '#262626', textAlign: 'center', lineHeight: 'normal' }}>
+            Decision made?
+          </p>
+          <button
+            onClick={scrollToTop}
+            className="flex items-center justify-center hover:opacity-80 transition-opacity"
+            style={{ height: sv(40), padding: `${sv(6)} ${sv(12)}`, backgroundColor: 'white', borderRadius: sv(4), gap: sv(4), border: 'none', cursor: 'pointer' }}
+          >
+            {/* arrow-up icon */}
+            <svg style={{ width: sv(24), height: sv(24) }} viewBox="0 0 24 24" fill="none">
+              <path d="M12 19V5" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M5 12L12 5L19 12" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span style={{ fontSize: sv(14), color: 'rgba(0,0,0,0.85)', lineHeight: 'normal', whiteSpace: 'nowrap' }}>Back to Top</span>
+          </button>
+        </div>
+        <div className="flex" style={{ gap: sv(32), padding: `0 ${sv(80)}` }}>
+          {odaOptions.map((_, i) => <OptionCard key={i} optIdx={i} />)}
         </div>
       </div>
     </div>
@@ -1045,7 +1436,12 @@ function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; i
           /* ── Alternative (large image) layout — only for product items with images ── */
           <div key={i} className="flex items-start w-full" style={{ paddingTop: sv(12), paddingBottom: sv(12), borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
             {/* Image: 300×200, p-[2px], rounded-[4px] outer, rounded-[2px] inner */}
-            <div className="flex-shrink-0" style={{ padding: sv(2), borderRadius: sv(4) }}>
+            <button
+              type="button"
+              className="flex-shrink-0 text-left"
+              style={{ padding: sv(2), borderRadius: sv(4), cursor: item.odaItem ? 'pointer' : 'default' }}
+              onClick={() => item.odaItem && onInfoClick?.(item)}
+            >
               <div className="relative overflow-hidden flex-shrink-0" style={{ width: sv(300), height: sv(200), borderRadius: sv(2), border: '0.5px solid #d9d9d9' }}>
                 {item.thumbnailSrc ? (
                   <Image src={item.thumbnailSrc} alt="" fill className="object-cover" sizes="300px" />
@@ -1053,14 +1449,21 @@ function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; i
                   <div className="w-full h-full bg-[#f0f0f0]" />
                 )}
               </div>
-            </div>
+            </button>
             {/* Right content */}
             <div className="flex flex-1 flex-col min-w-0 self-stretch" style={{ gap: sv(24), paddingTop: sv(4), paddingBottom: sv(4) }}>
               {/* Top row: text info + actions */}
               <div className="flex items-start justify-end w-full">
                 {/* Text: name, qty, price */}
                 <div className="flex flex-1 flex-col min-w-0" style={{ gap: sv(8), paddingLeft: sv(12), paddingRight: sv(12), fontSize: sv(14) }}>
-                  <p className="text-[#262626] truncate min-w-0">{item.name}</p>
+                  <button
+                    type="button"
+                    className="w-fit max-w-full text-left"
+                    style={{ cursor: item.odaItem ? 'pointer' : 'default' }}
+                    onClick={() => item.odaItem && onInfoClick?.(item)}
+                  >
+                    <p className="text-[#262626] truncate min-w-0">{item.name}</p>
+                  </button>
                   <div className="flex items-center flex-shrink-0" style={{ gap: sv(8), width: sv(130), fontWeight: 300, color: '#737373' }}>
                     <p className="flex-shrink-0 whitespace-nowrap">{item.qty}</p>
                     <p className="flex-shrink-0" style={{ width: sv(32) }}>{item.unit}</p>
@@ -1103,7 +1506,12 @@ function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; i
           /* ── Compact (small image) layout ── */
           <div key={i} className="flex items-start w-full" style={{ gap: sv(12), paddingTop: sv(12), paddingBottom: sv(12), borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
             {/* Thumbnail: 48x48, rounded-[4px], p-[2px] */}
-            <div className="flex-shrink-0" style={{ width: sv(48), height: sv(48), borderRadius: sv(4), padding: sv(2) }}>
+            <button
+              type="button"
+              className="flex-shrink-0 text-left"
+              style={{ width: sv(48), height: sv(48), borderRadius: sv(4), padding: sv(2), cursor: item.odaItem ? 'pointer' : 'default' }}
+              onClick={() => item.odaItem && onInfoClick?.(item)}
+            >
               {item.thumbnailSrc ? (
                 <div className="relative w-full h-full overflow-hidden" style={{ borderRadius: sv(2) }}>
                   <Image src={item.thumbnailSrc} alt="" fill className="object-cover" sizes="44px" />
@@ -1111,11 +1519,18 @@ function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; i
               ) : (
                 <div className="w-full h-full bg-[#f0f0f0]" style={{ borderRadius: sv(2) }} />
               )}
-            </div>
+            </button>
             {/* Content */}
             <div className="flex flex-1 items-center min-w-0">
               {/* Name: flex-1 truncate, 14px regular */}
-              <p className="flex-1 text-[#262626] truncate min-w-0" style={{ fontSize: sv(14) }}>{item.name}</p>
+              <button
+                type="button"
+                className="flex-1 min-w-0 text-left"
+                style={{ cursor: item.odaItem ? 'pointer' : 'default' }}
+                onClick={() => item.odaItem && onInfoClick?.(item)}
+              >
+                <p className="flex-1 text-[#262626] truncate min-w-0" style={{ fontSize: sv(14) }}>{item.name}</p>
+              </button>
               {/* Qty + unit: w-[130px], gap-[16px], semilight 14px */}
               <div className="flex items-center justify-end flex-shrink-0" style={{ width: sv(130), gap: sv(16), fontWeight: 300 }}>
                 <p className="flex-1 text-[#262626] text-right" style={{ fontSize: sv(14) }}>{item.qty}</p>
@@ -1250,7 +1665,7 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
             style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(2) }}
             onClick={() => { onClose(); onApprove() }}
           >
-            Next Field (3)
+            Sign & Approve
           </button>
         </div>
       </div>
@@ -1449,10 +1864,12 @@ function DetailScreen({
   option,
   onBack,
   onApprove,
+  onHome,
 }: {
   option: ODAOption
   onBack: () => void
   onApprove: () => void
+  onHome: () => void
 }) {
   const [currentImage, setCurrentImage] = useState(0)
   const [sections, setSections] = useState(option.sections.map(s => ({
@@ -1468,6 +1885,21 @@ function DetailScreen({
   const [productLayoutAlt, setProductLayoutAlt] = useState(false)
   const [productDetailModal, setProductDetailModal] = useState<{ item: ODAItem; sectionName: string; onSelect: (swatchIdx: number) => void } | null>(null)
   const summaryRef = useRef<HTMLDivElement>(null)
+
+  const openProductDetail = (item: ODAItem, sectionIdx: number) => {
+    setProductDetailModal({
+      item,
+      sectionName: item.name,
+      onSelect: (swatchIdx: number) => {
+        if (item.isAddon) {
+          selectAddonSwatch(sectionIdx, item.id, swatchIdx)
+        } else {
+          selectSwatch(sectionIdx, item.id, swatchIdx)
+        }
+        setProductDetailModal(null)
+      },
+    })
+  }
 
   const toggleSection = (sectionIdx: number) => {
     setSections(prev => prev.map((s, i) => i === sectionIdx ? { ...s, collapsed: !s.collapsed } : s))
@@ -1527,7 +1959,7 @@ function DetailScreen({
 
       {/* Nav Row 1: home | logo | user */}
       <nav className="flex items-center justify-between" style={{ padding: `${sv(31)} ${sv(217)} 0` }}>
-        <button className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
+        <button onClick={onHome} className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
           <svg viewBox="0 0 18 16" fill="none" style={{ width: sv(18), height: sv(16) }}>
             <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
           </svg>
@@ -1734,21 +2166,23 @@ function DetailScreen({
                         {/* Info row: 64px min height, pr-4 to clear checkbox */}
                         <div className="flex items-center" style={{ paddingRight: sv(16), gap: sv(12), minHeight: sv(64) }}>
                           <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: sv(2) }}>
-                            <p className="font-semibold text-[#262626] truncate" style={{ fontSize: sv(14) }}>{item.name}</p>
+                            <button
+                              type="button"
+                              className="w-fit max-w-full text-left"
+                              onClick={e => {
+                                e.stopPropagation()
+                                openProductDetail(item, sectionIdx)
+                              }}
+                            >
+                              <p className="font-semibold text-[#262626] truncate" style={{ fontSize: sv(14) }}>{item.name}</p>
+                            </button>
                             <div className="flex items-center" style={{ gap: sv(8) }}>
                               <p className="text-[#262626] truncate" style={{ fontSize: sv(14) }}>{item.spec}</p>
                               <button
                                 className="flex-shrink-0 hover:opacity-60 transition-opacity"
                                 onClick={e => {
                                   e.stopPropagation()
-                                  setProductDetailModal({
-                                    item,
-                                    sectionName: item.name,
-                                    onSelect: (swatchIdx: number) => {
-                                      selectAddonSwatch(sectionIdx, item.id, swatchIdx)
-                                      setProductDetailModal(null)
-                                    },
-                                  })
+                                  openProductDetail(item, sectionIdx)
                                 }}
                               >
                                 <InfoIcon />
@@ -1787,9 +2221,17 @@ function DetailScreen({
                             ))}
                           </div>
                         ) : item.previewImage ? (
-                          <div className="relative overflow-hidden" style={{ marginTop: sv(4), padding: sv(2), borderRadius: sv(4), width: sv(64), height: sv(64) }}>
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation()
+                              openProductDetail(item, sectionIdx)
+                            }}
+                            className="relative overflow-hidden"
+                            style={{ marginTop: sv(4), padding: sv(2), borderRadius: sv(4), width: sv(64), height: sv(64) }}
+                          >
                             <Image src={item.previewImage!} alt="" fill className="object-cover" style={{ borderRadius: sv(2) }} sizes="64px" />
-                          </div>
+                          </button>
                         ) : null}
                       </div>
                     ) : (
@@ -1798,21 +2240,16 @@ function DetailScreen({
                         {/* 64px text block: name / spec+info / price */}
                         <div className="flex flex-col justify-between" style={{ minHeight: sv(64), paddingTop: sv(4), paddingBottom: sv(4) }}>
                           <div className="flex items-center">
-                            <p className="font-semibold text-[#262626]" style={{ fontSize: sv(14) }}>{item.name}</p>
+                            <button type="button" className="text-left" onClick={() => openProductDetail(item, sectionIdx)}>
+                              <p className="font-semibold text-[#262626]" style={{ fontSize: sv(14) }}>{item.name}</p>
+                            </button>
                           </div>
                           <div className="flex items-center" style={{ gap: sv(8) }}>
                             <p className="text-[#262626] truncate" style={{ fontSize: sv(14) }}>{item.spec}</p>
                             <button
                               className="flex-shrink-0 hover:opacity-60 transition-opacity"
                               onClick={() => {
-                                setProductDetailModal({
-                                  item,
-                                  sectionName: item.name,
-                                  onSelect: (swatchIdx: number) => {
-                                    selectSwatch(sectionIdx, item.id, swatchIdx)
-                                    setProductDetailModal(null)
-                                  },
-                                })
+                                openProductDetail(item, sectionIdx)
                               }}
                             >
                               <InfoIcon />
@@ -1872,7 +2309,7 @@ function DetailScreen({
       </div>
 
       {/* ─── Summary Section ──────────────────────────────────────────────────── */}
-      <div ref={summaryRef} style={{ borderTop: '0.5px solid rgba(0,0,0,0.15)' }}>
+      <div ref={summaryRef} style={{ marginTop: sv(20), borderTop: '0.5px solid rgba(0,0,0,0.15)' }}>
         <div style={{ width: sv(1440), margin: '0 auto', paddingLeft: sv(32), paddingRight: sv(32), paddingTop: sv(48), paddingBottom: sv(64) }}>
           <div className="flex items-start justify-between" style={{ gap: sv(32) }}>
 
@@ -2286,7 +2723,7 @@ function DetailScreen({
 }
 
 // ─── Screen 5: Approved ───────────────────────────────────────────────────────
-function ApprovedScreen({ option }: { option: ODAOption }) {
+function ApprovedScreen({ option, onHome }: { option: ODAOption; onHome: () => void }) {
   const [activeTab, setActiveTab] = useState('Project Home')
   const tabs = ['Project Home', 'Updates', 'Products', 'Drawings', 'Documents', 'Invoices & Payments', 'Previews']
   const sections = option.sections
@@ -2323,8 +2760,8 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
         <div style={{ width: sv(1440), margin: '0 auto' }}>
 
           {/* Row 1: nav */}
-          <nav className="flex items-center justify-between" style={{ padding: `${sv(31)} ${sv(217)} 0` }}>
-            <button className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
+          <nav className="flex items-start justify-between" style={{ height: sv(54), padding: `${sv(31)} ${sv(217)} 0` }}>
+            <button onClick={onHome} className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
               <svg viewBox="0 0 18 16" fill="none" style={{ width: sv(18), height: sv(16) }}>
                 <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
               </svg>
@@ -2341,7 +2778,7 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
           {/* Row 2: tab navigation */}
           <div
             className="flex items-center overflow-x-auto scrollbar-none"
-            style={{ paddingLeft: sv(32), borderBottom: '0.5px solid rgba(0,0,0,0.2)' }}
+            style={{ padding: `${sv(16)} ${sv(32)}`, borderBottom: '0.5px solid rgba(0,0,0,0.2)' }}
           >
             <div className="flex items-center" style={{ gap: sv(32) }}>
               {tabs.map(tab => (
@@ -2630,6 +3067,7 @@ export default function ODAProposalPage({ initialScreen = 'email' }: { initialSc
   // Always start with initialScreen to match SSR; read URL param after hydration
   const [screen, setScreen] = useState<Screen>(initialScreen)
   const [selectedOption, setSelectedOption] = useState(0)
+  const goToLanding = () => setScreen('landing')
 
   useEffect(() => {
     const param = new URLSearchParams(window.location.search).get('screen') as Screen | null
@@ -2638,16 +3076,21 @@ export default function ODAProposalPage({ initialScreen = 'email' }: { initialSc
     }
   }, [])
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [screen])
+
 
   return (
     <>
       {screen === 'email' && <EmailScreen onContinue={() => setScreen('landing')} />}
-      {screen === 'landing' && <LandingScreen onContinue={() => setScreen('options')} />}
+      {screen === 'landing' && <LandingScreen onContinue={() => setScreen('options')} onHome={goToLanding} />}
       {screen === 'options' && (
         <OptionsScreen
           selectedOption={selectedOption}
           onSelect={setSelectedOption}
           onContinue={() => setScreen('detail')}
+          onHome={goToLanding}
         />
       )}
       {screen === 'detail' && (
@@ -2655,11 +3098,13 @@ export default function ODAProposalPage({ initialScreen = 'email' }: { initialSc
           option={odaOptions[selectedOption]}
           onBack={() => setScreen('options')}
           onApprove={() => setScreen('approved')}
+          onHome={goToLanding}
         />
       )}
       {screen === 'approved' && (
         <ApprovedScreen
           option={odaOptions[selectedOption]}
+          onHome={goToLanding}
         />
       )}
     </>
