@@ -20,6 +20,12 @@ const pages = [
       'Build the overall layout and content of a homeowner proposal site through drag-and-drop widgets, similar to assembling a personalized campaign page.',
   },
   {
+    href: '/proposal-layout-editor',
+    title: 'Proposal Layout Editor',
+    description:
+      'A tldraw-based infinite canvas for arranging proposal text, images, and server-filled placeholder modules.',
+  },
+  {
     href: '/initial-draft',
     title: 'Initial Draft',
     description:

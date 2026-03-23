@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { odaOptions, odaProjectInfo, THUMB_BASE_SCOPE, type ODAOption, type ODAItem } from '@/data/odaMockData'
+
+// Scale helper: pure CSS clamp — no JS resize listener needed, zero jitter
+const sv = (px: number) => `calc(${px} / 1440 * clamp(1440px, 100vw, 3840px))`
 
 function getItemPrice(item: ODAItem): number {
   if (!item.isAddon) {
@@ -22,9 +25,13 @@ function formatPrice(n: number) {
 function ODALogo({ color = '#262626', size = 'md' }: { color?: string; size?: 'sm' | 'md' | 'lg' }) {
   const scales = { sm: 0.7, md: 1, lg: 1.4 }
   const s = scales[size]
+  const svgW = Math.round(52 * s)
+  const svgH = Math.round(18 * s)
+  const fontSize = Math.round(9 * s)
+  const letterSpacing = Math.round(2.5 * s) / 10
   return (
-    <div className="flex items-center gap-2">
-      <svg width={Math.round(52 * s)} height={Math.round(18 * s)} viewBox="0 0 52 18" fill="none">
+    <div className="flex items-center" style={{ gap: sv(8) }}>
+      <svg style={{ width: sv(svgW), height: sv(svgH) }} viewBox="0 0 52 18" fill="none">
         {/* O — solid circle */}
         <circle cx="9" cy="9" r="8.5" fill={color} />
         {/* D — outline circle */}
@@ -33,10 +40,10 @@ function ODALogo({ color = '#262626', size = 'md' }: { color?: string; size?: 's
         <polygon points="43,0.5 52,17.5 34,17.5" fill={color} />
       </svg>
       <div>
-        <div style={{ color, fontSize: Math.round(9 * s), letterSpacing: Math.round(2.5 * s) / 10 + 'em', fontWeight: 400, lineHeight: 1.2, textTransform: 'uppercase' }}>
+        <div style={{ color, fontSize: sv(fontSize), letterSpacing: `${letterSpacing}em`, fontWeight: 400, lineHeight: 1.2, textTransform: 'uppercase' }}>
           Design &amp;
         </div>
-        <div style={{ color, fontSize: Math.round(9 * s), letterSpacing: Math.round(2.5 * s) / 10 + 'em', fontWeight: 400, lineHeight: 1.2, textTransform: 'uppercase' }}>
+        <div style={{ color, fontSize: sv(fontSize), letterSpacing: `${letterSpacing}em`, fontWeight: 400, lineHeight: 1.2, textTransform: 'uppercase' }}>
           Architecture
         </div>
       </div>
@@ -548,49 +555,52 @@ function LandingScreen({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="min-h-screen bg-white"
       style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-      <div className="max-w-[1440px] mx-auto">
+      {/* Content container: scales from 1440px base, centered, max 3840px */}
+      <div style={{ width: sv(1440), margin: '0 auto', paddingBottom: sv(77) }}>
 
         {/* Logo — above image on white background */}
-        <div style={{ padding: '39px 0 24px 95px' }}>
+        <div style={{ padding: `${sv(39)} 0 ${sv(24)} ${sv(95)}` }}>
           <ODALogo size="sm" />
         </div>
 
         {/* Hero image card with side margins */}
-        <div className="relative overflow-hidden" style={{ margin: '0 95px', height: '845px' }}>
+        <div className="relative overflow-hidden" style={{ margin: `0 ${sv(95)}`, height: sv(845) }}>
           <Image src={heroImage} alt="Architecture" fill className="object-cover" sizes="(max-width:1440px) calc(100vw - 190px), 1250px" priority />
 
           {/* Gradient — bottom portion only */}
           <div
             className="absolute bottom-0 left-0 right-0 pointer-events-none"
-            style={{ height: '216px', background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.5))' }}
+            style={{ height: sv(216), background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.5))' }}
           />
 
           {/* Title — bottom left of image */}
-          <div className="absolute" style={{ left: '44px', bottom: '38px' }}>
-            <p className="text-white m-0 leading-tight" style={{ fontSize: '48px', fontWeight: 300, letterSpacing: '-2.4px' }}>
+          <div className="absolute" style={{ left: sv(44), bottom: sv(38) }}>
+            <p className="text-white m-0 leading-tight" style={{ fontSize: sv(48), fontWeight: 300, letterSpacing: sv(-2.4) }}>
               HOME RENOVATION
             </p>
-            <p className="text-white m-0 leading-tight" style={{ fontSize: '48px', fontWeight: 300, letterSpacing: '-2.4px' }}>
+            <p className="text-white m-0 leading-tight" style={{ fontSize: sv(48), fontWeight: 300, letterSpacing: sv(-2.4) }}>
               PROPOSAL
             </p>
           </div>
 
           {/* Tagline + CTA — bottom right, same row */}
           <div
-            className="absolute flex items-center gap-6"
-            style={{ right: '44px', bottom: '32px' }}
+            className="absolute flex items-center"
+            style={{ right: sv(44), bottom: sv(32), gap: sv(24) }}
           >
-            <p className="text-white text-[14px] m-0 whitespace-nowrap">
+            <p className="text-white m-0 whitespace-nowrap" style={{ fontSize: sv(14) }}>
               Where curation meets legacy, define your singular dimensions.
             </p>
             <button
               onClick={onContinue}
-              className="flex-shrink-0 flex items-center justify-center text-white text-[14px] font-semibold tracking-[1px] uppercase transition-opacity hover:opacity-80"
+              className="flex-shrink-0 flex items-center justify-center text-white font-semibold uppercase transition-opacity hover:opacity-80"
               style={{
-                height: '40px',
-                padding: '0 16px',
+                height: sv(40),
+                padding: `0 ${sv(16)}`,
+                fontSize: sv(14),
+                letterSpacing: sv(1),
                 background: 'rgba(116,116,116,0.7)',
-                border: '1px solid white',
+                border: `${sv(1)} solid white`,
                 whiteSpace: 'nowrap',
               }}
             >
@@ -644,22 +654,22 @@ function OptionsScreen({
     const isCenter = position === 'center'
     const isChecked = compareSelected.includes(optIdx)
 
-    // left positions: all cards use translateX(-50%), centers at offsets
+    // left positions: all cards use translateX(-50%), centers at scaled offsets
     const leftVal = position === 'center'
       ? '50%'
-      : position === 'left' ? 'calc(50% - 820px)' : 'calc(50% + 820px)'
+      : position === 'left' ? `calc(50% - ${sv(820)})` : `calc(50% + ${sv(820)})`
 
     return (
       <div
         key={optIdx}
         className="absolute top-0 flex flex-col"
         style={{
-          width: '800px',
+          width: sv(800),
           left: leftVal,
           transform: 'translateX(-50%)',
           backgroundColor: '#fbfbfb',
-          gap: '24px',
-          paddingBottom: '32px',
+          gap: sv(24),
+          paddingBottom: sv(32),
           boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
           opacity: isCenter ? 1 : 0.35,
           cursor: isCenter ? 'default' : 'pointer',
@@ -673,20 +683,20 @@ function OptionsScreen({
         </div>
 
         {/* Content: px-28, gap-28 — Figma 326:6678 */}
-        <div className="flex flex-col items-start px-[28px]" style={{ gap: '28px' }}>
+        <div className="flex flex-col items-start" style={{ padding: `0 ${sv(28)}`, gap: sv(28) }}>
 
           {/* Title + subtitle: gap-8 — Figma 326:6693 */}
-          <div className="flex flex-col items-start w-full" style={{ gap: '8px', lineHeight: 'normal', fontStyle: 'normal' }}>
-            <p style={{ fontSize: '24px', fontWeight: 400, color: '#262626', letterSpacing: '1.92px', width: '100%' }}>
+          <div className="flex flex-col items-start w-full" style={{ gap: sv(8), lineHeight: 'normal', fontStyle: 'normal' }}>
+            <p style={{ fontSize: sv(24), fontWeight: 400, color: '#262626', letterSpacing: sv(1.92), width: '100%' }}>
               {opt.title}
             </p>
-            <p style={{ fontSize: '16px', fontWeight: 300, color: '#262626', width: '100%' }}>
+            <p style={{ fontSize: sv(16), fontWeight: 300, color: '#262626', width: '100%' }}>
               {opt.subtitle}
             </p>
           </div>
 
           {/* Details: gap-4, tracking -0.16px, semilight — Figma 326:6697 */}
-          <div className="flex flex-col items-start w-full" style={{ gap: '4px', fontSize: '16px', fontWeight: 300, color: '#262626', letterSpacing: '-0.16px', lineHeight: 'normal', fontStyle: 'normal' }}>
+          <div className="flex flex-col items-start w-full" style={{ gap: sv(4), fontSize: sv(16), fontWeight: 300, color: '#262626', letterSpacing: sv(-0.16), lineHeight: 'normal', fontStyle: 'normal' }}>
             <p>{opt.materials[0]}</p>
             <p>{opt.deliveryDays} Days Estimate Delivery Time</p>
             <p>Starting from {formatPrice(opt.priceFrom)} USD</p>
@@ -698,35 +708,36 @@ function OptionsScreen({
               /* Compare mode on active card: checkbox + label */
               <button
                 className="flex items-center"
-                style={{ gap: '12px', height: '44px', flex: '1 0 0' }}
+                style={{ gap: sv(12), height: sv(44), flex: '1 0 0' }}
                 onClick={e => { e.stopPropagation(); toggleCompareOption(optIdx) }}
               >
                 <div
                   className="flex items-center justify-center flex-shrink-0"
                   style={{
-                    width: '24px', height: '24px',
+                    width: sv(24), height: sv(24),
                     backgroundColor: isChecked ? '#262626' : 'transparent',
-                    border: isChecked ? 'none' : '1.5px solid #262626',
-                    borderRadius: '2px',
+                    border: isChecked ? 'none' : `${sv(1.5)} solid #262626`,
+                    borderRadius: sv(2),
                   }}
                 >
                   {isChecked && (
-                    <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+                    <svg style={{ width: sv(14), height: sv(10) }} viewBox="0 0 14 10" fill="none">
                       <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </div>
-                <span style={{ fontSize: '16px', color: '#262626' }}>Add to comparison</span>
+                <span style={{ fontSize: sv(16), color: '#262626' }}>Add to comparison</span>
               </button>
             ) : (
               /* Select & Configure — flex-[1_0_0] h-44 bg-[#262626] — Figma 326:6702 */
               <button
                 onClick={isCenter ? onContinue : () => onSelect(optIdx)}
-                className="flex items-center justify-center hover:opacity-90 transition-opacity rounded-[4px]"
+                className="flex items-center justify-center hover:opacity-90 transition-opacity"
                 style={{
-                  flex: '1 0 0', height: '44px', padding: '6px 16px',
+                  flex: '1 0 0', height: sv(44), padding: `${sv(6)} ${sv(16)}`,
                   backgroundColor: '#262626', color: 'white',
-                  fontSize: '16px', fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
+                  fontSize: sv(16), fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
+                  borderRadius: sv(4),
                 }}
               >
                 Select &amp; Configure
@@ -741,236 +752,254 @@ function OptionsScreen({
   return (
     <div
       className="min-h-screen bg-white"
-      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", paddingBottom: '72px' }}
+      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", paddingBottom: sv(72) }}
     >
-      {/* Nav */}
-      <nav className="h-[72px] flex items-center justify-between" style={{ padding: '0 15.1%' }}>
-        <button className="size-6 flex items-center justify-center text-[#262626]">
-          <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
-            <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <ODALogo size="sm" />
-        <button className="size-6 flex items-center justify-center text-[#737373]">
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-            <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-        </button>
-      </nav>
+      {/* Content container: scales from 1440px base, centered */}
+      <div style={{ width: sv(1440), margin: '0 auto' }}>
 
-      {/* ── Cards carousel container ──
-          overflow-x-hidden clips side cards; center card in normal flow sets height.
-          Side cards are absolute top-0 with same structure → same height.
-      */}
-      <div className="relative overflow-hidden">
-        {/* Side cards (absolutely positioned, clipped by overflow-hidden) */}
-        {renderCard(prev, 'left')}
-        {renderCard(next, 'right')}
+        {/* Nav — Figma Frame 6887: y=31, h=24, x=217; cards at y=111 → nav total height=111 */}
+        <nav
+          className="flex justify-between"
+          style={{ height: sv(111), padding: `${sv(31)} ${sv(217)} 0`, alignItems: 'flex-start' }}
+        >
+          <button className="flex items-center justify-center text-[#262626]" style={{ width: sv(24), height: sv(24) }}>
+            <svg style={{ width: sv(18), height: sv(16) }} viewBox="0 0 18 16" fill="none">
+              <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <ODALogo size="sm" />
+          <button className="flex items-center justify-center text-[#737373]" style={{ width: sv(24), height: sv(24) }}>
+            <svg style={{ width: sv(17), height: sv(17) }} viewBox="0 0 17 17" fill="none">
+              <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </nav>
 
-        {/* Center card — in normal flow to set container height */}
-        <div style={{ width: '800px', marginLeft: 'auto', marginRight: 'auto', position: 'relative', zIndex: 1 }}>
-          {/* Render center card inline (not via renderCard) to keep in flow */}
-          {(() => {
-            const opt = odaOptions[selectedOption]
-            const isChecked = compareSelected.includes(selectedOption)
-            return (
-              <div
-                className="flex flex-col"
-                style={{
-                  width: '800px',
-                  backgroundColor: '#fbfbfb',
-                  gap: '24px',
-                  paddingBottom: '32px',
-                  boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
-                  border: compareMode && isChecked ? '2px solid #000000' : '2px solid transparent',
-                }}
-              >
-                <div className="relative w-full shrink-0" style={{ aspectRatio: '800/471' }}>
-                  <Image src={opt.images[0]} alt="" fill className="object-cover" sizes="800px" priority />
-                </div>
-                <div className="flex flex-col items-start px-[28px]" style={{ gap: '28px' }}>
-                  <div className="flex flex-col items-start w-full" style={{ gap: '8px', lineHeight: 'normal', fontStyle: 'normal' }}>
-                    <p style={{ fontSize: '24px', fontWeight: 400, color: '#262626', letterSpacing: '1.92px', width: '100%' }}>
-                      {opt.title}
-                    </p>
-                    <p style={{ fontSize: '16px', fontWeight: 300, color: '#262626', width: '100%' }}>
-                      {opt.subtitle}
-                    </p>
+        {/* ── Cards carousel container ──
+            overflow-hidden clips side cards; center card in normal flow sets height.
+        */}
+        <div className="relative overflow-hidden">
+          {/* Side cards (absolutely positioned, clipped by overflow-hidden) */}
+          {renderCard(prev, 'left')}
+          {renderCard(next, 'right')}
+
+          {/* Center card — in normal flow to set container height */}
+          <div style={{ width: sv(800), marginLeft: 'auto', marginRight: 'auto', position: 'relative', zIndex: 1 }}>
+            {(() => {
+              const opt = odaOptions[selectedOption]
+              const isChecked = compareSelected.includes(selectedOption)
+              return (
+                <div
+                  className="flex flex-col"
+                  style={{
+                    width: sv(800),
+                    backgroundColor: '#fbfbfb',
+                    gap: sv(24),
+                    paddingBottom: sv(32),
+                    boxShadow: '0px 1px 2px 0px rgba(0,0,0,0.06), 0px 2px 10px 0px rgba(0,0,0,0.12)',
+                    border: `${sv(2)} solid ${compareMode && isChecked ? '#000000' : 'transparent'}`,
+                  }}
+                >
+                  <div className="relative w-full shrink-0" style={{ aspectRatio: '800/471' }}>
+                    <Image src={opt.images[0]} alt="" fill className="object-cover" sizes="800px" priority />
                   </div>
-                  <div className="flex flex-col items-start w-full" style={{ gap: '4px', fontSize: '16px', fontWeight: 300, color: '#262626', letterSpacing: '-0.16px', lineHeight: 'normal', fontStyle: 'normal' }}>
-                    <p>{opt.materials[0]}</p>
-                    <p>{opt.deliveryDays} Days Estimate Delivery Time</p>
-                    <p>Starting from {formatPrice(opt.priceFrom)} USD</p>
-                  </div>
-                  <div className="flex items-center justify-end w-full">
-                    {compareMode ? (
-                      <button
-                        className="flex items-center"
-                        style={{ gap: '12px', height: '44px', flex: '1 0 0' }}
-                        onClick={() => toggleCompareOption(selectedOption)}
-                      >
-                        <div
-                          className="flex items-center justify-center flex-shrink-0"
+                  <div className="flex flex-col items-start" style={{ padding: `0 ${sv(28)}`, gap: sv(28) }}>
+                    <div className="flex flex-col items-start w-full" style={{ gap: sv(8), lineHeight: 'normal', fontStyle: 'normal' }}>
+                      <p style={{ fontSize: sv(24), fontWeight: 400, color: '#262626', letterSpacing: sv(1.92), width: '100%' }}>
+                        {opt.title}
+                      </p>
+                      <p style={{ fontSize: sv(16), fontWeight: 300, color: '#262626', width: '100%' }}>
+                        {opt.subtitle}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-start w-full" style={{ gap: sv(4), fontSize: sv(16), fontWeight: 300, color: '#262626', letterSpacing: sv(-0.16), lineHeight: 'normal', fontStyle: 'normal' }}>
+                      <p>{opt.materials[0]}</p>
+                      <p>{opt.deliveryDays} Days Estimate Delivery Time</p>
+                      <p>Starting from {formatPrice(opt.priceFrom)} USD</p>
+                    </div>
+                    <div className="flex items-center justify-end w-full">
+                      {compareMode ? (
+                        <button
+                          className="flex items-center"
+                          style={{ gap: sv(12), height: sv(44), flex: '1 0 0' }}
+                          onClick={() => toggleCompareOption(selectedOption)}
+                        >
+                          <div
+                            className="flex items-center justify-center flex-shrink-0"
+                            style={{
+                              width: sv(24), height: sv(24),
+                              backgroundColor: isChecked ? '#262626' : 'transparent',
+                              border: isChecked ? 'none' : `${sv(1.5)} solid #262626`,
+                              borderRadius: sv(2),
+                            }}
+                          >
+                            {isChecked && (
+                              <svg style={{ width: sv(14), height: sv(10) }} viewBox="0 0 14 10" fill="none">
+                                <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                          <span style={{ fontSize: sv(16), color: '#262626' }}>Add to comparison</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={onContinue}
+                          className="flex items-center justify-center hover:opacity-90 transition-opacity"
                           style={{
-                            width: '24px', height: '24px',
-                            backgroundColor: isChecked ? '#262626' : 'transparent',
-                            border: isChecked ? 'none' : '1.5px solid #262626',
-                            borderRadius: '2px',
+                            flex: '1 0 0', height: sv(44), padding: `${sv(6)} ${sv(16)}`,
+                            backgroundColor: '#262626', color: 'white',
+                            fontSize: sv(16), fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
+                            borderRadius: sv(4),
                           }}
                         >
-                          {isChecked && (
-                            <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
-                              <path d="M1 4.5L5.5 9L13 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </div>
-                        <span style={{ fontSize: '16px', color: '#262626' }}>Add to comparison</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={onContinue}
-                        className="flex items-center justify-center hover:opacity-90 transition-opacity rounded-[4px]"
-                        style={{
-                          flex: '1 0 0', height: '44px', padding: '6px 16px',
-                          backgroundColor: '#262626', color: 'white',
-                          fontSize: '16px', fontWeight: 600, fontStyle: 'normal', lineHeight: 'normal',
-                        }}
-                      >
-                        Select &amp; Configure
-                      </button>
-                    )}
+                          Select &amp; Configure
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })()}
+              )
+            })()}
+          </div>
+
+          {/* Left arrow — Figma: page x=240, y=467; carousel-relative: calc(50%-480px), top=356px */}
+          <button
+            onClick={() => onSelect(prev)}
+            className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
+            style={{
+              width: sv(48), height: sv(48),
+              left: `calc(50% - ${sv(480)})`, top: sv(356),
+              backgroundColor: '#333333', borderRadius: sv(6), zIndex: 2,
+            }}
+          >
+            <svg style={{ width: sv(10), height: sv(16) }} viewBox="0 0 10 16" fill="none">
+              <path d="M8 2L2 8L8 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {/* Right arrow — Figma: page x=1152, y=467; carousel-relative: calc(50%+432px), top=356px */}
+          <button
+            onClick={() => onSelect(next)}
+            className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
+            style={{
+              width: sv(48), height: sv(48),
+              left: `calc(50% + ${sv(432)})`, top: sv(356),
+              backgroundColor: '#333333', borderRadius: sv(6), zIndex: 2,
+            }}
+          >
+            <svg style={{ width: sv(10), height: sv(16) }} viewBox="0 0 10 16" fill="none">
+              <path d="M2 2L8 8L2 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
 
-        {/* Left arrow — Figma: left:240px, top:467px from page; relative to container: left:calc(50%-480px), top:356px */}
-        <button
-          onClick={() => onSelect(prev)}
-          className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
-          style={{ width: '48px', height: '48px', left: 'calc(50% - 480px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px', zIndex: 2 }}
-        >
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
-            <path d="M8 2L2 8L8 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        {/* Pagination dots — Figma 209:926: top=910, cards bottom=870 → paddingTop=40; dots bottom=914, bar top=952 → paddingBottom=38 */}
+        <div className="flex items-center justify-center" style={{ gap: sv(8), paddingTop: sv(40), paddingBottom: sv(38) }}>
+          {odaOptions.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => onSelect(i)}
+              className="transition-all duration-300"
+              style={{
+                width: sv(40), height: sv(4), borderRadius: sv(4),
+                backgroundColor: i === selectedOption ? '#262626' : '#f1f0f0',
+              }}
+            />
+          ))}
+        </div>
 
-        {/* Right arrow — Figma: left:1152px, top:467px from page; relative to container: left:calc(50%+432px), top:356px */}
-        <button
-          onClick={() => onSelect(next)}
-          className="absolute flex items-center justify-center hover:opacity-80 transition-opacity"
-          style={{ width: '48px', height: '48px', left: 'calc(50% + 432px)', top: '356px', backgroundColor: '#333333', borderRadius: '6px', zIndex: 2 }}
-        >
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
-            <path d="M2 2L8 8L2 14" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
+      </div>{/* end sv(1440) container */}
 
-      {/* Pagination dots — Figma 209:926: gap-8, h-4, w-40 each */}
-      <div className="flex items-center justify-center" style={{ gap: '8px', paddingTop: '24px', paddingBottom: '40px' }}>
-        {odaOptions.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => onSelect(i)}
-            className="transition-all duration-300 rounded-[4px]"
-            style={{
-              width: '40px', height: '4px',
-              backgroundColor: i === selectedOption ? '#262626' : '#f1f0f0',
-            }}
-          />
-        ))}
-      </div>
-
-      {/* ── Sticky bottom bar — always visible — Figma 326:6704 ── */}
+      {/* ── Sticky bottom bar — Figma 326:6704: y=952, h=72, px=80 ── */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-white flex items-center"
-        style={{ height: '72px', padding: '0 80px', boxShadow: '0px -8px 32px 0px rgba(123,123,123,0.1)', zIndex: 50 }}
+        className="fixed bottom-0 left-0 right-0 bg-white"
+        style={{ height: sv(72), boxShadow: '0px -8px 32px 0px rgba(123,123,123,0.1)', zIndex: 50 }}
       >
-        {!compareMode ? (
-          /* Default — Figma 326:6705 */
-          <div className="flex items-center flex-1" style={{ gap: '24px', height: '48px', padding: '0 8px' }}>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: '#262626', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 'normal' }}>
-              Need support choosing a option?
-            </p>
-            <p style={{ fontSize: '14px', fontWeight: 300, color: '#262626', flex: '1 0 0', textAlign: 'right', lineHeight: 'normal' }}>
-              Compare different options to help you decide which one fits you best.
-            </p>
-            {/* Compare Options button — Figma 326:6811: border, h-40, rounded-4 */}
-            <button
-              onClick={enterCompare}
-              style={{
-                height: '40px', padding: '6px 16px',
-                border: '1px solid #262626', borderRadius: '4px',
-                backgroundColor: 'white', color: 'rgba(0,0,0,0.85)',
-                fontSize: '14px', fontWeight: 400, flexShrink: 0, lineHeight: 'normal',
-              }}
-            >
-              Compare Options
-            </button>
-          </div>
-        ) : (
-          /* Compare active state */
-          <div className="flex items-center flex-1" style={{ gap: '24px' }}>
-            <div className="flex flex-shrink-0" style={{ gap: '12px' }}>
-              {[0, 1].map(slotIdx => (
-                compareSelected[slotIdx] !== undefined ? (
-                  <div key={slotIdx}
-                    className="flex items-center justify-between"
-                    style={{ width: '240px', height: '40px', border: '1px solid #262626', borderRadius: '4px', padding: '0 16px' }}
-                  >
-                    <span className="text-[12px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap flex-1 mr-2">
-                      {odaOptions[compareSelected[slotIdx]].title}
-                    </span>
-                    <button
-                      className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
-                      onClick={() => setCompareSelected(prev => prev.filter((_, i) => i !== slotIdx))}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M1 1l10 10M11 1L1 11" stroke="#262626" strokeWidth="1.3" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                  </div>
-                ) : (
-                  <div key={slotIdx}
-                    className="flex items-center justify-center"
-                    style={{ width: '240px', height: '40px', border: '1px solid #bfbfbf', borderRadius: '4px', padding: '0 16px' }}
-                  >
-                    <span className="text-[12px] text-[#737373]">Choose a option</span>
-                  </div>
-                )
-              ))}
+        {/* Inner container aligned to page content width */}
+        <div style={{ width: sv(1440), margin: '0 auto', height: '100%', display: 'flex', alignItems: 'center', padding: `0 ${sv(80)}` }}>
+          {!compareMode ? (
+            /* Default — Figma 326:6705 */
+            <div className="flex items-center flex-1" style={{ gap: sv(24), height: sv(48), padding: `0 ${sv(8)}` }}>
+              <p style={{ fontSize: sv(14), fontWeight: 600, color: '#262626', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 'normal' }}>
+                Need support choosing a option?
+              </p>
+              <p style={{ fontSize: sv(14), fontWeight: 300, color: '#262626', flex: '1 0 0', textAlign: 'right', lineHeight: 'normal' }}>
+                Compare different options to help you decide which one fits you best.
+              </p>
+              {/* Compare Options button — Figma 326:6811: border, h-40, rounded-4 */}
+              <button
+                onClick={enterCompare}
+                style={{
+                  height: sv(40), padding: `${sv(6)} ${sv(16)}`,
+                  border: `${sv(1)} solid #262626`, borderRadius: sv(4),
+                  backgroundColor: 'white', color: 'rgba(0,0,0,0.85)',
+                  fontSize: sv(14), fontWeight: 400, flexShrink: 0, lineHeight: 'normal',
+                }}
+              >
+                Compare Options
+              </button>
             </div>
-            <p style={{ fontSize: '14px', fontWeight: 300, color: '#262626', flex: 1 }}>
-              Select 2 options to start comparing
-            </p>
-            <button
-              disabled={!canCompare}
-              onClick={() => canCompare && window.open(`/compare?a=${compareSelected[0]}&b=${compareSelected[1]}`, '_blank')}
-              style={{
-                height: '40px', padding: '6px 16px', borderRadius: '4px',
-                backgroundColor: 'rgba(0,0,0,0.85)', color: 'white',
-                fontSize: '14px', flexShrink: 0,
-                opacity: canCompare ? 1 : 0.5,
-                cursor: canCompare ? 'pointer' : 'not-allowed',
-              }}
-            >
-              Compare Options
-            </button>
-            <button
-              onClick={exitCompare}
-              className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
-              style={{ width: '30px', height: '30px' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M1 1l12 12M13 1L1 13" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        )}
+          ) : (
+            /* Compare active state */
+            <div className="flex items-center flex-1" style={{ gap: sv(24) }}>
+              <div className="flex flex-shrink-0" style={{ gap: sv(12) }}>
+                {[0, 1].map(slotIdx => (
+                  compareSelected[slotIdx] !== undefined ? (
+                    <div key={slotIdx}
+                      className="flex items-center justify-between"
+                      style={{ width: sv(240), height: sv(40), border: `${sv(1)} solid #262626`, borderRadius: sv(4), padding: `0 ${sv(16)}` }}
+                    >
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap flex-1" style={{ fontSize: sv(12), color: '#262626', marginRight: sv(8) }}>
+                        {odaOptions[compareSelected[slotIdx]].title}
+                      </span>
+                      <button
+                        className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
+                        onClick={() => setCompareSelected(prev => prev.filter((_, i) => i !== slotIdx))}
+                      >
+                        <svg style={{ width: sv(12), height: sv(12) }} viewBox="0 0 12 12" fill="none">
+                          <path d="M1 1l10 10M11 1L1 11" stroke="#262626" strokeWidth="1.3" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div key={slotIdx}
+                      className="flex items-center justify-center"
+                      style={{ width: sv(240), height: sv(40), border: `${sv(1)} solid #bfbfbf`, borderRadius: sv(4), padding: `0 ${sv(16)}` }}
+                    >
+                      <span style={{ fontSize: sv(12), color: '#737373' }}>Choose a option</span>
+                    </div>
+                  )
+                ))}
+              </div>
+              <p style={{ fontSize: sv(14), fontWeight: 300, color: '#262626', flex: 1 }}>
+                Select 2 options to start comparing
+              </p>
+              <button
+                disabled={!canCompare}
+                onClick={() => canCompare && window.open(`/compare?a=${compareSelected[0]}&b=${compareSelected[1]}`, '_blank')}
+                style={{
+                  height: sv(40), padding: `${sv(6)} ${sv(16)}`, borderRadius: sv(4),
+                  backgroundColor: 'rgba(0,0,0,0.85)', color: 'white',
+                  fontSize: sv(14), flexShrink: 0,
+                  opacity: canCompare ? 1 : 0.5,
+                  cursor: canCompare ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Compare Options
+              </button>
+              <button
+                onClick={exitCompare}
+                className="flex-shrink-0 flex items-center justify-center hover:opacity-60 transition-opacity"
+                style={{ width: sv(30), height: sv(30) }}
+              >
+                <svg style={{ width: sv(14), height: sv(14) }} viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12M13 1L1 13" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -979,7 +1008,7 @@ function OptionsScreen({
 // ─── Info circle icon ─────────────────────────────────────────────────────────
 function InfoIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 opacity-40">
+    <svg viewBox="0 0 14 14" fill="none" className="flex-shrink-0 opacity-40" style={{ width: sv(14), height: sv(14) }}>
       <circle cx="7" cy="7" r="6.5" stroke="#262626" strokeWidth="1" />
       <path d="M7 6.5v3.5" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" />
       <circle cx="7" cy="4.5" r="0.6" fill="#262626" />
@@ -1004,20 +1033,20 @@ function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; i
   return (
     <div className="flex flex-col w-full">
       {/* Group header: h-[48px], semibold 16px + count badge */}
-      <div className="flex items-center gap-1 h-[48px]">
-        <p className="font-semibold text-[16px] text-[#262626]">{name}</p>
-        <div className="w-5 h-5 rounded-[4px] bg-[#f0f0f0] flex items-center justify-center ml-1">
-          <span className="text-[10px] text-[#262626]" style={{ fontWeight: 300 }}>{items.length}</span>
+      <div className="flex items-center" style={{ gap: sv(4), height: sv(48) }}>
+        <p className="font-semibold text-[#262626]" style={{ fontSize: sv(16) }}>{name}</p>
+        <div className="bg-[#f0f0f0] flex items-center justify-center" style={{ width: sv(20), height: sv(20), borderRadius: sv(4), marginLeft: sv(4) }}>
+          <span className="text-[#262626]" style={{ fontSize: sv(10), fontWeight: 300 }}>{items.length}</span>
         </div>
       </div>
       {/* Line items */}
       <div className="flex flex-col w-full">
         {items.map((item, i) => layoutAlt && item.showChange !== false ? (
           /* ── Alternative (large image) layout — only for product items with images ── */
-          <div key={i} className="flex items-start py-[12px] w-full" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
+          <div key={i} className="flex items-start w-full" style={{ paddingTop: sv(12), paddingBottom: sv(12), borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
             {/* Image: 300×200, p-[2px], rounded-[4px] outer, rounded-[2px] inner */}
-            <div className="flex-shrink-0 p-[2px] rounded-[4px]">
-              <div className="relative rounded-[2px] overflow-hidden flex-shrink-0" style={{ width: '300px', height: '200px', border: '0.5px solid #d9d9d9' }}>
+            <div className="flex-shrink-0" style={{ padding: sv(2), borderRadius: sv(4) }}>
+              <div className="relative overflow-hidden flex-shrink-0" style={{ width: sv(300), height: sv(200), borderRadius: sv(2), border: '0.5px solid #d9d9d9' }}>
                 {item.thumbnailSrc ? (
                   <Image src={item.thumbnailSrc} alt="" fill className="object-cover" sizes="300px" />
                 ) : (
@@ -1026,39 +1055,39 @@ function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; i
               </div>
             </div>
             {/* Right content */}
-            <div className="flex flex-1 flex-col gap-[24px] py-[4px] min-w-0 self-stretch">
+            <div className="flex flex-1 flex-col min-w-0 self-stretch" style={{ gap: sv(24), paddingTop: sv(4), paddingBottom: sv(4) }}>
               {/* Top row: text info + actions */}
               <div className="flex items-start justify-end w-full">
                 {/* Text: name, qty, price */}
-                <div className="flex flex-1 flex-col gap-[8px] px-[12px] text-[14px] min-w-0">
+                <div className="flex flex-1 flex-col min-w-0" style={{ gap: sv(8), paddingLeft: sv(12), paddingRight: sv(12), fontSize: sv(14) }}>
                   <p className="text-[#262626] truncate min-w-0">{item.name}</p>
-                  <div className="flex gap-[8px] items-center flex-shrink-0" style={{ width: '130px', fontWeight: 300, color: '#737373' }}>
+                  <div className="flex items-center flex-shrink-0" style={{ gap: sv(8), width: sv(130), fontWeight: 300, color: '#737373' }}>
                     <p className="flex-shrink-0 whitespace-nowrap">{item.qty}</p>
-                    <p className="flex-shrink-0 w-[32px]">{item.unit}</p>
+                    <p className="flex-shrink-0" style={{ width: sv(32) }}>{item.unit}</p>
                   </div>
-                  <div className="flex gap-[2px] items-center flex-shrink-0" style={{ width: '124px', fontWeight: 300, color: '#262626' }}>
+                  <div className="flex items-center flex-shrink-0" style={{ gap: sv(2), width: sv(124), fontWeight: 300, color: '#262626' }}>
                     <p className="flex-shrink-0">$</p>
                     <p className="flex-1 min-w-0">{item.price.toLocaleString()}</p>
                   </div>
                 </div>
                 {/* Actions: w-[112px] */}
-                <div className="flex items-center justify-between flex-shrink-0" style={{ width: '112px' }}>
+                <div className="flex items-center justify-between flex-shrink-0" style={{ width: sv(112) }}>
                   <button
-                    className="w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity"
-                    style={{ cursor: item.odaItem ? 'pointer' : 'default' }}
+                    className="flex items-center justify-center hover:opacity-60 transition-opacity"
+                    style={{ width: sv(24), height: sv(24), cursor: item.odaItem ? 'pointer' : 'default' }}
                     onClick={() => item.odaItem && onInfoClick?.(item)}
                   >
                     <InfoIcon />
                   </button>
                   {item.showChange ? (
-                    <div className="flex items-center gap-2 h-6 cursor-pointer hover:opacity-60">
-                      <span className="font-semibold text-[14px] text-[#262626]" style={{ letterSpacing: '-0.56px' }}>Change</span>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+                    <div className="flex items-center cursor-pointer hover:opacity-60" style={{ gap: sv(8), height: sv(24) }}>
+                      <span className="font-semibold text-[#262626]" style={{ fontSize: sv(14), letterSpacing: '-0.56px' }}>Change</span>
+                      <svg viewBox="0 0 16 16" fill="none" className="flex-shrink-0" style={{ width: sv(16), height: sv(16) }}>
                         <path d="M6 4l4 4-4 4" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                   ) : (
-                    <div style={{ width: '78px' }} />
+                    <div style={{ width: sv(78) }} />
                   )}
                 </div>
               </div>
@@ -1072,51 +1101,51 @@ function SummaryGroup({ name, items, layoutAlt, onInfoClick }: { name: string; i
           </div>
         ) : (
           /* ── Compact (small image) layout ── */
-          <div key={i} className="flex gap-3 items-start py-3 w-full" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
+          <div key={i} className="flex items-start w-full" style={{ gap: sv(12), paddingTop: sv(12), paddingBottom: sv(12), borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
             {/* Thumbnail: 48x48, rounded-[4px], p-[2px] */}
-            <div className="flex-shrink-0 w-12 h-12 rounded-[4px] p-[2px]">
+            <div className="flex-shrink-0" style={{ width: sv(48), height: sv(48), borderRadius: sv(4), padding: sv(2) }}>
               {item.thumbnailSrc ? (
-                <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                <div className="relative w-full h-full overflow-hidden" style={{ borderRadius: sv(2) }}>
                   <Image src={item.thumbnailSrc} alt="" fill className="object-cover" sizes="44px" />
                 </div>
               ) : (
-                <div className="w-full h-full rounded-[2px] bg-[#f0f0f0]" />
+                <div className="w-full h-full bg-[#f0f0f0]" style={{ borderRadius: sv(2) }} />
               )}
             </div>
             {/* Content */}
             <div className="flex flex-1 items-center min-w-0">
               {/* Name: flex-1 truncate, 14px regular */}
-              <p className="flex-1 text-[14px] text-[#262626] truncate min-w-0">{item.name}</p>
+              <p className="flex-1 text-[#262626] truncate min-w-0" style={{ fontSize: sv(14) }}>{item.name}</p>
               {/* Qty + unit: w-[130px], gap-[16px], semilight 14px */}
-              <div className="flex items-center gap-4 justify-end flex-shrink-0" style={{ width: '130px', fontWeight: 300 }}>
-                <p className="flex-1 text-[14px] text-[#262626] text-right">{item.qty}</p>
-                <p className="text-[14px] text-[#262626] flex-shrink-0 w-8">{item.unit}</p>
+              <div className="flex items-center justify-end flex-shrink-0" style={{ width: sv(130), gap: sv(16), fontWeight: 300 }}>
+                <p className="flex-1 text-[#262626] text-right" style={{ fontSize: sv(14) }}>{item.qty}</p>
+                <p className="text-[#262626] flex-shrink-0" style={{ fontSize: sv(14), width: sv(32) }}>{item.unit}</p>
               </div>
               {/* Spacer: w-[64px] */}
-              <div className="flex-shrink-0 bg-white" style={{ width: '64px', height: '19px' }} />
+              <div className="flex-shrink-0 bg-white" style={{ width: sv(64), height: sv(19) }} />
               {/* Price: w-[124px], gap-[2px], semilight 14px */}
-              <div className="flex items-center gap-0.5 flex-shrink-0" style={{ width: '124px', fontWeight: 300 }}>
-                <span className="text-[14px] text-[#262626] flex-shrink-0">$</span>
-                <span className="flex-1 text-[14px] text-[#262626]">{item.price.toLocaleString()}</span>
+              <div className="flex items-center flex-shrink-0" style={{ width: sv(124), gap: sv(2), fontWeight: 300 }}>
+                <span className="text-[#262626] flex-shrink-0" style={{ fontSize: sv(14) }}>$</span>
+                <span className="flex-1 text-[#262626]" style={{ fontSize: sv(14) }}>{item.price.toLocaleString()}</span>
               </div>
               {/* Actions: w-[112px] */}
-              <div className="flex items-center justify-between flex-shrink-0" style={{ width: '112px' }}>
+              <div className="flex items-center justify-between flex-shrink-0" style={{ width: sv(112) }}>
                 <button
-                  className="w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity"
-                  style={{ cursor: item.odaItem ? 'pointer' : 'default' }}
+                  className="flex items-center justify-center hover:opacity-60 transition-opacity"
+                  style={{ width: sv(24), height: sv(24), cursor: item.odaItem ? 'pointer' : 'default' }}
                   onClick={() => item.odaItem && onInfoClick?.(item)}
                 >
                   <InfoIcon />
                 </button>
                 {item.showChange !== false ? (
-                  <div className="flex items-center gap-2 h-6 cursor-pointer hover:opacity-60">
-                    <span className="font-semibold text-[14px] text-[#262626]" style={{ letterSpacing: '-0.56px' }}>Change</span>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+                  <div className="flex items-center cursor-pointer hover:opacity-60" style={{ gap: sv(8), height: sv(24) }}>
+                    <span className="font-semibold text-[#262626]" style={{ fontSize: sv(14), letterSpacing: '-0.56px' }}>Change</span>
+                    <svg viewBox="0 0 16 16" fill="none" className="flex-shrink-0" style={{ width: sv(16), height: sv(16) }}>
                       <path d="M6 4l4 4-4 4" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 ) : (
-                  <div style={{ width: '78px' }} />
+                  <div style={{ width: sv(78) }} />
                 )}
               </div>
             </div>
@@ -1135,20 +1164,21 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center"
-      style={{ padding: '32px 64px', backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.6)' }}
+      style={{ padding: `${sv(32)} ${sv(64)}`, backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[24px] flex gap-10 w-full relative"
-        style={{ height: '963px', maxHeight: 'calc(100vh - 64px)', padding: '40px 48px' }}
+        className="bg-white flex w-full relative"
+        style={{ height: sv(963), maxHeight: 'calc(100vh - 64px)', borderRadius: sv(24), gap: sv(40), padding: `${sv(40)} ${sv(48)}` }}
         onClick={e => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f0f0] transition-colors text-[#262626]"
+          className="absolute flex items-center justify-center hover:bg-[#f0f0f0] transition-colors text-[#262626]"
+          style={{ top: sv(20), right: sv(20), width: sv(32), height: sv(32), borderRadius: '50%' }}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <svg viewBox="0 0 14 14" fill="none" style={{ width: sv(14), height: sv(14) }}>
             <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
@@ -1169,14 +1199,14 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
           </div>
 
           {/* Zoom controls — overlaid at bottom-left */}
-          <div className="absolute bottom-0 left-0 flex gap-3" style={{ padding: '24px 32px' }}>
+          <div className="absolute bottom-0 left-0 flex" style={{ gap: sv(12), padding: `${sv(24)} ${sv(32)}` }}>
             {/* Zoom in */}
             <button
               onClick={() => setZoom(z => Math.min(z + 0.25, 2))}
-              className="w-12 h-12 flex items-center justify-center rounded-[4px]"
-              style={{ backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+              className="flex items-center justify-center"
+              style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(20), height: sv(20) }}>
                 <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
                 <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
@@ -1185,10 +1215,10 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
             {/* Zoom out */}
             <button
               onClick={() => setZoom(z => Math.max(z - 0.25, 0.5))}
-              className="w-12 h-12 flex items-center justify-center rounded-[4px]"
-              style={{ backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+              className="flex items-center justify-center"
+              style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(20), height: sv(20) }}>
                 <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
                 <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                 <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
@@ -1197,10 +1227,10 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
             {/* Fit / reset */}
             <button
               onClick={() => setZoom(1)}
-              className="w-12 h-12 flex items-center justify-center rounded-[4px]"
-              style={{ backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+              className="flex items-center justify-center"
+              style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.8)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(20), height: sv(20) }}>
                 <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
@@ -1208,15 +1238,16 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
         </div>
 
         {/* ── Right: signing panel ── */}
-        <div className="flex-shrink-0 flex flex-col gap-6" style={{ width: '274px' }}>
-          <p className="text-[16px] text-[#262626]" style={{ letterSpacing: '-0.64px', lineHeight: 'normal' }}>
+        <div className="flex-shrink-0 flex flex-col" style={{ width: sv(274), gap: sv(24) }}>
+          <p className="text-[#262626]" style={{ fontSize: sv(16), letterSpacing: '-0.64px', lineHeight: 'normal' }}>
             Sign Contract as {clientName}
           </p>
-          <p className="text-[12px] text-[#262626] leading-[1.5]" style={{ fontWeight: 300 }}>
+          <p className="text-[#262626] leading-[1.5]" style={{ fontSize: sv(12), fontWeight: 300 }}>
             Please review your final project selections and contract details before signing. By signing below, you confirm your acceptance of the scope, pricing, and terms outlined in this agreement.
           </p>
           <button
-            className="w-full h-10 bg-black text-white font-semibold text-[14px] rounded-[2px] flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="w-full bg-black text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+            style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(2) }}
             onClick={() => { onClose(); onApprove() }}
           >
             Next Field (3)
@@ -1274,50 +1305,50 @@ function ProductDetailModal({
   return (
     <div
       className="fixed inset-0 z-[300] flex flex-col justify-end"
-      style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.6)', paddingTop: '113px' }}
+      style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0,0,0,0.6)', paddingTop: sv(113) }}
       onClick={onClose}
     >
       <div
         className="bg-white w-full flex flex-col"
-        style={{ height: '767px', borderRadius: '16px 16px 0 0', boxShadow: '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.20)', gap: '16px' }}
+        style={{ height: sv(767), borderRadius: `${sv(16)} ${sv(16)} 0 0`, boxShadow: '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.20)', gap: sv(16) }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header row: close button pinned right — padding 16px top, 16px horizontal */}
-        <div className="flex justify-end flex-shrink-0" style={{ padding: '16px 16px 0' }}>
+        <div className="flex justify-end flex-shrink-0" style={{ padding: `${sv(16)} ${sv(16)} 0` }}>
           <button
             onClick={onClose}
-            className="flex items-center justify-center rounded-[4px] bg-[#F0F0F0] hover:bg-[#e0e0e0] transition-colors"
-            style={{ width: '24px', height: '24px' }}
+            className="flex items-center justify-center bg-[#F0F0F0] hover:bg-[#e0e0e0] transition-colors"
+            style={{ width: sv(24), height: sv(24), borderRadius: sv(4) }}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <svg viewBox="0 0 16 16" fill="none" style={{ width: sv(16), height: sv(16) }}>
               <path d="M3 3l10 10M13 3L3 13" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" />
             </svg>
           </button>
         </div>
 
         {/* Body: flex row, gap 40px, padding 0 64px */}
-        <div className="flex flex-1 min-h-0" style={{ gap: '40px', padding: '0 64px 24px' }}>
+        <div className="flex flex-1 min-h-0" style={{ gap: sv(40), padding: `0 ${sv(64)} ${sv(24)}` }}>
 
           {/* Left column: 840px wide, flex col, justify-between */}
-          <div className="flex flex-col justify-between flex-shrink-0" style={{ width: '840px', paddingBottom: '24px' }}>
+          <div className="flex flex-col justify-between flex-shrink-0" style={{ width: sv(840), paddingBottom: sv(24) }}>
             {/* Hero image: aspect 732:510, border-radius 8px */}
-            <div className="relative w-full rounded-[8px] overflow-hidden" style={{ aspectRatio: '732/510' }}>
+            <div className="relative w-full overflow-hidden" style={{ aspectRatio: '732/510', borderRadius: sv(8) }}>
               <Image src={mainImage} alt="" fill className="object-cover" sizes="840px" />
             </div>
 
             {/* Thumbnail strip: 3 photos of the current product — gap 8px, 86×64 each */}
-            <div className="flex" style={{ gap: '8px' }}>
+            <div className="flex" style={{ gap: sv(8) }}>
               {currentImages.map((src, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveThumb(i)}
-                  className="flex-shrink-0 rounded-[4px] p-[2px]"
+                  className="flex-shrink-0"
                   style={{
-                    width: '86px', height: '64px',
+                    width: sv(86), height: sv(64), borderRadius: sv(4), padding: sv(2),
                     border: i === activeThumb ? '1.5px solid #000000' : '1.5px solid transparent',
                   }}
                 >
-                  <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                  <div className="relative w-full h-full overflow-hidden" style={{ borderRadius: sv(2) }}>
                     <Image src={src} alt="" fill className="object-cover" sizes="86px" />
                   </div>
                 </button>
@@ -1330,38 +1361,38 @@ function ProductDetailModal({
             className="flex flex-col items-start overflow-y-auto"
             style={{
               flex: '1 0 0', height: '100%',
-              gap: '24px',
+              gap: sv(24),
               fontFamily: "'Segoe UI', sans-serif",
               minWidth: 0,
             }}
           >
             {/* Top info block: shrink-0, gap 32px, items-start, w-full — Figma 330:3589 */}
-            <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: '32px' }}>
+            <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: sv(32) }}>
 
               {/* Header block: gap 12px, items-start, shrink-0 — Figma 330:3577 */}
-              <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: '12px' }}>
+              <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: sv(12) }}>
                 {/* Labels: gap 4px, leading-normal, not-italic — Figma 330:3613 */}
-                <div className="flex flex-col items-start w-full" style={{ gap: '4px', lineHeight: 'normal', fontStyle: 'normal' }}>
-                  <p style={{ fontSize: '16px', fontWeight: 600, color: '#262626', width: '100%' }}>{sectionName}</p>
-                  <p style={{ fontSize: '16px', fontWeight: 400, color: '#737373', letterSpacing: '-0.64px', width: '100%' }}>1,240 SQF.</p>
+                <div className="flex flex-col items-start w-full" style={{ gap: sv(4), lineHeight: 'normal', fontStyle: 'normal' }}>
+                  <p style={{ fontSize: sv(16), fontWeight: 600, color: '#262626', width: '100%' }}>{sectionName}</p>
+                  <p style={{ fontSize: sv(16), fontWeight: 400, color: '#737373', letterSpacing: '-0.64px', width: '100%' }}>1,240 SQF.</p>
                 </div>
 
                 {/* Alternative product swatches — gap 10px, items-center, shrink-0 — Figma 330:3605 */}
                 {swatches.length > 0 && (
-                  <div className="flex items-center flex-shrink-0" style={{ gap: '10px' }}>
+                  <div className="flex items-center flex-shrink-0" style={{ gap: sv(10) }}>
                     {swatches.map((src, i) => (
                       <button
                         key={i}
                         onClick={() => handleSwatchClick(i)}
-                        className="flex-shrink-0 rounded-[4px]"
+                        className="flex-shrink-0"
                         style={{
-                          width: '64px', height: '64px',
+                          width: sv(64), height: sv(64), borderRadius: sv(4),
                           border: i === activeSwatchIdx ? '1.5px solid #000000' : '1.5px solid transparent',
-                          padding: '2px',
+                          padding: sv(2),
                           outline: 'none',
                         }}
                       >
-                        <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                        <div className="relative w-full h-full overflow-hidden" style={{ borderRadius: sv(2) }}>
                           <Image src={src} alt="" fill className="object-cover" sizes="64px" />
                         </div>
                       </button>
@@ -1371,11 +1402,11 @@ function ProductDetailModal({
               </div>
 
               {/* Product title + description: gap 16px, items-start, shrink-0 — Figma 330:3614 */}
-              <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: '16px', lineHeight: 'normal', fontStyle: 'normal' }}>
-                <p style={{ fontSize: '20px', fontWeight: 600, color: '#262626', letterSpacing: '-0.8px', width: '100%' }}>
+              <div className="flex flex-col items-start w-full flex-shrink-0" style={{ gap: sv(16), lineHeight: 'normal', fontStyle: 'normal' }}>
+                <p style={{ fontSize: sv(20), fontWeight: 600, color: '#262626', letterSpacing: '-0.8px', width: '100%' }}>
                   {item.spec}
                 </p>
-                <p style={{ fontSize: '12px', fontWeight: 300, color: '#262626', width: '100%' }}>
+                <p style={{ fontSize: sv(12), fontWeight: 300, color: '#262626', width: '100%' }}>
                   A timeless {sectionName.toLowerCase()} upgrade that brings warmth and character to your home.
                   The natural finish pairs with a considered layout to create a more elevated, custom-designed look.
                 </p>
@@ -1383,7 +1414,7 @@ function ProductDetailModal({
 
               {/* Price — updates per swatch — Figma 330:3592 */}
               <div className="flex flex-col items-start w-full flex-shrink-0">
-                <p style={{ fontSize: '24px', fontWeight: 300, color: '#262626', lineHeight: 'normal', fontStyle: 'normal', width: '100%' }}>
+                <p style={{ fontSize: sv(24), fontWeight: 300, color: '#262626', lineHeight: 'normal', fontStyle: 'normal', width: '100%' }}>
                   {formatPrice(displayPrice)}
                 </p>
               </div>
@@ -1392,12 +1423,12 @@ function ProductDetailModal({
             {/* CTA button — Figma 330:3583: shrink-0, auto-width (parent has items-start) */}
             {/* selected → gray bg #737373 text #333; unselected → dark bg #262626 text #fff */}
             <button
-              className="flex items-center justify-center flex-shrink-0 rounded-[4px] transition-colors"
+              className="flex items-center justify-center flex-shrink-0 transition-colors"
               style={{
-                height: '44px', padding: '6px 16px',
+                height: sv(44), padding: `${sv(6)} ${sv(16)}`, borderRadius: sv(4),
                 backgroundColor: isCurrentlySelected ? '#737373' : '#262626',
                 color: isCurrentlySelected ? '#333333' : '#ffffff',
-                fontFamily: 'Roboto, sans-serif', fontWeight: 600, fontSize: '14px', lineHeight: '18px',
+                fontFamily: 'Roboto, sans-serif', fontWeight: 600, fontSize: sv(14), lineHeight: '18px',
                 whiteSpace: 'nowrap',
                 cursor: isCurrentlySelected ? 'default' : 'pointer',
               }}
@@ -1492,18 +1523,18 @@ function DetailScreen({
 
       {/* Sticky header wrapper */}
       <div className="sticky top-0 z-50 bg-white">
-      <div className="max-w-[1500px] mx-auto w-full">
+      <div style={{ width: sv(1440), margin: '0 auto' }}>
 
-      {/* Nav Row 1: home | logo | user (15.1% = 217px on 1440px, matching Figma left-[217px]) */}
-      <nav className="flex items-center justify-between" style={{ padding: '31px 15.1%' }}>
-        <button className="size-6 flex items-center justify-center text-[#262626] hover:opacity-60">
-          <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+      {/* Nav Row 1: home | logo | user */}
+      <nav className="flex items-center justify-between" style={{ padding: `${sv(31)} ${sv(217)} 0` }}>
+        <button className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
+          <svg viewBox="0 0 18 16" fill="none" style={{ width: sv(18), height: sv(16) }}>
             <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
           </svg>
         </button>
         <ODALogo size="sm" />
-        <button className="size-6 flex items-center justify-center text-[#262626] hover:opacity-60">
-          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+        <button className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
+          <svg viewBox="0 0 17 17" fill="none" style={{ width: sv(17), height: sv(17) }}>
             <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.2" />
             <path d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
@@ -1512,23 +1543,24 @@ function DetailScreen({
 
       {/* Nav Row 2: actions | pricing | buttons */}
       <div
-        className="flex items-center justify-between px-8 border-b"
-        style={{ paddingTop: '16px', paddingBottom: '16px', borderBottomWidth: '0.5px', borderColor: 'rgba(0,0,0,0.2)' }}
+        className="flex items-center justify-between border-b"
+        style={{ paddingTop: sv(16), paddingBottom: sv(16), paddingLeft: sv(32), paddingRight: sv(32), borderBottomWidth: '0.5px', borderColor: 'rgba(0,0,0,0.2)' }}
       >
         {/* Left: Change Option + Contact Sales */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center" style={{ gap: sv(32) }}>
           <button
             onClick={onBack}
-            className="flex items-center gap-1 h-8 px-1 rounded-[4px] text-[14px] text-[#262626] hover:opacity-60 transition-opacity"
+            className="flex items-center text-[#262626] hover:opacity-60 transition-opacity"
+            style={{ gap: sv(4), height: sv(32), paddingLeft: sv(4), paddingRight: sv(4), borderRadius: sv(4), fontSize: sv(14) }}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg viewBox="0 0 14 14" fill="none" style={{ width: sv(14), height: sv(14) }}>
               <path d="M13 7H1M6 2L1 7L6 12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Change Option
           </button>
-          <button className="flex items-center gap-1.5 h-8 px-1 rounded-[4px] text-[14px] text-[#262626] hover:opacity-60 transition-opacity">
+          <button className="flex items-center text-[#262626] hover:opacity-60 transition-opacity" style={{ gap: sv(6), height: sv(32), paddingLeft: sv(4), paddingRight: sv(4), borderRadius: sv(4), fontSize: sv(14) }}>
             {/* Phone icon */}
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <svg viewBox="0 0 16 16" fill="none" style={{ width: sv(16), height: sv(16) }}>
               <path d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
             </svg>
             Contact Sales
@@ -1536,37 +1568,37 @@ function DetailScreen({
         </div>
 
         {/* Right: pricing block + action buttons */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center" style={{ gap: sv(16) }}>
           {/* Pricing: monthly | separator | total */}
-          <div className="flex items-stretch h-10">
+          <div className="flex items-stretch" style={{ height: sv(40) }}>
             {/* Monthly payment */}
-            <div className="flex flex-col justify-between pl-2 pr-3">
-              <div className="flex items-center gap-1.5">
+            <div className="flex flex-col justify-between" style={{ paddingLeft: sv(8), paddingRight: sv(12) }}>
+              <div className="flex items-center" style={{ gap: sv(6) }}>
                 {/* Calculator icon */}
-                <svg width="11" height="14" viewBox="0 0 11 14" fill="none" className="flex-shrink-0">
+                <svg viewBox="0 0 11 14" fill="none" className="flex-shrink-0" style={{ width: sv(11), height: sv(14) }}>
                   <rect x="0.5" y="0.5" width="10" height="13" rx="1" stroke="#262626" strokeWidth="1" />
                   <path d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2" stroke="#262626" strokeWidth="0.9" strokeLinecap="round" />
                 </svg>
-                <span className="text-[18px] text-[#262626] leading-none">{formatPrice(monthlyPayment)} /mo</span>
+                <span className="text-[#262626] leading-none" style={{ fontSize: sv(18) }}>{formatPrice(monthlyPayment)} /mo</span>
               </div>
-              <span className="text-[10px] text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap" style={{ maxWidth: '200px' }}>
+              <span className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(10), maxWidth: sv(200) }}>
                 Monthly payment via financing service provider
               </span>
             </div>
             {/* Vertical separator */}
-            <div className="flex-shrink-0 w-px bg-[rgba(0,0,0,0.2)] self-stretch" />
+            <div className="flex-shrink-0 bg-[rgba(0,0,0,0.2)] self-stretch" style={{ width: '0.5px' }} />
             {/* Total */}
-            <div className="flex flex-col justify-between pl-3 pr-2" style={{ width: '150px' }}>
-              <span className="text-[18px] text-[#262626] leading-none">{formatPrice(total)}.00</span>
-              <span className="text-[10px] text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap">Tax &amp; fees included</span>
+            <div className="flex flex-col justify-between" style={{ paddingLeft: sv(12), paddingRight: sv(8), width: sv(150) }}>
+              <span className="text-[#262626] leading-none" style={{ fontSize: sv(18) }}>{formatPrice(total)}.00</span>
+              <span className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(10) }}>Tax &amp; fees included</span>
             </div>
           </div>
 
           {/* Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center" style={{ gap: sv(8) }}>
             <button
-              className="border border-[#262626] bg-white text-[#262626] text-[14px] rounded-[4px] hover:bg-[#262626] hover:text-white transition-colors flex-shrink-0"
-              style={{ width: '108px', height: '40px' }}
+              className="border border-[#262626] bg-white text-[#262626] hover:bg-[#262626] hover:text-white transition-colors flex-shrink-0"
+              style={{ width: sv(108), height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
               onClick={() => {
                 if (summaryRef.current) {
                   const top = summaryRef.current.getBoundingClientRect().top + window.scrollY - 158
@@ -1577,8 +1609,8 @@ function DetailScreen({
               Summary
             </button>
             <button
-              className="bg-[#262626] text-white font-semibold text-[14px] rounded-[4px] px-4 hover:bg-black transition-colors flex-shrink-0"
-              style={{ height: '40px' }}
+              className="bg-[#262626] text-white font-semibold hover:bg-black transition-colors flex-shrink-0"
+              style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), paddingLeft: sv(16), paddingRight: sv(16) }}
               onClick={() => setShowSignModal(true)}
             >
               Sign &amp; Approve
@@ -1591,59 +1623,59 @@ function DetailScreen({
       </div>{/* end sticky header */}
 
       {/* Main content: 842px gallery + 505px config */}
-      <div className="max-w-[1500px] mx-auto w-full flex items-start px-8 pt-6" style={{ gap: '32px' }}>
+      <div className="flex items-start" style={{ width: sv(1440), margin: '0 auto', paddingLeft: sv(32), paddingRight: sv(32), paddingTop: sv(24), gap: sv(32) }}>
 
         {/* Left: Image Gallery (fills remaining width) */}
-        <div className="flex-1 min-w-0 flex flex-col gap-[10px] sticky" style={{ top: '182px' }}>
+        <div className="flex-1 min-w-0 flex flex-col sticky" style={{ gap: sv(10), top: sv(182) }}>
           {/* Main image with expand button */}
-          <div className="relative overflow-hidden rounded-[8px] bg-[#F0F0F0]" style={{ aspectRatio: '864/633' }}>
+          <div className="relative overflow-hidden bg-[#F0F0F0]" style={{ aspectRatio: '864/633', borderRadius: sv(8) }}>
             <Image src={option.images[currentImage]} alt="Room view" fill className="object-cover" sizes="(max-width:1500px) calc(100vw - 569px), 900px" priority />
             {/* Expand icon: bottom-right, 32×32 */}
-            <button className="absolute bottom-3 right-3 w-8 h-8 bg-white/80 rounded-[4px] flex items-center justify-center hover:bg-white transition-colors">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <button className="absolute bg-white/80 flex items-center justify-center hover:bg-white transition-colors" style={{ bottom: sv(12), right: sv(12), width: sv(32), height: sv(32), borderRadius: sv(4) }}>
+              <svg viewBox="0 0 14 14" fill="none" style={{ width: sv(14), height: sv(14) }}>
                 <path d="M9.5 1H13V4.5M4.5 13H1V9.5M13 9.5V13H9.5M1 4.5V1H4.5" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>
 
           {/* Thumbnails: 86×64, 1.5px border on selected */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center" style={{ gap: sv(8) }}>
             {option.images.map((img, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentImage(i)}
-                className="relative flex-shrink-0 rounded-[4px] overflow-hidden"
+                className="relative flex-shrink-0 overflow-hidden"
                 style={{
-                  width: '86px', height: '64px', padding: '2px',
+                  width: sv(86), height: sv(64), padding: sv(2), borderRadius: sv(4),
                   border: i === currentImage ? '1.5px solid #262626' : '1.5px solid transparent',
                 }}
               >
-                <Image src={img} alt="" fill className="object-cover rounded-[2px]" sizes="86px" />
+                <Image src={img} alt="" fill className="object-cover" style={{ borderRadius: sv(2) }} sizes="86px" />
               </button>
             ))}
           </div>
 
           {/* Caption: image-specific */}
-          <p className="text-[14px] text-[#262626]">
+          <p className="text-[#262626]" style={{ fontSize: sv(14) }}>
             {option.sections[0]?.name ?? 'Interior'} Preview {currentImage + 1}
           </p>
         </div>
 
         {/* Right: Configuration panel (505px fixed, scrolls with page) */}
-        <div className="flex-shrink-0 flex flex-col pb-10 px-2" style={{ width: '505px', gap: '23px' }}>
+        <div className="flex-shrink-0 flex flex-col" style={{ width: sv(505), gap: sv(23), paddingBottom: sv(40), paddingLeft: sv(8), paddingRight: sv(8) }}>
 
           {/* Option title + project label */}
           <div className="flex flex-col text-[#262626]">
-            <p className="font-semibold text-[20px] leading-snug">{option.title}</p>
-            <p className="text-[14px]">{odaProjectInfo.projectLabel}</p>
+            <p className="font-semibold leading-snug" style={{ fontSize: sv(20) }}>{option.title}</p>
+            <p style={{ fontSize: sv(14) }}>{odaProjectInfo.projectLabel}</p>
           </div>
 
           {/* Search bar: 0.5px border, rounded-[2px] */}
           <div
-            className="flex items-center gap-1 px-3 py-2 rounded-[2px]"
-            style={{ border: '0.5px solid black' }}
+            className="flex items-center"
+            style={{ gap: sv(4), padding: `${sv(8)} ${sv(12)}`, borderRadius: sv(2), border: '0.5px solid black' }}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 text-[#737373]">
+            <svg viewBox="0 0 16 16" fill="none" className="flex-shrink-0 text-[#737373]" style={{ width: sv(16), height: sv(16) }}>
               <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.2" />
               <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
             </svg>
@@ -1652,33 +1684,35 @@ function DetailScreen({
               placeholder="Search Configuration / Upgrade / Add-ons"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 text-[12px] text-[#737373] placeholder-[#737373] outline-none bg-transparent"
+              className="flex-1 text-[#737373] placeholder-[#737373] outline-none bg-transparent"
+              style={{ fontSize: sv(12) }}
             />
           </div>
 
           {/* Section cards */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col" style={{ gap: sv(24) }}>
             {filteredSections.map((section, sectionIdx) => (
               <div
                 key={section.name}
-                className="bg-white rounded-[12px] pt-4 px-3 pb-6 flex flex-col gap-6"
-                style={{ boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+                className="bg-white flex flex-col"
+                style={{ borderRadius: sv(12), paddingTop: sv(16), paddingLeft: sv(12), paddingRight: sv(12), paddingBottom: sv(24), gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
               >
                 {/* Section header: title (semibold 16px) + collapse toggle */}
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-[16px] text-[#262626]">{section.name}</p>
+                  <p className="font-semibold text-[#262626]" style={{ fontSize: sv(16) }}>{section.name}</p>
                   <button
                     onClick={() => toggleSection(sectionIdx)}
-                    className="w-4 h-4 flex items-center justify-center hover:opacity-50 transition-opacity"
+                    className="flex items-center justify-center hover:opacity-50 transition-opacity"
+                    style={{ width: sv(16), height: sv(16) }}
                   >
                     {section.collapsed ? (
                       /* Plus = collapsed */
-                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <svg viewBox="0 0 13 13" fill="none" style={{ width: sv(13), height: sv(13) }}>
                         <path d="M6.5 1v11M1 6.5h11" stroke="black" strokeWidth="1.2" strokeLinecap="round" />
                       </svg>
                     ) : (
                       /* Minus line = expanded */
-                      <div className="w-[13px] h-px bg-black" />
+                      <div className="bg-black" style={{ width: sv(13), height: '0.5px' }} />
                     )}
                   </button>
                 </div>
@@ -1689,19 +1723,20 @@ function DetailScreen({
                     {item.isAddon ? (
                       /* ── Add-on: bordered sub-card ── */
                       <div
-                        className="rounded-[8px] bg-white flex flex-col cursor-pointer"
+                        className="bg-white flex flex-col cursor-pointer"
                         style={{
+                          borderRadius: sv(8),
                           border: `1px solid ${item.selected ? '#262626' : '#BFBFBF'}`,
-                          padding: '8px 8px 12px 16px',
+                          padding: `${sv(8)} ${sv(8)} ${sv(12)} ${sv(16)}`,
                         }}
                         onClick={() => toggleAddon(sectionIdx, item.id)}
                       >
                         {/* Info row: 64px min height, pr-4 to clear checkbox */}
-                        <div className="flex items-center pr-4 gap-3" style={{ minHeight: '64px' }}>
-                          <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-                            <p className="font-semibold text-[14px] text-[#262626] truncate">{item.name}</p>
-                            <div className="flex items-center gap-2">
-                              <p className="text-[14px] text-[#262626] truncate">{item.spec}</p>
+                        <div className="flex items-center" style={{ paddingRight: sv(16), gap: sv(12), minHeight: sv(64) }}>
+                          <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: sv(2) }}>
+                            <p className="font-semibold text-[#262626] truncate" style={{ fontSize: sv(14) }}>{item.name}</p>
+                            <div className="flex items-center" style={{ gap: sv(8) }}>
+                              <p className="text-[#262626] truncate" style={{ fontSize: sv(14) }}>{item.spec}</p>
                               <button
                                 className="flex-shrink-0 hover:opacity-60 transition-opacity"
                                 onClick={e => {
@@ -1719,14 +1754,15 @@ function DetailScreen({
                                 <InfoIcon />
                               </button>
                             </div>
-                            <p className="font-semibold text-[14px] text-[#737373]">{formatPrice(getItemPrice(item))}</p>
+                            <p className="font-semibold text-[#737373]" style={{ fontSize: sv(14) }}>{formatPrice(getItemPrice(item))}</p>
                           </div>
                           {/* 24px checkbox, rounded-[2px], border-black when unchecked */}
                           <div
-                            className={`w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-[2px] transition-colors ${item.selected ? 'bg-[#262626]' : 'border border-black'}`}
+                            className={`flex-shrink-0 flex items-center justify-center transition-colors ${item.selected ? 'bg-[#262626]' : 'border border-black'}`}
+                            style={{ width: sv(24), height: sv(24), borderRadius: sv(2) }}
                           >
                             {item.selected && (
-                              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                              <svg viewBox="0 0 10 8" fill="none" style={{ width: sv(10), height: sv(8) }}>
                                 <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             )}
@@ -1735,37 +1771,37 @@ function DetailScreen({
 
                         {/* Below: swatches row OR single 64×64 preview */}
                         {item.addonSwatches && item.addonSwatches.length > 0 ? (
-                          <div className="flex gap-2.5 mt-1" onClick={e => e.stopPropagation()}>
+                          <div className="flex" style={{ gap: sv(10), marginTop: sv(4) }} onClick={e => e.stopPropagation()}>
                             {item.addonSwatches.map((sw, swIdx) => (
                               <button
                                 key={swIdx}
                                 onClick={() => selectAddonSwatch(sectionIdx, item.id, swIdx)}
-                                className="relative rounded-[4px] overflow-hidden flex-shrink-0"
+                                className="relative overflow-hidden flex-shrink-0"
                                 style={{
-                                  width: '64px', height: '64px', padding: '2px',
+                                  width: sv(64), height: sv(64), padding: sv(2), borderRadius: sv(4),
                                   border: item.selectedAddonSwatch === swIdx ? '1.5px solid black' : '1.5px solid transparent',
                                 }}
                               >
-                                <Image src={sw} alt="" fill className="object-cover rounded-[2px]" sizes="64px" />
+                                <Image src={sw} alt="" fill className="object-cover" style={{ borderRadius: sv(2) }} sizes="64px" />
                               </button>
                             ))}
                           </div>
                         ) : item.previewImage ? (
-                          <div className="relative mt-1 p-[2px] rounded-[4px] w-16 h-16 overflow-hidden">
-                            <Image src={item.previewImage!} alt="" fill className="object-cover rounded-[2px]" sizes="64px" />
+                          <div className="relative overflow-hidden" style={{ marginTop: sv(4), padding: sv(2), borderRadius: sv(4), width: sv(64), height: sv(64) }}>
+                            <Image src={item.previewImage!} alt="" fill className="object-cover" style={{ borderRadius: sv(2) }} sizes="64px" />
                           </div>
                         ) : null}
                       </div>
                     ) : (
                       /* ── Standard item: pl-16 pr-8 within card ── */
-                      <div className="flex flex-col pl-4 pr-2">
+                      <div className="flex flex-col" style={{ paddingLeft: sv(16), paddingRight: sv(8) }}>
                         {/* 64px text block: name / spec+info / price */}
-                        <div className="flex flex-col justify-between py-1" style={{ minHeight: '64px' }}>
+                        <div className="flex flex-col justify-between" style={{ minHeight: sv(64), paddingTop: sv(4), paddingBottom: sv(4) }}>
                           <div className="flex items-center">
-                            <p className="font-semibold text-[14px] text-[#262626]">{item.name}</p>
+                            <p className="font-semibold text-[#262626]" style={{ fontSize: sv(14) }}>{item.name}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-[14px] text-[#262626] truncate">{item.spec}</p>
+                          <div className="flex items-center" style={{ gap: sv(8) }}>
+                            <p className="text-[#262626] truncate" style={{ fontSize: sv(14) }}>{item.spec}</p>
                             <button
                               className="flex-shrink-0 hover:opacity-60 transition-opacity"
                               onClick={() => {
@@ -1782,24 +1818,24 @@ function DetailScreen({
                               <InfoIcon />
                             </button>
                           </div>
-                          <p className="font-semibold text-[14px] text-[#737373]">
+                          <p className="font-semibold text-[#737373]" style={{ fontSize: sv(14) }}>
                             $ {getItemPrice(item).toLocaleString()}
                           </p>
                         </div>
                         {/* Photo swatches: 64×64, gap-[10px] */}
                         {item.swatches && item.swatches.length > 0 && (
-                          <div className="flex items-center" style={{ gap: '10px' }}>
+                          <div className="flex items-center" style={{ gap: sv(10) }}>
                             {item.swatches.map((sw, swIdx) => (
                               <button
                                 key={swIdx}
                                 onClick={() => selectSwatch(sectionIdx, item.id, swIdx)}
-                                className="relative rounded-[4px] overflow-hidden flex-shrink-0"
+                                className="relative overflow-hidden flex-shrink-0"
                                 style={{
-                                  width: '64px', height: '64px', padding: '2px',
+                                  width: sv(64), height: sv(64), padding: sv(2), borderRadius: sv(4),
                                   border: item.selectedSwatch === swIdx ? '1.5px solid black' : '1.5px solid transparent',
                                 }}
                               >
-                                <Image src={sw} alt="" fill className="object-cover rounded-[2px]" sizes="64px" />
+                                <Image src={sw} alt="" fill className="object-cover" style={{ borderRadius: sv(2) }} sizes="64px" />
                               </button>
                             ))}
                           </div>
@@ -1813,7 +1849,7 @@ function DetailScreen({
           </div>
 
           {/* Bottom: centered Summary button, pt-[40px] container, icon on LEFT */}
-          <div className="flex flex-col items-center" style={{ paddingTop: '40px' }}>
+          <div className="flex flex-col items-center" style={{ paddingTop: sv(40) }}>
             <button
               onClick={() => {
                 if (summaryRef.current) {
@@ -1821,11 +1857,11 @@ function DetailScreen({
                   window.scrollTo({ top, behavior: 'smooth' })
                 }
               }}
-              className="flex items-center justify-center gap-0.5 border border-[#262626] bg-white text-[#262626] rounded-[4px] hover:bg-[#262626] hover:text-white transition-colors"
-              style={{ width: '136px', height: '40px', fontSize: '16px' }}
+              className="flex items-center justify-center border border-[#262626] bg-white text-[#262626] hover:bg-[#262626] hover:text-white transition-colors"
+              style={{ width: sv(136), height: sv(40), fontSize: sv(16), borderRadius: sv(4), gap: sv(2) }}
             >
               {/* Chevron-down icon on the LEFT */}
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="flex-shrink-0">
+              <svg viewBox="0 0 18 18" fill="none" className="flex-shrink-0" style={{ width: sv(18), height: sv(18) }}>
                 <path d="M4 7L9 12L14 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Summary
@@ -1837,26 +1873,26 @@ function DetailScreen({
 
       {/* ─── Summary Section ──────────────────────────────────────────────────── */}
       <div ref={summaryRef} style={{ borderTop: '0.5px solid rgba(0,0,0,0.15)' }}>
-        <div className="max-w-[1500px] mx-auto w-full px-8 pt-12 pb-16">
-          <div className="flex items-start justify-between gap-8">
+        <div style={{ width: sv(1440), margin: '0 auto', paddingLeft: sv(32), paddingRight: sv(32), paddingTop: sv(48), paddingBottom: sv(64) }}>
+          <div className="flex items-start justify-between" style={{ gap: sv(32) }}>
 
             {/* ── Left column: drawings card + items card + reviews card ── */}
-            <div className="flex flex-col flex-shrink-0" style={{ width: '840px', gap: '27px' }}>
+            <div className="flex flex-col flex-shrink-0" style={{ width: sv(840), gap: sv(27) }}>
 
               {/* Drawings */}
               <div
-                className="bg-white rounded-[12px] px-[24px] pb-[24px] flex flex-col"
-                style={{ paddingTop: '16px', gap: '24px', boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+                className="bg-white flex flex-col"
+                style={{ borderRadius: sv(12), paddingLeft: sv(24), paddingRight: sv(24), paddingTop: sv(16), paddingBottom: sv(24), gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
               >
                 {/* Header */}
-                <div className="flex items-center pt-[16px]">
-                  <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">Drawings</p>
+                <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+                  <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>Drawings</p>
                 </div>
 
                 {/* Content area: 792 × 539, image viewport + zoom controls */}
-                <div className="relative" style={{ width: '792px', height: '539px' }}>
+                <div className="relative" style={{ width: sv(792), height: sv(539) }}>
                   {/* Image viewport: fixed size, clips overflow */}
-                  <div className="overflow-hidden relative" style={{ width: '792px', height: '492px' }}>
+                  <div className="overflow-hidden relative" style={{ width: sv(792), height: sv(492) }}>
                     <div
                       className="absolute inset-0"
                       style={{
@@ -1875,47 +1911,41 @@ function DetailScreen({
                     </div>
                   </div>
 
-                  {/* View Controls: absolute bottom-left, px-[32px] py-[24px] */}
-                  <div className="absolute bottom-0 left-0 flex gap-[12px] items-center" style={{ padding: '24px 32px' }}>
+                  {/* View Controls: absolute bottom-left */}
+                  <div className="absolute bottom-0 left-0 flex items-center" style={{ gap: sv(12), padding: `${sv(24)} ${sv(32)}` }}>
                     {/* Zoom In */}
                     <button
                       onClick={() => setDrawingZoom(z => Math.min(z + 0.25, 3))}
-                      className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
-                      style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                      className="flex-shrink-0 flex items-center justify-center"
+                      style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
                     >
-                      <span style={{ paddingLeft: '2px' }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                          <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
-                          <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                          <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </span>
+                      <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                        <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                        <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                        <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
                     </button>
                     {/* Zoom Out */}
                     <button
                       onClick={() => setDrawingZoom(z => Math.max(z - 0.25, 0.5))}
-                      className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
-                      style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                      className="flex-shrink-0 flex items-center justify-center"
+                      style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
                     >
-                      <span style={{ paddingLeft: '2px' }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                          <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
-                          <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                          <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                        </svg>
-                      </span>
+                      <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                        <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                        <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                        <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
                     </button>
                     {/* Expand / Open Modal */}
                     <button
                       onClick={() => { setModalZoom(1); setDrawingModalOpen(true) }}
-                      className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
-                      style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                      className="flex-shrink-0 flex items-center justify-center"
+                      style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
                     >
-                      <span style={{ paddingLeft: '2px' }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                          <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
+                      <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                        <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -1923,30 +1953,30 @@ function DetailScreen({
 
               {/* All Included/Selected Products */}
               <div
-                className="bg-white rounded-[12px] px-6 pb-6 flex flex-col"
-                style={{ paddingTop: '16px', gap: '24px', boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+                className="bg-white flex flex-col"
+                style={{ borderRadius: sv(12), paddingLeft: sv(24), paddingRight: sv(24), paddingTop: sv(16), paddingBottom: sv(24), gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
               >
                 {/* Card header */}
-                <div className="pt-4 flex items-center justify-between">
-                  <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">
+                <div className="flex items-center justify-between" style={{ paddingTop: sv(16) }}>
+                  <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
                     All Included/Selected Products
                   </p>
                   {/* Swap Layout toggle */}
                   <button
                     onClick={() => setProductLayoutAlt(v => !v)}
-                    className="flex items-center gap-[4px] flex-shrink-0 hover:bg-[#f5f5f5] transition-colors"
-                    style={{ height: '32px', padding: '6px 4px', borderRadius: '4px' }}
+                    className="flex items-center flex-shrink-0 hover:bg-[#f5f5f5] transition-colors"
+                    style={{ height: sv(32), padding: `${sv(6)} ${sv(4)}`, borderRadius: sv(4), gap: sv(4) }}
                   >
-                    <div className="flex items-center justify-center overflow-clip flex-shrink-0" style={{ width: '24px', height: '24px', borderRadius: '2px', padding: '1px' }}>
+                    <div className="flex items-center justify-center overflow-clip flex-shrink-0" style={{ width: sv(24), height: sv(24), borderRadius: sv(2), padding: sv(1) }}>
                       {/* Layout icon: compact ↔ large */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={productLayoutAlt ? '/assets/icon-layout-large.svg' : '/assets/icon-layout-compact.svg'}
                         alt=""
-                        style={{ width: '15px', height: '14px', display: 'block', flexShrink: 0 }}
+                        style={{ width: sv(15), height: sv(14), display: 'block', flexShrink: 0 }}
                       />
                     </div>
-                    <span className="text-[14px] text-[#262626]" style={{ lineHeight: '18px' }}>Swap Layout</span>
+                    <span className="text-[#262626]" style={{ fontSize: sv(14), lineHeight: '18px' }}>Swap Layout</span>
                   </button>
                 </div>
 
@@ -2008,87 +2038,87 @@ function DetailScreen({
 
               {/* Reviews card */}
               <div
-                className="bg-white rounded-[12px] px-6 flex flex-col"
-                style={{ paddingTop: '24px', paddingBottom: '32px', gap: '24px', boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+                className="bg-white flex flex-col"
+                style={{ borderRadius: sv(12), paddingLeft: sv(24), paddingRight: sv(24), paddingTop: sv(24), paddingBottom: sv(32), gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
               >
                 {/* Logo */}
-                <div style={{ height: '48px', display: 'flex', alignItems: 'center' }}>
+                <div style={{ height: sv(48), display: 'flex', alignItems: 'center' }}>
                   <ODALogo size="lg" />
                 </div>
                 {/* Company info */}
-                <div className="flex flex-col gap-2">
-                  <p className="font-semibold text-[16px] text-[#262626]">ODA Architecture</p>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
+                <div className="flex flex-col" style={{ gap: sv(8) }}>
+                  <p className="font-semibold text-[#262626]" style={{ fontSize: sv(16) }}>ODA Architecture</p>
+                  <div className="flex items-center" style={{ gap: sv(16) }}>
+                    <div className="flex items-center" style={{ gap: sv(4) }}>
                       {/* Star icon */}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#262626">
+                      <svg viewBox="0 0 24 24" fill="#262626" style={{ width: sv(16), height: sv(16) }}>
                         <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
                       </svg>
-                      <span className="text-[14px] text-[#262626]">4.6</span>
+                      <span className="text-[#262626]" style={{ fontSize: sv(14) }}>4.6</span>
                     </div>
-                    <span className="text-[14px] text-[#262626]">(243 reviews)</span>
-                    <span className="text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontWeight: 300 }}>
+                    <span className="text-[#262626]" style={{ fontSize: sv(14) }}>(243 reviews)</span>
+                    <span className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14), fontWeight: 300 }}>
                       https://oda-architecture.com/
                     </span>
                   </div>
                 </div>
                 {/* Quotes */}
-                <div className="flex flex-col gap-6" style={{ fontWeight: 300, lineHeight: 1.5 }}>
+                <div className="flex flex-col" style={{ gap: sv(24), fontWeight: 300, lineHeight: 1.5 }}>
                   {[
                     { quote: '"The result feels custom in all the right ways. ODA Architecture helped us make smart choices on materials, finishes, and layout, and the whole experience felt far more seamless than we expected."', author: '— Priya and Kevin S., Irvine, CA' },
                     { quote: '"ODA Architecture made the entire renovation process feel clear and intentional. We never felt overwhelmed, and every decision felt easier because the options were presented so thoughtfully."', author: '— Emily R., Pasadena, CA' },
                     { quote: '"From design through final execution, ODA Architecture brought a level of care and clarity that gave us real confidence. The space feels elevated, functional, and much more aligned with how we actually live."', author: '— Sophia L., Glendale, CA' },
                   ].map((r, i) => (
-                    <div key={i} className="flex flex-col gap-1">
-                      <p className="text-[12px] text-[#262626]" style={{ letterSpacing: '-0.24px' }}>{r.quote}</p>
-                      <p className="text-[11px] text-[#262626]" style={{ letterSpacing: '-0.22px' }}>{r.author}</p>
+                    <div key={i} className="flex flex-col" style={{ gap: sv(4) }}>
+                      <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: '-0.24px' }}>{r.quote}</p>
+                      <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: '-0.22px' }}>{r.author}</p>
                     </div>
                   ))}
                 </div>
-                <button className="text-[14px] text-[#262626] underline text-left w-fit">Read more</button>
+                <button className="text-[#262626] underline text-left w-fit" style={{ fontSize: sv(14) }}>Read more</button>
               </div>
             </div>
 
             {/* ── Right column: pricing summary ── */}
-            <div className="flex-shrink-0 flex flex-col sticky" style={{ width: '505px', gap: '23px', top: '182px' }}>
+            <div className="flex-shrink-0 flex flex-col sticky" style={{ width: sv(505), gap: sv(23), top: sv(182) }}>
 
               {/* Title */}
               <div className="flex flex-col text-[#262626]">
-                <p className="font-semibold text-[20px]">SUMMARY - {option.title.split(' - ')[0]}</p>
-                <p className="text-[14px]">{odaProjectInfo.projectLabel}</p>
+                <p className="font-semibold" style={{ fontSize: sv(20) }}>SUMMARY - {option.title.split(' - ')[0]}</p>
+                <p style={{ fontSize: sv(14) }}>{odaProjectInfo.projectLabel}</p>
               </div>
 
               {/* Contact Total + Monthly Payment */}
-              <div className="flex flex-col gap-4 py-6" style={{ borderTop: '0.5px solid rgba(0,0,0,0.2)' }}>
+              <div className="flex flex-col" style={{ gap: sv(16), paddingTop: sv(24), paddingBottom: sv(24), borderTop: '0.5px solid rgba(0,0,0,0.2)' }}>
                 <div className="flex flex-col">
-                  <p className="text-[14px] text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap">
+                  <p className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
                     Contact Total <sup style={{ fontSize: '7px' }}>1</sup>
                   </p>
-                  <p className="text-[32px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">
+                  <p className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(32) }}>
                     $ {total.toLocaleString()}
                   </p>
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-[14px] text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap">
+                  <p className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
                     Estimated Monthly Payment <sup style={{ fontSize: '7px' }}>2</sup>
                   </p>
-                  <p className="text-[24px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontWeight: 300 }}>
+                  <p className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(24), fontWeight: 300 }}>
                     $ {monthlyPayment.toLocaleString()}
                   </p>
                 </div>
               </div>
 
               {/* Price breakdown */}
-              <div className="flex flex-col gap-2 py-6" style={{ borderTop: '0.5px solid rgba(0,0,0,0.2)' }}>
+              <div className="flex flex-col" style={{ gap: sv(8), paddingTop: sv(24), paddingBottom: sv(24), borderTop: '0.5px solid rgba(0,0,0,0.2)' }}>
                 {[
                   { label: 'Base Scope', value: option.priceFrom },
                   { label: 'Selected Upgrades & Add-ons', value: addonTotal + materialDelta },
                   { label: 'Permit & Inspection Fees', value: Math.round(option.priceFrom * 0.045) },
                   { label: 'Sales Tax', value: Math.round(total * 0.075) },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex flex-col pb-0.5">
-                    <p className="text-[14px] text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap">{label}</p>
-                    <p className="text-[20px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">
+                  <div key={label} className="flex flex-col" style={{ paddingBottom: sv(2) }}>
+                    <p className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>{label}</p>
+                    <p className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(20) }}>
                       $ {value.toLocaleString()}
                     </p>
                   </div>
@@ -2096,38 +2126,42 @@ function DetailScreen({
               </div>
 
               {/* Action buttons */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col" style={{ gap: sv(12) }}>
                 {/* Sign & Approve */}
                 <button
-                  className="w-full h-[40px] bg-[#262626] text-white font-semibold text-[14px] rounded-[4px] hover:bg-black transition-colors flex items-center justify-center"
+                  className="w-full bg-[#262626] text-white font-semibold hover:bg-black transition-colors flex items-center justify-center"
+                  style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
                   onClick={() => setShowSignModal(true)}
                 >
                   Sign &amp; Approve
                 </button>
                 {/* Explore Payment & Financing */}
                 <button
-                  className="w-full h-[40px] border border-[#262626] bg-white text-[#262626] text-[14px] rounded-[4px] flex items-center justify-center gap-1 hover:bg-[#262626] hover:text-white transition-colors"
+                  className="w-full border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                  style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(4) }}
                 >
-                  <svg width="11" height="14" viewBox="0 0 11 14" fill="none" className="flex-shrink-0">
+                  <svg viewBox="0 0 11 14" fill="none" className="flex-shrink-0" style={{ width: sv(11), height: sv(14) }}>
                     <rect x="0.5" y="0.5" width="10" height="13" rx="1" stroke="currentColor" strokeWidth="1" />
                     <path d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
                   </svg>
                   Explore Payment &amp; Financing
                 </button>
                 {/* Contact Sales + Download */}
-                <div className="flex gap-3">
+                <div className="flex" style={{ gap: sv(12) }}>
                   <button
-                    className="flex-1 h-[40px] border border-[#262626] bg-white text-[#262626] text-[14px] rounded-[4px] flex items-center justify-center gap-1 hover:bg-[#262626] hover:text-white transition-colors"
+                    className="flex-1 border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                    style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(4) }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+                    <svg viewBox="0 0 16 16" fill="none" className="flex-shrink-0" style={{ width: sv(16), height: sv(16) }}>
                       <path d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
                     </svg>
                     Contact Sales
                   </button>
                   <button
-                    className="flex-1 h-[40px] border border-[#262626] bg-white text-[#262626] text-[14px] rounded-[4px] flex items-center justify-center gap-1 hover:bg-[#262626] hover:text-white transition-colors"
+                    className="flex-1 border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                    style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(4) }}
                   >
-                    <svg width="17" height="18" viewBox="0 0 17 18" fill="none" className="flex-shrink-0">
+                    <svg viewBox="0 0 17 18" fill="none" className="flex-shrink-0" style={{ width: sv(17), height: sv(18) }}>
                       <path d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     Download Config [PDF]
@@ -2136,16 +2170,16 @@ function DetailScreen({
               </div>
 
               {/* Footnotes */}
-              <div className="flex flex-col gap-3 pt-6" style={{ fontWeight: 300, lineHeight: 1.5 }}>
-                <p className="text-[11px] text-[#262626]" style={{ letterSpacing: '-0.22px' }}>
+              <div className="flex flex-col" style={{ gap: sv(12), paddingTop: sv(24), fontWeight: 300, lineHeight: 1.5 }}>
+                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: '-0.22px' }}>
                   <sup style={{ fontSize: '7px' }}>1 </sup>
                   Total project pricing is subject to change based on applicable taxes, fees, payment timing, and any final project adjustments. The final amount presented at the time of payment will control.
                 </p>
-                <p className="text-[11px] text-[#262626]" style={{ letterSpacing: '-0.22px' }}>
+                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: '-0.22px' }}>
                   <sup style={{ fontSize: '7px' }}>2 </sup>
                   Any monthly payment information shown is an estimate only and is not a financing offer. Final payment amounts, interest rates, and loan terms are subject to lender review and will be confirmed during the formal application process.
                 </p>
-                <button className="text-[11px] text-[#262626] underline text-left w-fit">Read more</button>
+                <button className="text-[#262626] underline text-left w-fit" style={{ fontSize: sv(11) }}>Read more</button>
               </div>
 
             </div>
@@ -2173,21 +2207,22 @@ function DetailScreen({
         >
           <div
             className="relative bg-white flex flex-col overflow-hidden"
-            style={{ width: '1200px', height: '800px', borderRadius: '24px', padding: '40px 48px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            style={{ width: sv(1200), height: sv(800), borderRadius: sv(24), padding: `${sv(40)} ${sv(48)}`, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Close button */}
             <button
               onClick={() => setDrawingModalOpen(false)}
-              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f0f0] transition-colors text-[#262626]"
+              className="absolute flex items-center justify-center hover:bg-[#f0f0f0] transition-colors text-[#262626]"
+              style={{ top: sv(20), right: sv(20), width: sv(32), height: sv(32), borderRadius: '50%' }}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <svg viewBox="0 0 14 14" fill="none" style={{ width: sv(14), height: sv(14) }}>
                 <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </button>
 
             {/* Image area */}
-            <div className="relative flex-1 overflow-hidden rounded-[8px]">
+            <div className="relative flex-1 overflow-hidden" style={{ borderRadius: sv(8) }}>
               <div
                 className="absolute inset-0"
                 style={{
@@ -2206,14 +2241,14 @@ function DetailScreen({
               </div>
 
               {/* Zoom controls — bottom-left inside image area */}
-              <div className="absolute bottom-[24px] left-[32px] flex gap-[12px] items-center">
+              <div className="absolute flex items-center" style={{ bottom: sv(24), left: sv(32), gap: sv(12) }}>
                 {/* Zoom In */}
                 <button
                   onClick={() => setModalZoom(z => Math.min(z + 0.25, 3))}
-                  className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
-                  style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                  className="flex-shrink-0 flex items-center justify-center"
+                  style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
                     <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
                     <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                     <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
@@ -2222,10 +2257,10 @@ function DetailScreen({
                 {/* Zoom Out */}
                 <button
                   onClick={() => setModalZoom(z => Math.max(z - 0.25, 0.5))}
-                  className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
-                  style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                  className="flex-shrink-0 flex items-center justify-center"
+                  style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
                     <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
                     <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                     <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
@@ -2234,10 +2269,10 @@ function DetailScreen({
                 {/* Center / Reset */}
                 <button
                   onClick={() => setModalZoom(1)}
-                  className="flex-shrink-0 flex items-center justify-center rounded-[4px]"
-                  style={{ width: '48px', height: '48px', backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
+                  className="flex-shrink-0 flex items-center justify-center"
+                  style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: 'blur(2px)', backgroundColor: 'rgba(0,0,0,0.6)', boxShadow: '0 0 2px rgba(0,0,0,0.25)' }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
                     <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
@@ -2285,18 +2320,18 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
 
       {/* Sticky header */}
       <div className="sticky top-0 z-50 bg-white">
-        <div className="max-w-[1500px] mx-auto w-full">
+        <div style={{ width: sv(1440), margin: '0 auto' }}>
 
           {/* Row 1: nav */}
-          <nav className="flex items-center justify-between" style={{ padding: '31px 15.1%' }}>
-            <button className="size-6 flex items-center justify-center text-[#262626] hover:opacity-60">
-              <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+          <nav className="flex items-center justify-between" style={{ padding: `${sv(31)} ${sv(217)} 0` }}>
+            <button className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
+              <svg viewBox="0 0 18 16" fill="none" style={{ width: sv(18), height: sv(16) }}>
                 <path d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
               </svg>
             </button>
             <ODALogo size="sm" />
-            <button className="size-6 flex items-center justify-center text-[#262626] hover:opacity-60">
-              <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            <button className="flex items-center justify-center text-[#262626] hover:opacity-60" style={{ width: sv(24), height: sv(24) }}>
+              <svg viewBox="0 0 17 17" fill="none" style={{ width: sv(17), height: sv(17) }}>
                 <circle cx="8.5" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.2" />
                 <path d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
               </svg>
@@ -2305,18 +2340,19 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
 
           {/* Row 2: tab navigation */}
           <div
-            className="flex items-center px-8 overflow-x-auto scrollbar-none"
-            style={{ borderBottom: '0.5px solid rgba(0,0,0,0.2)' }}
+            className="flex items-center overflow-x-auto scrollbar-none"
+            style={{ paddingLeft: sv(32), borderBottom: '0.5px solid rgba(0,0,0,0.2)' }}
           >
-            <div className="flex items-center gap-8">
+            <div className="flex items-center" style={{ gap: sv(32) }}>
               {tabs.map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className="flex-shrink-0 flex items-center justify-center text-[14px] text-[rgba(0,0,0,0.85)]"
+                  className="flex-shrink-0 flex items-center justify-center text-[rgba(0,0,0,0.85)]"
                   style={{
-                    height: '32px',
-                    padding: '6px 12px',
+                    height: sv(32),
+                    padding: `${sv(6)} ${sv(12)}`,
+                    fontSize: sv(14),
                     borderBottom: activeTab === tab ? '2px solid #262626' : '2px solid transparent',
                     marginBottom: '-0.5px',
                   }}
@@ -2330,44 +2366,44 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
       </div>
 
       {/* Main content */}
-      <div className="max-w-[1500px] mx-auto w-full px-8 pt-8 pb-16 flex items-start gap-8">
+      <div className="flex items-start" style={{ width: sv(1440), margin: '0 auto', paddingLeft: sv(32), paddingRight: sv(32), paddingTop: sv(32), paddingBottom: sv(64), gap: sv(32) }}>
 
         {/* Left column: 840px */}
-        <div className="flex-shrink-0 flex flex-col gap-[27px]" style={{ width: '840px' }}>
+        <div className="flex-shrink-0 flex flex-col" style={{ width: sv(840), gap: sv(27) }}>
 
           {/* Project Updates */}
           <div
-            className="bg-white rounded-[12px] px-[24px] pt-[16px] pb-[24px] flex flex-col gap-[24px]"
-            style={{ boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+            className="bg-white flex flex-col"
+            style={{ borderRadius: sv(12), paddingLeft: sv(24), paddingRight: sv(24), paddingTop: sv(16), paddingBottom: sv(24), gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
           >
-            <div className="flex items-center pt-[16px]">
-              <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">Project Updates</p>
+            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+              <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>Project Updates</p>
             </div>
 
             {updates.map((update, i) => (
-              <div key={i} className="flex flex-col pt-[12px] w-full" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
+              <div key={i} className="flex flex-col w-full" style={{ paddingTop: sv(12), borderTop: '0.5px solid rgba(0,0,0,0.1)' }}>
                 {/* Date line */}
-                <p className="text-[12px] leading-normal mb-0">
+                <p className="leading-normal mb-0" style={{ fontSize: sv(12) }}>
                   <span className="font-semibold text-[#737373]">{update.date}</span>
                   {update.dateNote && <span className="text-[#262626]">{update.dateNote}</span>}
                 </p>
                 {/* Title + info icon */}
-                <div className="flex gap-[2px] items-center w-full">
-                  <p className="text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap leading-normal">{update.title}</p>
-                  <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                <div className="flex items-center w-full" style={{ gap: sv(2) }}>
+                  <p className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap leading-normal" style={{ fontSize: sv(14) }}>{update.title}</p>
+                  <div className="flex-shrink-0 flex items-center justify-center" style={{ width: sv(24), height: sv(24) }}>
                     <InfoIcon />
                   </div>
                 </div>
                 {/* Description */}
-                <p className="text-[12px] text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontWeight: 300 }}>
+                <p className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(12), fontWeight: 300 }}>
                   {update.desc}
                 </p>
                 {/* Photos */}
                 {update.photos.length > 0 && (
-                  <div className="flex items-center gap-[4px] pt-[8px]">
+                  <div className="flex items-center" style={{ gap: sv(4), paddingTop: sv(8) }}>
                     {update.photos.map((photo, j) => (
-                      <div key={j} className="flex-shrink-0 p-[2px] rounded-[4px]" style={{ width: '64px', height: '64px' }}>
-                        <div className="relative w-full h-full rounded-[2px] overflow-hidden">
+                      <div key={j} className="flex-shrink-0" style={{ width: sv(64), height: sv(64), padding: sv(2), borderRadius: sv(4) }}>
+                        <div className="relative w-full h-full overflow-hidden" style={{ borderRadius: sv(2) }}>
                           <Image src={photo} alt="" fill className="object-cover" sizes="64px" />
                         </div>
                       </div>
@@ -2378,18 +2414,18 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
             ))}
 
             {/* Show More */}
-            <div className="flex flex-col justify-center text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap">
+            <div className="flex flex-col justify-center text-center whitespace-nowrap text-[rgba(0,0,0,0.85)]" style={{ fontSize: sv(14) }}>
               <button className="underline leading-normal">Show More</button>
             </div>
           </div>
 
           {/* Approved Scope */}
           <div
-            className="bg-white rounded-[12px] px-[24px] pt-[16px] pb-[24px] flex flex-col gap-[24px]"
-            style={{ boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+            className="bg-white flex flex-col"
+            style={{ borderRadius: sv(12), paddingLeft: sv(24), paddingRight: sv(24), paddingTop: sv(16), paddingBottom: sv(24), gap: sv(24), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
           >
-            <div className="flex items-center pt-[16px]">
-              <p className="font-semibold text-[14px] text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">Approved Scope</p>
+            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+              <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>Approved Scope</p>
             </div>
             <SummaryGroup
               name="Base Scope"
@@ -2421,25 +2457,25 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
 
           {/* Move-In Service */}
           <div
-            className="bg-white rounded-[12px] overflow-hidden flex"
-            style={{ width: '835px', boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
+            className="bg-white overflow-hidden flex"
+            style={{ borderRadius: sv(12), boxShadow: '0px 0px 8px 0px rgba(0,0,0,0.2)' }}
           >
-            <div className="relative flex-shrink-0" style={{ width: '416px', height: '325px' }}>
+            <div className="relative flex-shrink-0" style={{ width: sv(416), height: sv(325) }}>
               <Image src="/assets/move-in-service.png" alt="" fill className="object-cover" sizes="416px" />
             </div>
-            <div className="flex-1 flex flex-col gap-[16px] items-start pl-[48px] pr-[24px] justify-center min-w-0">
+            <div className="flex-1 flex flex-col items-start justify-center min-w-0" style={{ gap: sv(16), paddingLeft: sv(48), paddingRight: sv(24) }}>
               <p
-                className="text-[24px] text-[#262626] leading-[1.5] tracking-[-0.72px] w-full"
-                style={{ fontFamily: "'Segoe UI Variable', 'Segoe UI', sans-serif", fontWeight: 400 }}
+                className="text-[#262626] leading-[1.5] w-full"
+                style={{ fontSize: sv(24), letterSpacing: '-0.72px', fontFamily: "'Segoe UI Variable', 'Segoe UI', sans-serif", fontWeight: 400 }}
               >
                 Move-In Service
               </p>
-              <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] w-full" style={{ fontWeight: 300 }}>
+              <p className="text-[#262626] leading-[1.5] w-full" style={{ fontSize: sv(12), letterSpacing: '-0.24px', fontWeight: 300 }}>
                 Settle into your newly finished home with additional move-in support designed to make the final transition feel effortless, organized, and ready for everyday living.
               </p>
               <button
-                className="flex items-center justify-center bg-[#262626] text-white rounded-[2px] hover:opacity-80 transition-opacity"
-                style={{ padding: '6px 12px', fontSize: '9px' }}
+                className="flex items-center justify-center bg-[#262626] text-white hover:opacity-80 transition-opacity"
+                style={{ padding: `${sv(6)} ${sv(12)}`, fontSize: sv(9), borderRadius: sv(2) }}
               >
                 Learn More
               </button>
@@ -2451,45 +2487,45 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
         {/* Right column: 505px, sticky */}
         <div
           className="flex-shrink-0 flex flex-col items-center sticky"
-          style={{ width: '505px', gap: '23px', top: '158px' }}
+          style={{ width: sv(505), gap: sv(23), top: sv(158) }}
         >
 
           {/* Title */}
           <div className="flex flex-col w-full text-[#262626] leading-normal">
-            <p className="font-semibold text-[20px] w-full">{odaProjectInfo.projectLabel}</p>
-            <p className="text-[14px] w-full">Proposal Approved on 3/18/2026</p>
+            <p className="font-semibold w-full" style={{ fontSize: sv(20) }}>{odaProjectInfo.projectLabel}</p>
+            <p className="w-full" style={{ fontSize: sv(14) }}>Proposal Approved on 3/18/2026</p>
           </div>
 
           {/* Payment Progress + Next Payment */}
           <div
-            className="flex flex-col gap-[16px] py-[24px] w-full"
-            style={{ borderTop: '0.5px solid rgba(0,0,0,0.2)' }}
+            className="flex flex-col w-full"
+            style={{ gap: sv(16), paddingTop: sv(24), paddingBottom: sv(24), borderTop: '0.5px solid rgba(0,0,0,0.2)' }}
           >
             {/* Payment Progress */}
-            <div className="flex flex-col gap-[4px] w-full">
-              <p className="text-[14px] text-[#737373] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">
-                Payment Progress <sup style={{ fontSize: '7.1px' }}>1</sup>
+            <div className="flex flex-col w-full" style={{ gap: sv(4) }}>
+              <p className="text-[#737373] leading-normal overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
+                Payment Progress <sup style={{ fontSize: '7px' }}>1</sup>
               </p>
               <div className="flex flex-col items-start w-full">
-                <p className="text-[20px] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">
+                <p className="leading-normal overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(20) }}>
                   <span className="text-[#262626]">$100,450 / </span>
                   <span className="text-[#737373]">$273,090</span>
                 </p>
-                {/* Progress bar: 270px wide, 2px tall */}
-                <div className="flex items-center" style={{ width: '270px', height: '18px' }}>
-                  <div className="flex-shrink-0 h-[2px]" style={{ width: '102px', background: '#262626' }} />
-                  <div className="flex-1 h-[2px]" style={{ background: '#d9d9d9' }} />
+                {/* Progress bar */}
+                <div className="flex items-center" style={{ width: sv(270), height: sv(18) }}>
+                  <div className="flex-shrink-0" style={{ width: sv(102), height: sv(2), background: '#262626' }} />
+                  <div className="flex-1" style={{ height: sv(2), background: '#d9d9d9' }} />
                 </div>
               </div>
             </div>
 
             {/* Next Payment */}
             <div className="flex flex-col w-full overflow-hidden text-ellipsis whitespace-nowrap">
-              <p className="text-[14px] text-[#737373] leading-normal">
-                Next Payment <sup style={{ fontSize: '7.1px' }}>2</sup>
+              <p className="text-[#737373] leading-normal" style={{ fontSize: sv(14) }}>
+                Next Payment <sup style={{ fontSize: '7px' }}>2</sup>
               </p>
-              <p className="text-[32px] text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">$68,000</p>
-              <p className="text-[12px] text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">
+              <p className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(32) }}>$68,000</p>
+              <p className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(12) }}>
                 1/3 balance due at 50% completion{' '}
                 <span style={{ fontWeight: 300 }}>&lt;5/26/2028&gt;</span>
               </p>
@@ -2497,20 +2533,22 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-col gap-[12px] w-full">
+          <div className="flex flex-col w-full" style={{ gap: sv(12) }}>
             {/* Make A Payment */}
             <button
-              className="w-full h-[40px] bg-[#262626] text-white font-semibold text-[14px] rounded-[4px] flex items-center justify-center hover:opacity-80 transition-opacity"
+              className="w-full bg-[#262626] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+              style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
             >
               Make A Payment
             </button>
 
             {/* Financing Service */}
             <button
-              className="w-full h-[40px] border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] text-[14px] rounded-[4px] flex items-center justify-center gap-[2px] hover:bg-[#262626] hover:text-white transition-colors"
+              className="w-full border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+              style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(2) }}
             >
-              <span className="flex items-center justify-center h-full px-[5px]">
-                <svg width="15" height="20" viewBox="0 0 11 14" fill="none" className="flex-shrink-0">
+              <span className="flex items-center justify-center h-full" style={{ paddingLeft: sv(5), paddingRight: sv(5) }}>
+                <svg viewBox="0 0 11 14" fill="none" className="flex-shrink-0" style={{ width: sv(11), height: sv(14) }}>
                   <rect x="0.5" y="0.5" width="10" height="13" rx="1" stroke="currentColor" strokeWidth="1" />
                   <path d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
                 </svg>
@@ -2519,22 +2557,24 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
             </button>
 
             {/* Contact Sales + Request Change */}
-            <div className="flex gap-[12px] w-full">
+            <div className="flex w-full" style={{ gap: sv(12) }}>
               <button
-                className="flex-1 h-[40px] border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] text-[14px] rounded-[4px] flex items-center justify-center gap-[2px] hover:bg-[#262626] hover:text-white transition-colors"
+                className="flex-1 border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(2) }}
               >
-                <span className="w-6 h-[22px] flex items-center justify-center flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                <span className="flex items-center justify-center flex-shrink-0" style={{ width: sv(24), height: sv(22) }}>
+                  <svg viewBox="0 0 16 16" fill="none" style={{ width: sv(16), height: sv(16) }}>
                     <path d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
                   </svg>
                 </span>
                 Contact Sales
               </button>
               <button
-                className="flex-1 h-[40px] border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] text-[14px] rounded-[4px] flex items-center justify-center gap-[2px] hover:bg-[#262626] hover:text-white transition-colors"
+                className="flex-1 border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(2) }}
               >
-                <span className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <span className="flex items-center justify-center flex-shrink-0" style={{ width: sv(24), height: sv(24) }}>
+                  <svg viewBox="0 0 16 16" fill="none" style={{ width: sv(16), height: sv(16) }}>
                     <path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM5 8h6M8 5l3 3-3 3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
@@ -2545,36 +2585,36 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
 
           {/* Download links */}
           <div className="flex flex-col w-full">
-            <button className="flex items-center gap-[2px] h-[24px] pr-[16px] py-[6px] bg-white rounded-[4px] w-full">
-              <span className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                <svg width="17" height="18" viewBox="0 0 17 18" fill="none">
+            <button className="flex items-center bg-white w-full" style={{ gap: sv(2), height: sv(24), paddingRight: sv(16), paddingTop: sv(6), paddingBottom: sv(6), borderRadius: sv(4) }}>
+              <span className="flex items-center justify-center flex-shrink-0" style={{ width: sv(24), height: sv(24) }}>
+                <svg viewBox="0 0 17 18" fill="none" style={{ width: sv(17), height: sv(18) }}>
                   <path d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </span>
-              <span className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[18px]">Download Contract Document [PDF]</span>
+              <span className="text-[rgba(0,0,0,0.85)]" style={{ fontSize: sv(12), lineHeight: '18px' }}>Download Contract Document [PDF]</span>
             </button>
-            <button className="flex items-center gap-[2px] h-[24px] pr-[16px] py-[6px] bg-white rounded-[4px] w-full">
-              <span className="w-6 h-[18px] flex items-center justify-center flex-shrink-0 overflow-clip">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <button className="flex items-center bg-white w-full overflow-clip" style={{ gap: sv(2), height: sv(24), paddingRight: sv(16), paddingTop: sv(6), paddingBottom: sv(6), borderRadius: sv(4) }}>
+              <span className="flex items-center justify-center flex-shrink-0" style={{ width: sv(24), height: sv(18) }}>
+                <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(18), height: sv(18) }}>
                   <rect x="2" y="5" width="20" height="14" rx="2" stroke="#262626" strokeWidth="1.5" />
                   <path d="M2 10h20M7 15h.01M12 15h5" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </span>
-              <span className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[18px]">Payment Schedule &amp; Records</span>
+              <span className="text-[rgba(0,0,0,0.85)]" style={{ fontSize: sv(12), lineHeight: '18px' }}>Payment Schedule &amp; Records</span>
             </button>
           </div>
 
           {/* Footnotes */}
-          <div className="flex flex-col gap-[12px] pt-[24px] w-full">
-            <p className="text-[#262626] tracking-[-0.22px] leading-[0]" style={{ fontWeight: 300 }}>
-              <span className="leading-[1.5] text-[7.1px]">1 </span>
-              <span className="leading-[1.5] text-[11px]">Total project pricing is subject to change based on applicable taxes, fees, payment timing, and any final project adjustments. The final amount presented at the time of payment will control.</span>
+          <div className="flex flex-col w-full" style={{ gap: sv(12), paddingTop: sv(24) }}>
+            <p className="text-[#262626] leading-[0]" style={{ fontWeight: 300, letterSpacing: '-0.22px' }}>
+              <span className="leading-[1.5]" style={{ fontSize: sv(7) }}>1 </span>
+              <span className="leading-[1.5]" style={{ fontSize: sv(11) }}>Total project pricing is subject to change based on applicable taxes, fees, payment timing, and any final project adjustments. The final amount presented at the time of payment will control.</span>
             </p>
-            <p className="text-[#262626] text-[11px] tracking-[-0.22px] leading-[1.5] overflow-hidden text-ellipsis" style={{ fontWeight: 300 }}>
-              <span className="text-[7.1px]">2 </span>
+            <p className="text-[#262626] leading-[1.5] overflow-hidden text-ellipsis" style={{ fontSize: sv(11), fontWeight: 300, letterSpacing: '-0.22px' }}>
+              <span style={{ fontSize: sv(7) }}>2 </span>
               Any monthly payment information shown is an estimate only and is not a financing offer. Final payment amounts, interest rates, and loan terms are subject to lender review and will be confirmed during the formal application process.
             </p>
-            <div className="flex flex-col justify-center text-[11px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap">
+            <div className="flex flex-col justify-center text-center whitespace-nowrap text-[rgba(0,0,0,0.85)]" style={{ fontSize: sv(11) }}>
               <button className="underline leading-normal">Read more</button>
             </div>
           </div>
@@ -2587,15 +2627,17 @@ function ApprovedScreen({ option }: { option: ODAOption }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ODAProposalPage({ initialScreen = 'email' }: { initialScreen?: Screen }) {
-  const getInitialScreen = (): Screen => {
-    if (typeof window !== 'undefined') {
-      const param = new URLSearchParams(window.location.search).get('screen') as Screen | null
-      if (param && ['email', 'landing', 'options', 'detail', 'approved'].includes(param)) return param
-    }
-    return initialScreen
-  }
-  const [screen, setScreen] = useState<Screen>(getInitialScreen)
+  // Always start with initialScreen to match SSR; read URL param after hydration
+  const [screen, setScreen] = useState<Screen>(initialScreen)
   const [selectedOption, setSelectedOption] = useState(0)
+
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get('screen') as Screen | null
+    if (param && ['email', 'landing', 'options', 'detail', 'approved'].includes(param)) {
+      setScreen(param)
+    }
+  }, [])
+
 
   return (
     <>
