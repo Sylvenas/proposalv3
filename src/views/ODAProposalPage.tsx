@@ -1936,6 +1936,7 @@ function OptionsScreen({
   const compareRef = useRef<HTMLDivElement>(null);
   const topOptionsRef = useRef<HTMLDivElement>(null);
   const decisionSectionRef = useRef<HTMLDivElement>(null);
+  const expandedCompareCardRef = useRef<HTMLDivElement>(null);
   const [hideComparisonHeader, setHideComparisonHeader] = useState(true);
   const [expandedCompareOptionIdx, setExpandedCompareOptionIdx] = useState<
     number | null
@@ -1984,6 +1985,29 @@ function OptionsScreen({
 
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (expandedCompareOptionIdx === null) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (expandedCompareCardRef.current?.contains(target)) return;
+      setExpandedCompareOptionIdx(null);
+    };
+
+    const handleScroll = () => {
+      setExpandedCompareOptionIdx(null);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [expandedCompareOptionIdx]);
 
   // Schedule & Pricing data (3 options × 3 metrics)
   const scheduleData: Array<Array<{ label: string; value: string }>> = [
@@ -2472,7 +2496,7 @@ function OptionsScreen({
           flex: "1 0 0",
           minWidth: 0,
           minHeight: 0,
-          backgroundColor: optIdx === 1 ? "#EDEDED" : "#fbfbfb",
+          backgroundColor: "#EDEDED",
           gap: sv(24),
           paddingBottom: sv(32),
         }}
@@ -2721,7 +2745,7 @@ function OptionsScreen({
       }}
     >
       {/* ── Top area: Nav + Title + Cards ── */}
-      <div style={{ width: sv(1440), margin: "0 auto" }}>
+      <div style={{ width: sv(1440), minHeight: "100vh", margin: "0 auto" }}>
         {/* Nav — height sv(99): 31px top pad + 24px icons + 44px gap to title = 99px matches Figma y=99 */}
         <nav
           className="flex justify-between"
@@ -2944,7 +2968,14 @@ function OptionsScreen({
                 {odaOptions.map((_, i) => (
                   <div key={i} style={{ flex: "1 0 0", minWidth: 0 }}>
                     {i === expandedCompareOptionIdx ? (
-                      <div style={{ pointerEvents: "auto" }}>
+                      <div
+                        ref={expandedCompareCardRef}
+                        style={{
+                          pointerEvents: "auto",
+                          boxShadow:
+                            "0px 24px 56px rgba(15,23,42,0.18), 0px 8px 20px rgba(15,23,42,0.10)",
+                        }}
+                      >
                         <OptionCard optIdx={i} />
                       </div>
                     ) : null}
