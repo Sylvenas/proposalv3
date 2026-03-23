@@ -21,6 +21,7 @@ function getItemPrice(item: ODAItem): number {
 }
 
 type Screen = 'email' | 'landing' | 'options' | 'detail' | 'approved'
+const VALID_SCREENS: Screen[] = ['email', 'landing', 'options', 'detail', 'approved']
 
 function formatPrice(n: number) {
   return '$' + n.toLocaleString()
@@ -884,7 +885,7 @@ function LandingScreen({ onContinue, onHome }: { onContinue: () => void; onHome:
               <button
                 className="flex items-center justify-center"
                 style={{ height: sv(40), padding: `0 ${sv(16)}`, backgroundColor: '#262626', color: 'white', borderRadius: sv(4), fontSize: sv(14), fontWeight: 600, lineHeight: 'normal' }}
-                onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                onClick={onContinue}
               >
                 Explore Options
               </button>
@@ -1006,6 +1007,12 @@ function OptionsScreen({
   onHome: () => void
 }) {
   const compareRef = useRef<HTMLDivElement>(null)
+  const [compareProductDetailModal, setCompareProductDetailModal] = useState<{
+    item: ODAItem
+    sectionName: string
+    measurementLabel: string
+    description: string
+  } | null>(null)
 
   const scrollToCompare = () => compareRef.current?.scrollIntoView({ behavior: 'smooth' })
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1032,6 +1039,42 @@ function OptionsScreen({
   // Comparison line item type
   type CItem = { name: string; qty: string; unit: string; img: string; imageStyle?: CSSProperties }
   type CDash = { dash: true }
+
+  const normalizeCompareText = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+  const findCompareSourceItem = (optionIdx: number, sectionTitle: string, compareItem: CItem) => {
+    const sourceSection = odaOptions[optionIdx].sections.find(section => section.name === sectionTitle)
+    if (!sourceSection) return null
+
+    const normalizedCompareName = normalizeCompareText(compareItem.name)
+    return sourceSection.items.find(sourceItem => {
+      const normalizedSpec = normalizeCompareText(sourceItem.spec)
+      const normalizedName = normalizeCompareText(sourceItem.name)
+      return normalizedSpec === normalizedCompareName
+        || normalizedName === normalizedCompareName
+        || normalizedSpec.includes(normalizedCompareName)
+        || normalizedCompareName.includes(normalizedSpec)
+    }) ?? null
+  }
+
+  const openCompareProductDetail = (compareItem: CItem, sectionTitle: string, optionIdx: number) => {
+    const sourceItem = findCompareSourceItem(optionIdx, sectionTitle, compareItem)
+    const fallbackItem: ODAItem = {
+      id: `compare-${sectionTitle}-${optionIdx}-${compareItem.name}`,
+      name: sectionTitle,
+      spec: compareItem.name,
+      price: 0,
+      productImages: [compareItem.img],
+      previewImage: compareItem.img,
+    }
+
+    setCompareProductDetailModal({
+      item: sourceItem ?? fallbackItem,
+      sectionName: sectionTitle,
+      measurementLabel: `${compareItem.qty} ${compareItem.unit}`,
+      description: `Detailed scope reference for ${compareItem.name.toLowerCase()} in ${optionNames[optionIdx].toLowerCase()}.`,
+    })
+  }
 
   // Comparison line item thumbnails — exact Figma assets for node 412:5599
   const IF1 = 'https://www.figma.com/api/mcp/asset/839abaa6-99cb-4cb6-acc4-b8757be02aa5'
@@ -1216,7 +1259,7 @@ function OptionsScreen({
   }
 
   // Comparison line item row — matches Figma exactly
-  const LineItem = ({ item }: { item: CItem | CDash }) => {
+  const LineItem = ({ item, sectionTitle, optionIdx }: { item: CItem | CDash; sectionTitle: string; optionIdx: number }) => {
     if ('dash' in item) {
       return (
         <div className="flex items-start" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: sv(12), paddingBottom: sv(12), backgroundColor: 'white' }}>
@@ -1227,7 +1270,12 @@ function OptionsScreen({
       )
     }
     return (
-      <div className="flex items-start" style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: sv(12), paddingBottom: sv(12), gap: sv(12), backgroundColor: 'white' }}>
+      <button
+        type="button"
+        onClick={() => openCompareProductDetail(item, sectionTitle, optionIdx)}
+        className="flex items-start w-full text-left"
+        style={{ border: 'none', borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: sv(12), paddingBottom: sv(12), gap: sv(12), backgroundColor: 'white', cursor: 'pointer' }}
+      >
         <div className="flex-shrink-0 flex flex-col items-start" style={{ width: sv(48), height: sv(48), padding: sv(2), borderRadius: sv(4) }}>
           <div className="relative overflow-hidden" style={{ width: '100%', height: '100%', borderRadius: sv(2) }}>
             <img
@@ -1250,7 +1298,7 @@ function OptionsScreen({
             </div>
           </div>
         </div>
-      </div>
+      </button>
     )
   }
 
@@ -1360,7 +1408,7 @@ function OptionsScreen({
               <div className="mx-auto flex" style={{ width: sv(1264), gap: sv(32), alignItems: 'flex-start' }}>
                 {section.columns.map((items, ci) => (
                   <div key={ci} style={{ width: sv(400), flex: `0 0 ${sv(400)}` }}>
-                    {items.map((item, i) => <LineItem key={i} item={item} />)}
+                    {items.map((item, i) => <LineItem key={i} item={item} sectionTitle={section.title} optionIdx={ci} />)}
                   </div>
                 ))}
               </div>
@@ -1392,6 +1440,19 @@ function OptionsScreen({
           {odaOptions.map((_, i) => <OptionCard key={i} optIdx={i} />)}
         </div>
       </div>
+
+      {compareProductDetailModal && (
+        <ProductDetailModal
+          item={compareProductDetailModal.item}
+          sectionName={compareProductDetailModal.sectionName}
+          measurementLabel={compareProductDetailModal.measurementLabel}
+          description={compareProductDetailModal.description}
+          hidePrice={compareProductDetailModal.item.price === 0}
+          hideSelectButton
+          onSelect={() => undefined}
+          onClose={() => setCompareProductDetailModal(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1682,18 +1743,29 @@ function SignModal({ onClose, onApprove }: { onClose: () => void; onApprove: () 
 function ProductDetailModal({
   item,
   sectionName,
+  measurementLabel,
+  description,
   onSelect,
   onClose,
+  hidePrice = false,
+  hideSelectButton = false,
 }: {
   item: ODAItem
   sectionName: string
+  measurementLabel?: string
+  description?: string
   onSelect: (swatchIdx: number) => void
   onClose: () => void
+  hidePrice?: boolean
+  hideSelectButton?: boolean
 }) {
   const swatches = item.swatches ?? item.addonSwatches ?? []
   const initialSwatch = item.selectedSwatch ?? item.selectedAddonSwatch ?? 0
   const [activeSwatchIdx, setActiveSwatchIdx] = useState(initialSwatch)
   const [activeThumb, setActiveThumb] = useState(0)
+  const displayMeasurementLabel = measurementLabel ?? '1,240 SQF.'
+  const displayDescription = description ?? `A timeless ${sectionName.toLowerCase()} upgrade that brings warmth and character to your home.
+                  The natural finish pairs with a considered layout to create a more elevated, custom-designed look.`
 
   // Left gallery images: use per-swatch photos if available, else fall back to item's productImages
   const getImagesForSwatch = (idx: number): string[] => {
@@ -1789,7 +1861,7 @@ function ProductDetailModal({
                 {/* Labels: gap 4px, leading-normal, not-italic — Figma 330:3613 */}
                 <div className="flex flex-col items-start w-full" style={{ gap: sv(4), lineHeight: 'normal', fontStyle: 'normal' }}>
                   <p style={{ fontSize: sv(16), fontWeight: 600, color: '#262626', width: '100%' }}>{sectionName}</p>
-                  <p style={{ fontSize: sv(16), fontWeight: 400, color: '#737373', letterSpacing: '-0.64px', width: '100%' }}>1,240 SQF.</p>
+                  <p style={{ fontSize: sv(16), fontWeight: 400, color: '#737373', letterSpacing: '-0.64px', width: '100%' }}>{displayMeasurementLabel}</p>
                 </div>
 
                 {/* Alternative product swatches — gap 10px, items-center, shrink-0 — Figma 330:3605 */}
@@ -1822,35 +1894,38 @@ function ProductDetailModal({
                   {item.spec}
                 </p>
                 <p style={{ fontSize: sv(12), fontWeight: 300, color: '#262626', width: '100%' }}>
-                  A timeless {sectionName.toLowerCase()} upgrade that brings warmth and character to your home.
-                  The natural finish pairs with a considered layout to create a more elevated, custom-designed look.
+                  {displayDescription}
                 </p>
               </div>
 
               {/* Price — updates per swatch — Figma 330:3592 */}
-              <div className="flex flex-col items-start w-full flex-shrink-0">
-                <p style={{ fontSize: sv(24), fontWeight: 300, color: '#262626', lineHeight: 'normal', fontStyle: 'normal', width: '100%' }}>
-                  {formatPrice(displayPrice)}
-                </p>
-              </div>
+              {!hidePrice && (
+                <div className="flex flex-col items-start w-full flex-shrink-0">
+                  <p style={{ fontSize: sv(24), fontWeight: 300, color: '#262626', lineHeight: 'normal', fontStyle: 'normal', width: '100%' }}>
+                    {formatPrice(displayPrice)}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* CTA button — Figma 330:3583: shrink-0, auto-width (parent has items-start) */}
             {/* selected → gray bg #737373 text #333; unselected → dark bg #262626 text #fff */}
-            <button
-              className="flex items-center justify-center flex-shrink-0 transition-colors"
-              style={{
-                height: sv(44), padding: `${sv(6)} ${sv(16)}`, borderRadius: sv(4),
-                backgroundColor: isCurrentlySelected ? '#737373' : '#262626',
-                color: isCurrentlySelected ? '#333333' : '#ffffff',
-                fontFamily: 'Roboto, sans-serif', fontWeight: 600, fontSize: sv(14), lineHeight: '18px',
-                whiteSpace: 'nowrap',
-                cursor: isCurrentlySelected ? 'default' : 'pointer',
-              }}
-              onClick={() => { if (!isCurrentlySelected) onSelect(activeSwatchIdx) }}
-            >
-              {isCurrentlySelected ? 'Product Selected' : 'Select Product'}
-            </button>
+            {!hideSelectButton && (
+              <button
+                className="flex items-center justify-center flex-shrink-0 transition-colors"
+                style={{
+                  height: sv(44), padding: `${sv(6)} ${sv(16)}`, borderRadius: sv(4),
+                  backgroundColor: isCurrentlySelected ? '#737373' : '#262626',
+                  color: isCurrentlySelected ? '#333333' : '#ffffff',
+                  fontFamily: 'Roboto, sans-serif', fontWeight: 600, fontSize: sv(14), lineHeight: '18px',
+                  whiteSpace: 'nowrap',
+                  cursor: isCurrentlySelected ? 'default' : 'pointer',
+                }}
+                onClick={() => { if (!isCurrentlySelected) onSelect(activeSwatchIdx) }}
+              >
+                {isCurrentlySelected ? 'Product Selected' : 'Select Product'}
+              </button>
+            )}
 
           </div>
         </div>
@@ -3064,17 +3139,37 @@ function ApprovedScreen({ option, onHome }: { option: ODAOption; onHome: () => v
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ODAProposalPage({ initialScreen = 'email' }: { initialScreen?: Screen }) {
-  // Always start with initialScreen to match SSR; read URL param after hydration
   const [screen, setScreen] = useState<Screen>(initialScreen)
   const [selectedOption, setSelectedOption] = useState(0)
   const goToLanding = () => setScreen('landing')
 
   useEffect(() => {
-    const param = new URLSearchParams(window.location.search).get('screen') as Screen | null
-    if (param && ['email', 'landing', 'options', 'detail', 'approved'].includes(param)) {
-      setScreen(param)
+    const syncStateFromUrl = () => {
+      const params = new URLSearchParams(window.location.search)
+      const screenParam = params.get('screen')
+      const optionParam = Number.parseInt(params.get('option') ?? '', 10)
+
+      if (screenParam && VALID_SCREENS.includes(screenParam as Screen)) {
+        setScreen(screenParam as Screen)
+      }
+
+      if (Number.isInteger(optionParam) && optionParam >= 1 && optionParam <= odaOptions.length) {
+        setSelectedOption(optionParam - 1)
+      }
     }
+
+    syncStateFromUrl()
+    window.addEventListener('popstate', syncStateFromUrl)
+    return () => window.removeEventListener('popstate', syncStateFromUrl)
   }, [])
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('screen', screen)
+    url.searchParams.set('option', String(selectedOption + 1))
+    const nextUrl = `${url.pathname}?${url.searchParams.toString()}${url.hash}`
+    window.history.replaceState(null, '', nextUrl)
+  }, [screen, selectedOption])
 
   useEffect(() => {
     window.scrollTo(0, 0)
