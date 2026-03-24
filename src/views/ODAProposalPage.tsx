@@ -21,6 +21,12 @@ const INSPECTION_CLOSE_ICON =
   "/assets/figma-local/2f985f51-8ed2-4b21-a3f4-6ea1b0c78488-e43bc55b91.svg";
 const INSPECTION_PHONE_ICON =
   "/assets/figma-local/0f6108b8-708f-4590-af43-3a49d4fe79ca-e0bccc251f.svg";
+const INSPECTION_PLACEHOLDER_LOGO =
+  "/assets/figma-local/686f232d-6dfd-49f8-9717-5fff486d34ed-placeholder.png";
+const INSPECTION_ARROW_LEFT =
+  "/assets/figma-local/23565d5b-0bdd-410a-89b9-c2c63bc82c1a-arrow-left.svg";
+const INSPECTION_ARROW_RIGHT =
+  "/assets/figma-local/381b6246-be61-4e66-b4b2-2e62e81c316d-arrow-right.svg";
 const INSPECTION_REPORT_IMAGE_1 =
   "/assets/figma-local/a9f6d074-8b60-421d-b834-eb390a876bf4-adaf8d9422.jpg";
 const INSPECTION_REPORT_IMAGE_2 =
@@ -1005,7 +1011,8 @@ function InspectionDetailModal({
   onChangeMedia: (index: number) => void;
 }) {
   const entry = entries[activeEntryIndex];
-  const media = entry.media[activeMediaIndex] ?? entry.media[0];
+  if (!entry) return null;
+  const media = entry.media[activeMediaIndex] ?? entry.media[0] ?? null;
   const hasPrev = activeEntryIndex > 0;
   const hasNext = activeEntryIndex < entries.length - 1;
 
@@ -1060,31 +1067,42 @@ function InspectionDetailModal({
             style={{ width: sv(840), paddingBottom: sv(24) }}
           >
             <div
-              className="relative overflow-hidden"
+              className="relative overflow-hidden flex items-center justify-center"
               style={{
                 width: "100%",
-                aspectRatio: "732 / 510",
+                height: sv(510),
                 borderRadius: sv(8),
+                border: media ? "none" : "1px solid #b4b4b4",
               }}
             >
-              <Image
-                src={media.src}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="840px"
-              />
-              {media.type === "video" && (
-                <div
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                  style={{ backgroundColor: "rgba(0,0,0,0.14)" }}
-                >
-                  <img
-                    src={INSPECTION_VIDEO_ICON}
+              {media ? (
+                <>
+                  <Image
+                    src={media.src}
                     alt=""
-                    style={{ width: sv(72), height: sv(72) }}
+                    fill
+                    className="object-cover"
+                    sizes="840px"
                   />
-                </div>
+                  {media.type === "video" && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                      style={{ backgroundColor: "rgba(0,0,0,0.14)" }}
+                    >
+                      <img
+                        src={INSPECTION_VIDEO_ICON}
+                        alt=""
+                        style={{ width: sv(72), height: sv(72) }}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <img
+                  src={INSPECTION_PLACEHOLDER_LOGO}
+                  alt="ODA Design & Architecture"
+                  style={{ width: sv(252), height: sv(49) }}
+                />
               )}
             </div>
             <div className="flex items-center w-full" style={{ gap: sv(8) }}>
@@ -1198,39 +1216,53 @@ function InspectionDetailModal({
                 <span>Contact Sales</span>
               </button>
             </div>
-            <div className="flex items-start w-full">
-              <div className="flex items-center justify-between w-full">
-                <button
-                  onClick={() => hasPrev && onChangeEntry(activeEntryIndex - 1)}
-                  className="bg-white border border-[#262626] flex items-center justify-center transition-colors"
-                  style={{
-                    width: sv(96),
-                    height: sv(40),
-                    borderRadius: sv(4),
-                    fontSize: sv(14),
-                    color: "rgba(0,0,0,0.85)",
-                    opacity: hasPrev ? 1 : 0.4,
-                    cursor: hasPrev ? "pointer" : "default",
-                  }}
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => hasNext && onChangeEntry(activeEntryIndex + 1)}
-                  className="bg-white border border-[#262626] flex items-center justify-center transition-colors"
-                  style={{
-                    width: sv(96),
-                    height: sv(40),
-                    borderRadius: sv(4),
-                    fontSize: sv(14),
-                    color: "rgba(0,0,0,0.85)",
-                    opacity: hasNext ? 1 : 0.4,
-                    cursor: hasNext ? "pointer" : "default",
-                  }}
-                >
-                  Next
-                </button>
-              </div>
+            <div
+              className="flex items-center w-full"
+              style={{ gap: sv(21) }}
+            >
+              <button
+                onClick={() => hasPrev && onChangeEntry(activeEntryIndex - 1)}
+                className="flex-shrink-0 flex items-center justify-center transition-opacity"
+                style={{
+                  width: sv(48),
+                  height: sv(48),
+                  opacity: hasPrev ? 1 : 0.3,
+                  cursor: hasPrev ? "pointer" : "default",
+                }}
+              >
+                <img
+                  src={INSPECTION_ARROW_LEFT}
+                  alt="Previous"
+                  style={{ width: sv(48), height: sv(48), transform: "rotate(180deg)" }}
+                />
+              </button>
+              <p
+                className="flex-1 text-center text-[#262626]"
+                style={{
+                  fontSize: sv(20),
+                  fontWeight: 300,
+                  letterSpacing: "-0.8px",
+                  lineHeight: "normal",
+                }}
+              >
+                {activeEntryIndex + 1} / {entries.length}
+              </p>
+              <button
+                onClick={() => hasNext && onChangeEntry(activeEntryIndex + 1)}
+                className="flex-shrink-0 flex items-center justify-center transition-opacity"
+                style={{
+                  width: sv(48),
+                  height: sv(48),
+                  opacity: hasNext ? 1 : 0.3,
+                  cursor: hasNext ? "pointer" : "default",
+                }}
+              >
+                <img
+                  src={INSPECTION_ARROW_RIGHT}
+                  alt="Next"
+                  style={{ width: sv(48), height: sv(48) }}
+                />
+              </button>
             </div>
           </div>
         </div>
