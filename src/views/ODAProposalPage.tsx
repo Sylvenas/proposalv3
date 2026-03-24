@@ -14,31 +14,31 @@ import {
 const sv = (px: number) => `calc(${px} / 1440 * clamp(1280px, 100vw, 2560px))`;
 
 const COMPARE_BASE_SCOPE =
-  "https://www.figma.com/api/mcp/asset/51981941-368d-42cc-b857-4efc43e45491";
+  "/assets/figma-local/51981941-368d-42cc-b857-4efc43e45491-088570687b.jpg";
 const COMPARE_INFO_ICON =
-  "https://www.figma.com/api/mcp/asset/18c9139d-35d9-423f-bba5-b49a22d84866";
+  "/assets/figma-local/18c9139d-35d9-423f-bba5-b49a22d84866-aa9029ccd2.svg";
 const INSPECTION_CLOSE_ICON =
-  "https://www.figma.com/api/mcp/asset/2f985f51-8ed2-4b21-a3f4-6ea1b0c78488";
+  "/assets/figma-local/2f985f51-8ed2-4b21-a3f4-6ea1b0c78488-e43bc55b91.svg";
 const INSPECTION_PHONE_ICON =
-  "https://www.figma.com/api/mcp/asset/0f6108b8-708f-4590-af43-3a49d4fe79ca";
+  "/assets/figma-local/0f6108b8-708f-4590-af43-3a49d4fe79ca-e0bccc251f.svg";
 const INSPECTION_REPORT_IMAGE_1 =
-  "https://www.figma.com/api/mcp/asset/a9f6d074-8b60-421d-b834-eb390a876bf4";
+  "/assets/figma-local/a9f6d074-8b60-421d-b834-eb390a876bf4-adaf8d9422.jpg";
 const INSPECTION_REPORT_IMAGE_2 =
-  "https://www.figma.com/api/mcp/asset/8bf4ece5-237e-42ab-b756-e842e4093c6e";
+  "/assets/figma-local/8bf4ece5-237e-42ab-b756-e842e4093c6e-6bb9bdf761.jpg";
 const INSPECTION_REPORT_IMAGE_3 =
-  "https://www.figma.com/api/mcp/asset/400d4e67-59c3-423a-9416-600c82e4e24d";
+  "/assets/figma-local/400d4e67-59c3-423a-9416-600c82e4e24d-2f5e887f60.png";
 const INSPECTION_REPORT_IMAGE_4 =
-  "https://www.figma.com/api/mcp/asset/411fdc2e-0d4a-4899-957e-d7cf93525672";
+  "/assets/figma-local/411fdc2e-0d4a-4899-957e-d7cf93525672-6f405a0e7f.png";
 const INSPECTION_REPORT_IMAGE_5 =
-  "https://www.figma.com/api/mcp/asset/cf0f30fb-4654-49fb-8b6c-9121f88e352b";
+  "/assets/figma-local/cf0f30fb-4654-49fb-8b6c-9121f88e352b-9f30eb9e71.png";
 const INSPECTION_REPORT_IMAGE_6 =
-  "https://www.figma.com/api/mcp/asset/89e35ce2-be01-47f2-b097-d938fc738300";
+  "/assets/figma-local/89e35ce2-be01-47f2-b097-d938fc738300-f89e359ebf.png";
 const INSPECTION_REPORT_IMAGE_7 =
-  "https://www.figma.com/api/mcp/asset/fab24a9f-a481-4283-963d-5003d9ae168d";
+  "/assets/figma-local/fab24a9f-a481-4283-963d-5003d9ae168d-7701ebdfbf.png";
 const INSPECTION_REPORT_IMAGE_8 =
-  "https://www.figma.com/api/mcp/asset/5a2ab62f-2406-43f6-b3a2-8a3af77e6ce6";
+  "/assets/figma-local/5a2ab62f-2406-43f6-b3a2-8a3af77e6ce6-3123c2f005.png";
 const INSPECTION_VIDEO_ICON =
-  "https://www.figma.com/api/mcp/asset/7acf45ae-fdae-49ab-9554-5d71be8157fc";
+  "/assets/figma-local/7acf45ae-fdae-49ab-9554-5d71be8157fc-b9adcd46f8.svg";
 
 function getItemPrice(item: ODAItem): number {
   if (!item.isAddon) {
@@ -2098,61 +2098,61 @@ function OptionsScreen({
 
   // Comparison line item thumbnails — exact Figma assets for node 412:5599
   const IF1 =
-    "https://www.figma.com/api/mcp/asset/839abaa6-99cb-4cb6-acc4-b8757be02aa5";
+    "/assets/figma-local/839abaa6-99cb-4cb6-acc4-b8757be02aa5-0527f2eab4.jpg";
   const IF2 =
-    "https://www.figma.com/api/mcp/asset/d2d53416-1c9e-4f51-9dce-7ebeb8605507";
+    "/assets/figma-local/d2d53416-1c9e-4f51-9dce-7ebeb8605507-73a362c620.png";
   const IF3 =
-    "https://www.figma.com/api/mcp/asset/f260401f-d99d-48b4-a548-bbc84c8d405e";
+    "/assets/figma-local/f260401f-d99d-48b4-a548-bbc84c8d405e-fdf6fca35d.png";
   const IF4 =
-    "https://www.figma.com/api/mcp/asset/5bb5b811-b579-412c-994d-dd7886732a14";
+    "/assets/figma-local/5bb5b811-b579-412c-994d-dd7886732a14-5499cf28db.png";
   const IF5 =
-    "https://www.figma.com/api/mcp/asset/5ebfaeae-68b9-4675-b96a-e3d29543abdd";
+    "/assets/figma-local/5ebfaeae-68b9-4675-b96a-e3d29543abdd-3ac3febcac.png";
   const IF6 =
-    "https://www.figma.com/api/mcp/asset/175eb359-f0c7-458e-ac60-a1c129e88689";
+    "/assets/figma-local/175eb359-f0c7-458e-ac60-a1c129e88689-d18588e1bf.jpg";
   const IF7 =
-    "https://www.figma.com/api/mcp/asset/48e8f73b-06ed-4c27-b398-3ef76be60cd3";
+    "/assets/figma-local/48e8f73b-06ed-4c27-b398-3ef76be60cd3-451a15c8b3.jpg";
   const IF8 =
-    "https://www.figma.com/api/mcp/asset/17793a24-f973-407f-8da0-92c61ffc2e1e";
+    "/assets/figma-local/17793a24-f973-407f-8da0-92c61ffc2e1e-de97a2fe6a.png";
   const IF9 =
-    "https://www.figma.com/api/mcp/asset/c4fcc113-156d-4050-a038-d5a2c6ead8b6";
+    "/assets/figma-local/c4fcc113-156d-4050-a038-d5a2c6ead8b6-c72da730dc.jpg";
   const KT1 =
-    "https://www.figma.com/api/mcp/asset/da5f585e-4864-406d-8727-0df12a6a41a8";
+    "/assets/figma-local/da5f585e-4864-406d-8727-0df12a6a41a8-b356fb2043.png";
   const KT2 =
-    "https://www.figma.com/api/mcp/asset/aa23928a-01f8-49a3-ac44-9d5a77276f28";
+    "/assets/figma-local/aa23928a-01f8-49a3-ac44-9d5a77276f28-cbec4ae7d3.png";
   const KT3 =
-    "https://www.figma.com/api/mcp/asset/91b15597-7f23-4f5f-8189-884511344971";
+    "/assets/figma-local/91b15597-7f23-4f5f-8189-884511344971-fd152e22a7.jpg";
   const KT4 =
-    "https://www.figma.com/api/mcp/asset/56750a6f-bc62-4cc3-8067-e5c5d7602c2a";
+    "/assets/figma-local/56750a6f-bc62-4cc3-8067-e5c5d7602c2a-6035b77e41.png";
   const KT5 =
-    "https://www.figma.com/api/mcp/asset/7e23b8db-6b7a-4934-bb71-451c895a6c41";
+    "/assets/figma-local/7e23b8db-6b7a-4934-bb71-451c895a6c41-948f2b0bd7.jpg";
   const KT6 =
-    "https://www.figma.com/api/mcp/asset/cbf92a3d-10dd-4f84-9272-e902be412313";
+    "/assets/figma-local/cbf92a3d-10dd-4f84-9272-e902be412313-1b7d33f904.jpg";
   const KT7 =
-    "https://www.figma.com/api/mcp/asset/806874b1-4718-4494-b168-e74baf12dbf3";
+    "/assets/figma-local/806874b1-4718-4494-b168-e74baf12dbf3-fd193ebeb8.jpg";
   const KT8 =
-    "https://www.figma.com/api/mcp/asset/76d03b51-8070-4de7-a371-f502a5f8964f";
+    "/assets/figma-local/76d03b51-8070-4de7-a371-f502a5f8964f-c21dfbf151.jpg";
   const KT9 =
-    "https://www.figma.com/api/mcp/asset/c948e0a1-84e0-42c8-98c6-1e36f7605c83";
+    "/assets/figma-local/c948e0a1-84e0-42c8-98c6-1e36f7605c83-4323cd45d6.png";
   const BT1 =
-    "https://www.figma.com/api/mcp/asset/76332eb0-9285-4c53-baa5-2e60879fe2b5";
+    "/assets/figma-local/76332eb0-9285-4c53-baa5-2e60879fe2b5-4fdc1fa8eb.jpg";
   const BT2 =
-    "https://www.figma.com/api/mcp/asset/9347fafe-c738-417b-af43-ce7de369166c";
+    "/assets/figma-local/9347fafe-c738-417b-af43-ce7de369166c-baf15f78ce.png";
   const BT3 =
-    "https://www.figma.com/api/mcp/asset/0e90cde4-e32e-4997-81a8-a7bf544fc203";
+    "/assets/figma-local/0e90cde4-e32e-4997-81a8-a7bf544fc203-27712ecce3.jpg";
   const BT4 =
-    "https://www.figma.com/api/mcp/asset/753bd493-f005-4731-bddd-2aba4b3bd45b";
+    "/assets/figma-local/753bd493-f005-4731-bddd-2aba4b3bd45b-e7a437ece1.jpg";
   const BT5 =
-    "https://www.figma.com/api/mcp/asset/92bcb3db-ba5a-430d-aa4b-9dcc907ddc4d";
+    "/assets/figma-local/92bcb3db-ba5a-430d-aa4b-9dcc907ddc4d-33f0ab10c1.png";
   const BT6 =
-    "https://www.figma.com/api/mcp/asset/732b4b18-6007-4b15-939d-e6edc9904a24";
+    "/assets/figma-local/732b4b18-6007-4b15-939d-e6edc9904a24-aebcc35d99.jpg";
   const BT7 =
-    "https://www.figma.com/api/mcp/asset/c61c9b83-e90e-433b-83c5-92619b816e06";
+    "/assets/figma-local/c61c9b83-e90e-433b-83c5-92619b816e06-4d85623504.jpg";
   const BT8 =
-    "https://www.figma.com/api/mcp/asset/451cc17e-b5c0-4bf5-b5fc-be1937f8a16a";
+    "/assets/figma-local/451cc17e-b5c0-4bf5-b5fc-be1937f8a16a-0cc954ac0c.png";
   const PC1 =
-    "https://www.figma.com/api/mcp/asset/1a5fcdf7-b33f-49f7-b351-4fb6ecc98b2c";
+    "/assets/figma-local/1a5fcdf7-b33f-49f7-b351-4fb6ecc98b2c-12dcc9dfa7.jpg";
   const PC3 =
-    "https://www.figma.com/api/mcp/asset/93027c17-568b-4628-86d5-4e1224adad23";
+    "/assets/figma-local/93027c17-568b-4628-86d5-4e1224adad23-ee9b8edb15.jpg";
 
   const compareSections: Array<{
     title: string;
