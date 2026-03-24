@@ -1,16 +1,22 @@
 'use client';
 
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   DefaultColorStyle,
+  DefaultDashStyle,
   DefaultFontStyle,
+  DefaultFillStyle,
   DefaultSizeStyle,
   DefaultTextAlignStyle,
   FONT_SIZES,
+  GeoShapeGeoStyle,
+  STROKE_SIZES,
   Tldraw,
   createShapeId,
   type Editor,
+  type TLGeoShape,
   type TLImageShape,
+  type TLLineShape,
   type TLTextShape,
   useEditor,
   useValue,
@@ -24,7 +30,14 @@ import {
 import { exportProposalDocument } from './schema';
 import { proposalShapeUtils, type ProposalModuleShape, type ProposalTextShape } from './shapes';
 
-type ShapeSelection = TLTextShape | TLImageShape | ProposalTextShape | ProposalModuleShape | null;
+type ShapeSelection =
+  | TLTextShape
+  | TLImageShape
+  | TLGeoShape
+  | TLLineShape
+  | ProposalTextShape
+  | ProposalModuleShape
+  | null;
 type NativeTextColor =
   | 'black'
   | 'blue'
@@ -42,19 +55,28 @@ type NativeTextColor =
 type NativeTextSize = 's' | 'm' | 'l' | 'xl';
 type NativeTextFont = 'draw' | 'mono' | 'sans' | 'serif';
 type NativeTextAlign = 'start' | 'middle' | 'end';
+type NativeDash = 'dashed' | 'dotted' | 'draw' | 'solid';
+type NativeFill = 'fill' | 'lined-fill' | 'none' | 'pattern' | 'semi' | 'solid';
+type NativeShapeSize = 's' | 'm' | 'l' | 'xl';
+type NativeLineSpline = 'cubic' | 'line';
 
 const NATIVE_TEXT_COLORS: Array<{
   value: NativeTextColor;
   label: string;
   swatch: string;
 }> = [
+  { value: 'white', label: 'White', swatch: '#ffffff' },
   { value: 'black', label: 'Black', swatch: '#111827' },
   { value: 'grey', label: 'Grey', swatch: '#6b7280' },
   { value: 'blue', label: 'Blue', swatch: '#2563eb' },
+  { value: 'light-blue', label: 'Light Blue', swatch: '#60a5fa' },
   { value: 'green', label: 'Green', swatch: '#15803d' },
+  { value: 'light-green', label: 'Light Green', swatch: '#4ade80' },
   { value: 'orange', label: 'Orange', swatch: '#ea580c' },
   { value: 'red', label: 'Red', swatch: '#dc2626' },
+  { value: 'light-red', label: 'Light Red', swatch: '#f87171' },
   { value: 'violet', label: 'Violet', swatch: '#7c3aed' },
+  { value: 'light-violet', label: 'Light Violet', swatch: '#a78bfa' },
   { value: 'yellow', label: 'Yellow', swatch: '#ca8a04' },
 ];
 
@@ -76,6 +98,42 @@ const NATIVE_TEXT_ALIGNS: Array<{ value: NativeTextAlign; label: string }> = [
   { value: 'start', label: 'Left' },
   { value: 'middle', label: 'Center' },
   { value: 'end', label: 'Right' },
+];
+
+const NATIVE_SHAPE_SIZES: Array<{ value: NativeShapeSize; label: string }> = [
+  { value: 's', label: `Small (${STROKE_SIZES.s}px)` },
+  { value: 'm', label: `Medium (${STROKE_SIZES.m}px)` },
+  { value: 'l', label: `Large (${STROKE_SIZES.l}px)` },
+  { value: 'xl', label: `XL (${STROKE_SIZES.xl}px)` },
+];
+
+const NATIVE_DASHES: Array<{ value: NativeDash; label: string }> = [
+  { value: 'solid', label: 'Solid' },
+  { value: 'dashed', label: 'Dashed' },
+  { value: 'dotted', label: 'Dotted' },
+  { value: 'draw', label: 'Draw' },
+];
+
+const NATIVE_FILLS: Array<{ value: NativeFill; label: string }> = [
+  { value: 'none', label: 'None' },
+  { value: 'semi', label: 'Semi' },
+  { value: 'solid', label: 'Solid' },
+  { value: 'pattern', label: 'Pattern' },
+  { value: 'fill', label: 'Fill' },
+  { value: 'lined-fill', label: 'Lined Fill' },
+];
+
+const NATIVE_OPACITIES: Array<{ value: number; label: string }> = [
+  { value: 0.1, label: '10%' },
+  { value: 0.25, label: '25%' },
+  { value: 0.5, label: '50%' },
+  { value: 0.75, label: '75%' },
+  { value: 1, label: '100%' },
+];
+
+const NATIVE_LINE_SPLINES: Array<{ value: NativeLineSpline; label: string }> = [
+  { value: 'line', label: 'Straight' },
+  { value: 'cubic', label: 'Curved' },
 ];
 
 function clampDimension(value: number, fallback: number) {
@@ -103,11 +161,33 @@ function getShapeLabel(shape: any) {
     return shape.props.altText || 'Image';
   }
 
+  if (shape.type === 'geo') {
+    return shape.props.geo === 'rectangle' ? 'Rectangle' : 'Shape';
+  }
+
+  if (shape.type === 'line') {
+    return 'Line';
+  }
+
   if (shape.type === 'text') {
     return 'Text';
   }
 
   return shape.type;
+}
+
+async function exportCurrentPageSvg(editor: Editor) {
+  const shapes = editor.getCurrentPageShapesSorted();
+  if (!shapes.length) {
+    return '';
+  }
+
+  const result = await editor.getSvgString(shapes, {
+    background: true,
+    padding: 16,
+  });
+
+  return result?.svg ?? '';
 }
 
 function ProposalEditorHud({
@@ -136,6 +216,17 @@ function ProposalEditorHud({
           <ToolbarButton
             label="Text"
             onClick={() => editor.setCurrentTool('text')}
+          />
+          <ToolbarButton
+            label="Rectangle"
+            onClick={() => {
+              editor.setStyleForNextShapes(GeoShapeGeoStyle, 'rectangle');
+              editor.setCurrentTool('geo');
+            }}
+          />
+          <ToolbarButton
+            label="Line"
+            onClick={() => editor.setCurrentTool('line')}
           />
           <ToolbarButton
             label="Image"
@@ -193,17 +284,7 @@ function ProposalEditorHud({
           <ToolbarButton
             label="Export SVG"
             onClick={async () => {
-              const shapes = editor.getCurrentPageShapesSorted();
-              if (!shapes.length) {
-                onExportSvg('');
-                return;
-              }
-
-              const result = await editor.getSvgString(shapes, {
-                background: true,
-                padding: 16,
-              });
-              onExportSvg(result?.svg ?? '');
+              onExportSvg(await exportCurrentPageSvg(editor));
             }}
           />
         </div>
@@ -333,6 +414,12 @@ function InspectorPanel() {
             )}
             {selectedShape.type === 'image' && (
               <ProposalImageInspector shape={selectedShape} />
+            )}
+            {selectedShape.type === 'geo' && (
+              <GeoShapeInspector shape={selectedShape} />
+            )}
+            {selectedShape.type === 'line' && (
+              <LineShapeInspector shape={selectedShape} />
             )}
             {selectedShape.type === 'text' && (
               <DefaultTextInspector shape={selectedShape} />
@@ -547,6 +634,227 @@ function ProposalImageInspector({ shape }: { shape: TLImageShape }) {
   );
 }
 
+function GeoShapeInspector({ shape }: { shape: TLGeoShape }) {
+  const editor = useEditor();
+  const bounds = editor.getShapePageBounds(shape.id);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <LabeledField label="Color">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.color}
+            onChange={(event) =>
+              editor.setStyleForSelectedShapes(
+                DefaultColorStyle,
+                event.target.value as NativeTextColor
+              )
+            }
+          >
+            {NATIVE_TEXT_COLORS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+
+        <LabeledField label="Stroke">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.size}
+            onChange={(event) =>
+              editor.setStyleForSelectedShapes(
+                DefaultSizeStyle,
+                event.target.value as NativeShapeSize
+              )
+            }
+          >
+            {NATIVE_SHAPE_SIZES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <LabeledField label="Dash">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.dash}
+            onChange={(event) =>
+              editor.setStyleForSelectedShapes(
+                DefaultDashStyle,
+                event.target.value as NativeDash
+              )
+            }
+          >
+            {NATIVE_DASHES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+
+        <LabeledField label="Fill">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.fill}
+            onChange={(event) =>
+              editor.setStyleForSelectedShapes(
+                DefaultFillStyle,
+                event.target.value as NativeFill
+              )
+            }
+          >
+            {NATIVE_FILLS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+      </div>
+
+      <LabeledField label="Opacity">
+        <select
+          className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+          value={String(shape.opacity)}
+          onChange={(event) =>
+            editor.setOpacityForSelectedShapes(Number(event.target.value))
+          }
+        >
+          {NATIVE_OPACITIES.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </LabeledField>
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="Width" value={`${Math.round(bounds?.w ?? shape.props.w)} px`} />
+        <StatCard label="Height" value={`${Math.round(bounds?.h ?? shape.props.h)} px`} />
+      </div>
+    </div>
+  );
+}
+
+function LineShapeInspector({ shape }: { shape: TLLineShape }) {
+  const editor = useEditor();
+  const bounds = editor.getShapePageBounds(shape.id);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <LabeledField label="Color">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.color}
+            onChange={(event) =>
+              editor.setStyleForSelectedShapes(
+                DefaultColorStyle,
+                event.target.value as NativeTextColor
+              )
+            }
+          >
+            {NATIVE_TEXT_COLORS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+
+        <LabeledField label="Stroke">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.size}
+            onChange={(event) =>
+              editor.setStyleForSelectedShapes(
+                DefaultSizeStyle,
+                event.target.value as NativeShapeSize
+              )
+            }
+          >
+            {NATIVE_SHAPE_SIZES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <LabeledField label="Dash">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.dash}
+            onChange={(event) =>
+              editor.setStyleForSelectedShapes(
+                DefaultDashStyle,
+                event.target.value as NativeDash
+              )
+            }
+          >
+            {NATIVE_DASHES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+
+        <LabeledField label="Path">
+          <select
+            className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+            value={shape.props.spline}
+            onChange={(event) =>
+              editor.updateShape({
+                id: shape.id,
+                type: shape.type,
+                props: { spline: event.target.value as NativeLineSpline },
+              })
+            }
+          >
+            {NATIVE_LINE_SPLINES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </LabeledField>
+      </div>
+
+      <LabeledField label="Opacity">
+        <select
+          className="w-full rounded-[14px] border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none transition focus:border-slate-400"
+          value={String(shape.opacity)}
+          onChange={(event) =>
+            editor.setOpacityForSelectedShapes(Number(event.target.value))
+          }
+        >
+          {NATIVE_OPACITIES.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </LabeledField>
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="Width" value={`${Math.round(bounds?.w ?? 0)} px`} />
+        <StatCard label="Height" value={`${Math.round(bounds?.h ?? 0)} px`} />
+      </div>
+    </div>
+  );
+}
+
 function DefaultTextInspector({ shape }: { shape: TLTextShape }) {
   const editor = useEditor();
 
@@ -729,6 +1037,47 @@ export default function ProposalLayoutEditor() {
     }
   }
 
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    let isActive = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleSvgExport = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      timeoutId = setTimeout(() => {
+        void exportCurrentPageSvg(editor).then((svg) => {
+          if (isActive) {
+            setExportedSvg(svg);
+            setPreviewMode('svg');
+          }
+        });
+      }, 250);
+    };
+
+    scheduleSvgExport();
+
+    const unsubscribe = editor.store.listen(
+      () => {
+        scheduleSvgExport();
+      },
+      { source: 'user', scope: 'document' }
+    );
+
+    return () => {
+      isActive = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      unsubscribe();
+    };
+  }, [editor]);
+
   return (
     <main
       className="min-h-screen"
@@ -744,12 +1093,12 @@ export default function ProposalLayoutEditor() {
               Tldraw Prototype
             </p>
             <h1 className="m-0 mt-2 text-[1.9rem] font-semibold tracking-[-0.05em] text-slate-950">
-              Proposal Layout Editor
+              Custom Widget
             </h1>
             <p className="m-0 mt-2 max-w-3xl text-[14px] leading-6 text-slate-500">
-              An extensible infinite-canvas editor built on `tldraw`, focused on
-              native text and image shapes plus server-driven placeholder modules
-              that can later map cleanly into HTML and PDF rendering.
+              A custom widget canvas built on `tldraw`, letting users compose
+              text, images, shapes, lines, and server-driven placeholder modules
+              into reusable content blocks.
             </p>
           </div>
 

@@ -1,7 +1,9 @@
 import {
   renderPlaintextFromRichText,
   type Editor,
+  type TLGeoShape,
   type TLImageShape,
+  type TLLineShape,
 } from 'tldraw';
 
 import type { ProposalModuleShape, ProposalTextShape } from './shapes';
@@ -17,11 +19,13 @@ export interface ProposalDocumentSchema {
 export type ProposalElementSchema =
   | ProposalTextElementSchema
   | ProposalImageElementSchema
+  | ProposalRectangleElementSchema
+  | ProposalLineElementSchema
   | ProposalModuleElementSchema;
 
 interface ProposalBaseElementSchema {
   id: string;
-  type: 'text' | 'image' | 'module';
+  type: 'text' | 'image' | 'rectangle' | 'line' | 'module';
   x: number;
   y: number;
   rotation: number;
@@ -44,6 +48,28 @@ export interface ProposalImageElementSchema extends ProposalBaseElementSchema {
   src: string;
   assetId: string | null;
   altText: string;
+}
+
+export interface ProposalRectangleElementSchema extends ProposalBaseElementSchema {
+  type: 'rectangle';
+  color: string;
+  dash: string;
+  fill: string;
+  size: string;
+  opacity: number;
+}
+
+export interface ProposalLineElementSchema extends ProposalBaseElementSchema {
+  type: 'line';
+  color: string;
+  dash: string;
+  size: string;
+  opacity: number;
+  spline: string;
+  points: Array<{
+    x: number;
+    y: number;
+  }>;
 }
 
 export interface ProposalModuleElementSchema extends ProposalBaseElementSchema {
@@ -126,6 +152,49 @@ function serializeShape(editor: Editor, shape: any, zIndex: number) {
     };
   }
 
+  if (shape.type === 'geo' && shape.props.geo === 'rectangle') {
+    const rectangleShape = shape as TLGeoShape;
+    return {
+      id: rectangleShape.id,
+      type: 'rectangle' as const,
+      x: rectangleShape.x,
+      y: rectangleShape.y,
+      rotation: rectangleShape.rotation,
+      width: rectangleShape.props.w,
+      height: rectangleShape.props.h,
+      zIndex,
+      color: rectangleShape.props.color,
+      dash: rectangleShape.props.dash,
+      fill: rectangleShape.props.fill,
+      size: rectangleShape.props.size,
+      opacity: rectangleShape.opacity,
+    };
+  }
+
+  if (shape.type === 'line') {
+    const lineShape = shape as TLLineShape;
+    const bounds = editor.getShapePageBounds(lineShape.id);
+    return {
+      id: lineShape.id,
+      type: 'line' as const,
+      x: lineShape.x,
+      y: lineShape.y,
+      rotation: lineShape.rotation,
+      width: bounds?.w ?? 0,
+      height: bounds?.h ?? 0,
+      zIndex,
+      color: lineShape.props.color,
+      dash: lineShape.props.dash,
+      size: lineShape.props.size,
+      opacity: lineShape.opacity,
+      spline: lineShape.props.spline,
+      points: Object.values(lineShape.props.points).map((point) => ({
+        x: point.x,
+        y: point.y,
+      })),
+    };
+  }
+
   if (shape.type === 'text') {
     return {
       id: shape.id,
@@ -134,7 +203,7 @@ function serializeShape(editor: Editor, shape: any, zIndex: number) {
       y: shape.y,
       rotation: shape.rotation,
       width: shape.props.w,
-      height: shape.props.w,
+      height: shape.props.h,
       zIndex,
       text: renderPlaintextFromRichText(editor, shape.props.richText),
       fontSize: 28,
