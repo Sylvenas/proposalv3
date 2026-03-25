@@ -8,6 +8,12 @@ const pages = [
       'A future-facing blueprint page that outlines the proposal direction and goals for the next one to two years.',
   },
   {
+    href: '/proposal-v3',
+    title: 'Proposal V3',
+    description:
+      'An isolated copy of the proposal future blueprint page for independent edits without affecting the original prototype.',
+  },
+  {
     href: '/proposal-html-render',
     title: 'Proposal HTML Render',
     description:
