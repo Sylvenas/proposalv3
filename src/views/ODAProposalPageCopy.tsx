@@ -1730,16 +1730,28 @@ function LandingScreen({
                     borderRadius: sv(4),
                   }}
                 >
-                  <img
-                    src={FENCE_REPORT_MAP_IMAGE}
-                    alt="Fence inspection drawing"
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
+                  <div
+                    className="absolute inset-0 overflow-hidden pointer-events-none"
+                    style={{ borderRadius: sv(4) }}
+                  >
+                    <img
+                      src={FENCE_REPORT_MAP_IMAGE}
+                      alt="Fence inspection drawing"
+                      style={{
+                        position: "absolute",
+                        width: "197.75%",
+                        height: "381.45%",
+                        left: "-56.4%",
+                        top: "-140.73%",
+                        maxWidth: "none",
+                      }}
+                    />
+                  </div>
                   {floorPlanMarkers.map((marker) => (
                     <button
                       key={marker.id}
                       onClick={() => openInspectionModal(marker.id - 1, 0)}
-                      className="absolute flex items-center justify-center transition-opacity hover:opacity-85"
+                      className="absolute flex items-center justify-center transition-opacity hover:opacity-85 focus:outline-none"
                       style={{
                         left: marker.x,
                         top: marker.y,
@@ -1752,48 +1764,51 @@ function LandingScreen({
                         fontSize: sv(24),
                         fontWeight: 700,
                         lineHeight: "normal",
+                        fontFamily: "Arial, sans-serif",
                       }}
+                      type="button"
                     >
                       {marker.id}
                     </button>
                   ))}
-                </div>
-                <div
-                  className="flex items-end"
-                  style={{ gap: sv(12), padding: `${sv(24)} ${sv(32)}` }}
-                >
-                  {[
-                    FENCE_ZOOM_IN_ICON,
-                    FENCE_ZOOM_OUT_ICON,
-                    FENCE_FIT_ICON,
-                  ].map((icon, index) => (
-                    <button
-                      key={icon}
-                      className="flex items-center justify-center"
-                      style={{
-                        width: sv(48),
-                        height: sv(48),
-                        borderRadius: sv(4),
-                        backgroundColor: "rgba(0,0,0,0.6)",
-                        boxShadow: "0px 0px 2px 0px rgba(0,0,0,0.25)",
-                        backdropFilter: "blur(2px)",
-                        paddingLeft: sv(2),
-                      }}
-                      aria-label={
-                        index === 0
-                          ? "Zoom in"
-                          : index === 1
-                            ? "Zoom out"
-                            : "Fit view"
-                      }
-                    >
-                      <img
-                        src={icon}
-                        alt=""
-                        style={{ width: sv(24), height: sv(24) }}
-                      />
-                    </button>
-                  ))}
+                  <div
+                    className="absolute left-0 right-0 bottom-0 flex items-end"
+                    style={{ gap: sv(12), padding: `${sv(24)} ${sv(32)}` }}
+                  >
+                    {[
+                      FENCE_ZOOM_IN_ICON,
+                      FENCE_ZOOM_OUT_ICON,
+                      FENCE_FIT_ICON,
+                    ].map((icon, index) => (
+                      <button
+                        key={icon}
+                        className="flex items-center justify-center focus:outline-none"
+                        style={{
+                          width: sv(48),
+                          height: sv(48),
+                          borderRadius: sv(4),
+                          backgroundColor: "rgba(0,0,0,0.6)",
+                          boxShadow: "0px 0px 2px 0px rgba(0,0,0,0.25)",
+                          backdropFilter: "blur(2px)",
+                          paddingLeft: sv(2),
+                        }}
+                        aria-label={
+                          index === 0
+                            ? "Zoom in"
+                            : index === 1
+                              ? "Zoom out"
+                              : "Fit view"
+                        }
+                        type="button"
+                      >
+                        <img
+                          src={icon}
+                          alt=""
+                          style={{ width: sv(24), height: sv(24) }}
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div
