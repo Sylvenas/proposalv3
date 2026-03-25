@@ -56,6 +56,10 @@ function getItemPrice(item: ODAItem): number {
   }
 }
 
+function isPlaceholderProductImage(src?: string | null) {
+  return src === THUMB_BASE_SCOPE;
+}
+
 type Screen = "email" | "landing" | "options" | "detail" | "approved";
 const VALID_SCREENS: Screen[] = [
   "email",
@@ -1198,7 +1202,7 @@ function InspectionDetailModal({
                 </div>
               </div>
               <button
-                className="bg-white border border-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                className="bg-white border border-transparent flex items-center justify-center transition-colors hover:border-[#262626] active:bg-[#ebebeb]"
                 style={{
                   width: sv(132),
                   height: sv(40),
@@ -1206,6 +1210,7 @@ function InspectionDetailModal({
                   gap: sv(2),
                   color: "rgba(0,0,0,0.85)",
                   fontSize: sv(14),
+                  cursor: "pointer",
                 }}
               >
                 <img
@@ -3334,6 +3339,11 @@ function SummaryGroup({
                       fill
                       className="object-cover"
                       sizes="300px"
+                      style={{
+                        opacity: isPlaceholderProductImage(item.thumbnailSrc)
+                          ? 0.1
+                          : 1,
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full bg-[#f0f0f0]" />
@@ -3497,6 +3507,11 @@ function SummaryGroup({
                       fill
                       className="object-cover"
                       sizes="44px"
+                      style={{
+                        opacity: isPlaceholderProductImage(item.thumbnailSrc)
+                          ? 0.1
+                          : 1,
+                      }}
                     />
                   </div>
                 ) : (
@@ -3908,6 +3923,10 @@ function ProductDetailModal({
   };
   const currentImages = getImagesForSwatch(activeSwatchIdx);
   const mainImage = currentImages[activeThumb] ?? currentImages[0];
+  const hasOnlyPlaceholderImages =
+    currentImages.length > 0 &&
+    currentImages.every((src) => isPlaceholderProductImage(src));
+  const imgOpacity = hasOnlyPlaceholderImages ? 0.1 : 1;
 
   // Price for the currently displayed swatch variant
   const swatchPrices = item.swatchPrices ?? item.addonSwatchPrices;
@@ -3988,6 +4007,7 @@ function ProductDetailModal({
                 fill
                 className="object-cover"
                 sizes="840px"
+                style={{ opacity: imgOpacity }}
               />
             </div>
 
@@ -4019,6 +4039,7 @@ function ProductDetailModal({
                       fill
                       className="object-cover"
                       sizes="86px"
+                      style={{ opacity: imgOpacity }}
                     />
                   </div>
                 </button>
@@ -4986,7 +5007,14 @@ function DetailScreen({
                                 alt=""
                                 fill
                                 className="object-cover"
-                                style={{ borderRadius: sv(2) }}
+                                style={{
+                                  borderRadius: sv(2),
+                                  opacity: isPlaceholderProductImage(
+                                    item.previewImage,
+                                  )
+                                    ? 0.1
+                                    : 1,
+                                }}
                                 sizes="64px"
                               />
                             </button>

@@ -141,6 +141,12 @@ const FENCE_THUMB_CAP = "/assets/fence-thumb-cap.png";       // New England Cap
 const FENCE_THUMB_POST_INSERT = "/assets/fence-thumb-post-insert.png"; // Aluminum Gate Post Insert
 const FENCE_WARRANTY_IMG = "/assets/fence-extended-warranty.jpg";      // Fence Extended Warranty promo card
 
+const PLACEHOLDER_PRODUCT_IMAGES = new Set([
+  OPTION_CHAIN_PLACEHOLDER,
+  THUMB_BASE_SCOPE,
+  FENCE_THUMB_PANEL,
+]);
+
 const CONTRACT_PAGES = [
   "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_1 1.png",
   "/pdf2/Madison Fence - Howland_页面_2 2.png",
@@ -153,7 +159,7 @@ const PRODUCT_DETAIL_EMPTY_LOGO =
   "https://www.figma.com/api/mcp/asset/851b002b-204b-43ec-9e80-70ecd0b77d17";
 
 function isPlaceholderProductImage(src?: string | null) {
-  return src === OPTION_CHAIN_PLACEHOLDER;
+  return Boolean(src && PLACEHOLDER_PRODUCT_IMAGES.has(src));
 }
 
 function getItemPrice(item: ODAItem): number {
@@ -896,8 +902,7 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
                   <div className="bg-[#fafafa] w-full" style={{ height: 1 }} />
                   {/* Grey surround */}
                   <div
-                    className="bg-[#f0f0f0] flex flex-col items-start py-[31px] w-full"
-                    style={{ paddingLeft: 220, paddingRight: 220 }}
+                    className="bg-[#f0f0f0] flex justify-center py-[31px] w-full"
                   >
                     <div className="flex flex-col" style={{ width: 720 }}>
                       {/* White email card */}
@@ -1296,15 +1301,15 @@ function InspectionDetailModal({
                 </div>
               </div>
               <button
-                className="bg-white flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                className="bg-white border border-transparent flex items-center justify-center transition-colors hover:border-[#262626] active:bg-[#ebebeb]"
                 style={{
                   width: sv(132),
                   height: sv(40),
                   borderRadius: sv(4),
                   gap: sv(2),
-                  border: "none",
                   color: "rgba(0,0,0,0.85)",
                   fontSize: sv(14),
+                  cursor: "pointer",
                 }}
               >
                 <img
@@ -1753,7 +1758,6 @@ function LandingScreen({
                   color: "white",
                   border: "none",
                   borderRadius: sv(4),
-                  boxShadow: "0 10px 20px rgba(227,87,28,0.24)",
                   fontSize: sv(14),
                   fontWeight: 600,
                   lineHeight: "normal",
@@ -3328,6 +3332,11 @@ function SummaryGroup({
                       fill
                       className="object-cover"
                       sizes="300px"
+                      style={{
+                        opacity: isPlaceholderProductImage(item.thumbnailSrc)
+                          ? 0.1
+                          : 1,
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full bg-[#f0f0f0]" />
@@ -5016,7 +5025,7 @@ function ApprovedScreen({
           <div
             className="flex items-center overflow-x-auto scrollbar-none"
             style={{
-              padding: `${sv(16)} ${sv(32)} 0`,
+              padding: `${sv(32)} ${sv(32)} 0`,
               borderBottom: "0.5px solid rgba(0,0,0,0.2)",
             }}
           >
@@ -5070,37 +5079,44 @@ function ApprovedScreen({
                 width: "100%",
                 maxWidth: sv(902),
                 margin: "0 auto",
+                gap: sv(16),
               }}
             >
-              <div className="relative min-h-0">
-                <div
-                  className="overflow-auto"
-                  style={{ height: sv(1120) }}
-                >
+              <div
+                className="flex flex-col bg-[#f5f5f5]"
+                style={{
+                  width: `${approvedContractZoom * 100}%`,
+                  minWidth: "100%",
+                  gap: sv(16),
+                }}
+              >
+                {CONTRACT_PAGES.map((pageSrc, index) => (
                   <div
-                    className="flex flex-col bg-[#f5f5f5]"
+                    key={pageSrc}
                     style={{
-                      width: `${approvedContractZoom * 100}%`,
-                      minWidth: "100%",
-                      gap: sv(16),
+                      border: "1px solid rgba(0,0,0,0.16)",
+                      backgroundColor: "#ffffff",
                     }}
                   >
-                    {CONTRACT_PAGES.map((pageSrc, index) => (
-                      <Image
-                        key={pageSrc}
-                        src={pageSrc}
-                        alt={`Contract page ${index + 1}`}
-                        width={2380}
-                        height={3368}
-                        className="w-full h-auto block bg-white"
-                      />
-                    ))}
+                    <Image
+                      src={pageSrc}
+                      alt={`Contract page ${index + 1}`}
+                      width={2380}
+                      height={3368}
+                      className="w-full h-auto block bg-white"
+                    />
                   </div>
-                </div>
-                <div
-                  className="absolute bottom-0 left-0 flex"
-                  style={{ gap: sv(12), padding: `${sv(24)} ${sv(24)}` }}
-                >
+                ))}
+              </div>
+              <div
+                className="sticky flex"
+                style={{
+                  bottom: sv(24),
+                  left: 0,
+                  gap: sv(12),
+                  width: "fit-content",
+                }}
+              >
                   <button
                     onClick={() =>
                       setApprovedContractZoom((z) => Math.min(z + 0.25, 2))
@@ -5207,7 +5223,6 @@ function ApprovedScreen({
                       />
                     </svg>
                   </button>
-                </div>
               </div>
             </div>
           ) : (

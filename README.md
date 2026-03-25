@@ -1,73 +1,99 @@
-# React + TypeScript + Vite
+# proposalv3
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+这是一个基于 Next.js 15、React 19、TypeScript 和 Tailwind CSS 4 的原型项目，仓库里包含多个 proposal 相关页面和编辑器实验页。
 
-Currently, two official plugins are available:
+## 环境要求
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js: 建议使用 24.x
+- pnpm: 建议使用 10.x
 
-## React Compiler
+当前本地验证环境：
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js `v24.14.0`
+- pnpm `10.20.0`
 
-## Expanding the ESLint configuration
+## 安装依赖
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+在项目根目录执行：
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 本地开发
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+启动开发服务器：
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm dev
 ```
+
+默认会启动在：
+
+```text
+http://localhost:3000
+```
+
+打开首页后，可以从导航页进入各个原型页面。
+
+## 常用命令
+
+开发模式：
+
+```bash
+pnpm dev
+```
+
+生产构建：
+
+```bash
+pnpm build
+```
+
+本地预览生产环境：
+
+```bash
+pnpm start
+```
+
+本地化 Figma 资源脚本：
+
+```bash
+pnpm figma:localize
+```
+
+## 主要页面
+
+- `/`：项目导航页
+- `/proposal-future-blueprint`：Proposal Future Blueprint
+- `/proposal-v3`：Proposal V3
+- `/proposal-html-render`：HTML 渲染版 proposal
+- `/homeowner-site-proposal-builder`：拖拽式 proposal builder
+- `/custom-widget`：基于 `tldraw` 的 widget 画布
+- `/initial-draft`：早期草稿版本
+- `/compare`：对比页
+
+## 运行说明
+
+首次拉取项目后，推荐按下面顺序执行：
+
+```bash
+pnpm install
+pnpm dev
+```
+
+如果只是确认项目能否正常打包，执行：
+
+```bash
+pnpm build
+```
+
+## 已验证
+
+已在当前仓库执行并通过：
+
+```bash
+pnpm build
+```
+
+构建输出显示所有 `app` 路由均已成功生成。
