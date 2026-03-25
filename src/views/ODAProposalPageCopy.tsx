@@ -93,6 +93,53 @@ const FENCE_HOME_ICON =
   "/assets/figma-local/e71d420a-1b53-4a10-baad-4d92f787ca2d-7d8bb73ca7.svg";
 const FENCE_USER_ICON =
   "/assets/figma-local/67ec092e-9b3f-4e5e-bdf6-04af373f05f6-97149766fa.svg";
+const OPTION_CARD_IMAGE_1 =
+  "/assets/figma-local/b3a2fca2-f15b-4fb4-9709-eb448f7e7d19-0fd1b446fe.png";
+const OPTION_CARD_IMAGE_2 =
+  "/assets/figma-local/65787a1a-2075-401b-891f-18a2e00f57eb-dfac981e26.png";
+const OPTION_LOGO_IMAGE =
+  "/assets/figma-local/2d66bc15-bb7b-46b6-9877-769f911daab7-f7ce0f3462.png";
+const OPTION_COMPARE_ICON =
+  "/assets/figma-local/8c28d037-63ce-4e99-8acc-b89fdcb25640-2a5cf4bf8d.svg";
+const OPTION_STICKY_CHEVRON =
+  "/assets/figma-local/fd10f897-2826-49a3-85fa-44e822913e0b-cadf1ade6b.svg";
+const OPTION_BACK_TO_TOP_ICON =
+  "/assets/figma-local/ef5e1ae1-49b9-4aca-ab37-0f9f45ce4b7d-a1eca606f9.svg";
+const OPTION_HOME_ICON =
+  "/assets/figma-local/d2a15d78-aa7f-41da-8bee-c1e50e844b7c-69be7a1678.svg";
+const OPTION_USER_ICON =
+  "/assets/figma-local/be7b996d-c6ef-489c-8ceb-6741da1b14ee-440bae599f.svg";
+const OPTION_INFO_ICON =
+  "/assets/figma-local/028a1418-0005-4ead-b04c-f9e8becd5138-7f07ab0078.svg";
+const OPTION_CHAIN_PLACEHOLDER =
+  "/assets/figma-local/cdd35f48-c738-4aa0-9be8-564fdab0b479-c26c079d24.png";
+const OPTION_GATE_IMAGE_1 =
+  "/assets/figma-local/79ed251c-3b2d-4fd9-82a7-345238d8ddc3-63fef2806a.png";
+const OPTION_GATE_IMAGE_2 =
+  "/assets/figma-local/7feffa04-1d2f-41fc-be91-d12652497028-ad8cf843e0.jpg";
+const OPTION_GATE_IMAGE_3 =
+  "/assets/figma-local/5bb7f9ab-a34b-486c-8f8a-07ef4e7ab8d0-e43c1b13ab.jpg";
+const OPTION_GATE_IMAGE_4 =
+  "/assets/figma-local/f338dfae-ca24-4729-9f1a-640e850eb79f-78668dc38f.png";
+const OPTION_HARDWARE_IMAGE_1 =
+  "/assets/figma-local/0eef5329-de03-48c1-9d20-768a934e16f2-2542bbfbee.png";
+const OPTION_HARDWARE_IMAGE_2 =
+  "/assets/figma-local/a282e3db-8386-44c2-bd88-6e355d32d6a3-936e67bc86.png";
+const OPTION_HARDWARE_IMAGE_3 =
+  "/assets/figma-local/99a0c2e2-dfcd-4e0b-9424-3691a356f35f-21072c80f6.jpg";
+const OPTION_HARDWARE_IMAGE_4 =
+  "/assets/figma-local/e7066310-7033-4824-891c-dcbd0a945c76-51e46a783f.png";
+const OPTION_HARDWARE_IMAGE_5 =
+  "/assets/figma-local/f0177215-9498-4bb4-85c3-8c33ede13fcd-cee8dd5495.png";
+
+// ─── Fence Option 2 assets ────────────────────────────────────────────────────
+const FENCE_DRAWING_MAP = "/assets/fence-drawing-map.png";
+const FENCE_THUMB_PANEL = "/assets/fence-thumb-panel.png";   // Fence Parts, Sections, some Hardware
+const FENCE_THUMB_GATE_1 = "/assets/fence-thumb-gate-1.png"; // Gate items 1 & 2
+const FENCE_THUMB_GATE_3 = "/assets/fence-thumb-gate-3.png"; // Gate item 3 (5' 5'W)
+const FENCE_THUMB_CAP = "/assets/fence-thumb-cap.png";       // New England Cap
+const FENCE_THUMB_POST_INSERT = "/assets/fence-thumb-post-insert.png"; // Aluminum Gate Post Insert
+const FENCE_WARRANTY_IMG = "/assets/fence-extended-warranty.jpg";      // Fence Extended Warranty promo card
 
 function getItemPrice(item: ODAItem): number {
   if (!item.isAddon) {
@@ -124,17 +171,16 @@ function ODALogo({
   color?: string;
   size?: "sm" | "md" | "lg";
 }) {
-  const scales = { sm: 1, md: 1.12, lg: 1.4 };
-  const s = scales[size];
-  const width = 124 * s;
-  const height = 24 * s;
+  // sm: nav bar (109×30), md: email card (130×36), lg: footer/reviews (217×60)
+  const dims = { sm: [109, 30], md: [130, 36], lg: [217, 60] };
+  const [width, height] = dims[size];
 
   return (
     <Image
-      src="/assets/company-logo-figma.png"
-      alt="Design & Architecture"
-      width={Math.round(width)}
-      height={Math.round(height)}
+      src="/assets/madison-fence-logo.png"
+      alt="Madison Fence Company"
+      width={width}
+      height={height}
       priority={size !== "lg"}
       style={{ width: sv(width), height: sv(height) }}
     />
@@ -1327,6 +1373,9 @@ function LandingScreen({
   onContinue: () => void;
   onHome: () => void;
 }) {
+  const HERO_DESIGN_WIDTH = 1440;
+  const HERO_DESIGN_HEIGHT = 1024;
+  const HERO_MAX_SCALE = 1;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [inspectionModal, setInspectionModal] = useState<{
     entryIndex: number;
@@ -1334,6 +1383,9 @@ function LandingScreen({
   } | null>(null);
   const [isInspectionSectionPinned, setIsInspectionSectionPinned] =
     useState(false);
+  const [heroScale, setHeroScale] = useState(1);
+
+  const hsv = (px: number) => `${px * heroScale}px`;
 
   // Track when section 2 has reached the top so the top nav can appear.
   useEffect(() => {
@@ -1346,6 +1398,18 @@ function LandingScreen({
     };
     container.addEventListener("scroll", onScroll, { passive: true });
     return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const updateHeroScale = () => {
+      const widthScale = window.innerWidth / HERO_DESIGN_WIDTH;
+      const heightScale = window.innerHeight / HERO_DESIGN_HEIGHT;
+      setHeroScale(Math.min(widthScale, heightScale, HERO_MAX_SCALE));
+    };
+
+    updateHeroScale();
+    window.addEventListener("resize", updateHeroScale, { passive: true });
+    return () => window.removeEventListener("resize", updateHeroScale);
   }, []);
 
   const scrollToTop = () => {
@@ -1489,13 +1553,13 @@ function LandingScreen({
             width: "100%",
             maxWidth: sv(1440),
             margin: "0 auto",
-            paddingTop: sv(137),
+            paddingTop: hsv(137),
           }}
         >
           <div
             style={{
-              width: sv(281),
-              height: sv(281),
+              width: hsv(281),
+              height: hsv(281),
             }}
           >
             <img
@@ -1507,15 +1571,15 @@ function LandingScreen({
           <div
             className="flex flex-col items-center"
             style={{
-              width: sv(703),
-              marginTop: sv(76),
+              width: hsv(703),
+              marginTop: hsv(76),
               color: "#262626",
             }}
           >
             <p
               className="m-0 text-center"
               style={{
-                fontSize: sv(20),
+                fontSize: hsv(20),
                 fontWeight: 300,
                 lineHeight: "normal",
               }}
@@ -1525,11 +1589,11 @@ function LandingScreen({
             <h1
               className="m-0 text-center"
               style={{
-                marginTop: sv(2),
-                fontSize: sv(48),
+                marginTop: hsv(2),
+                fontSize: hsv(48),
                 fontWeight: 300,
                 lineHeight: "normal",
-                letterSpacing: sv(-0.48),
+                letterSpacing: hsv(-0.48),
               }}
             >
               FENCE REPLACEMENT PROPOSAL
@@ -1537,8 +1601,8 @@ function LandingScreen({
             <p
               className="m-0 text-center"
               style={{
-                marginTop: sv(68),
-                fontSize: sv(20),
+                marginTop: hsv(68),
+                fontSize: hsv(20),
                 fontWeight: 300,
                 lineHeight: "normal",
               }}
@@ -1547,20 +1611,20 @@ function LandingScreen({
             </p>
             <div
               className="flex items-center"
-              style={{ marginTop: sv(86), gap: sv(8) }}
+              style={{ marginTop: hsv(86), gap: hsv(8) }}
             >
               <button
                 onClick={scrollToInspection}
                 className="flex items-center justify-center transition-opacity hover:opacity-85"
                 style={{
-                  width: sv(168),
-                  height: sv(40),
-                  border: `${sv(1)} solid #262626`,
+                  width: hsv(168),
+                  height: hsv(40),
+                  border: `${hsv(1)} solid #262626`,
                   backgroundColor: "#ffffff",
                   color: "rgba(0,0,0,0.85)",
-                  fontSize: sv(14),
+                  fontSize: hsv(14),
                   fontWeight: 400,
-                  lineHeight: sv(18),
+                  lineHeight: hsv(18),
                 }}
               >
                 INSPECTION REPORT
@@ -1569,13 +1633,13 @@ function LandingScreen({
                 onClick={onContinue}
                 className="flex items-center justify-center transition-opacity hover:opacity-85"
                 style={{
-                  width: sv(168),
-                  height: sv(40),
+                  width: hsv(168),
+                  height: hsv(40),
                   backgroundColor: "#d41a32",
                   color: "#ffffff",
-                  fontSize: sv(14),
+                  fontSize: hsv(14),
                   fontWeight: 600,
-                  lineHeight: sv(18),
+                  lineHeight: hsv(18),
                 }}
               >
                 EXPLORE OPTIONS
@@ -1967,7 +2031,7 @@ function OptionsScreen({
     sectionName: string;
     measurementLabel: string;
     description: string;
-  } | null>(null);
+    } | null>(null);
 
   const scrollToCompare = () =>
     compareRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -2030,34 +2094,68 @@ function OptionsScreen({
     };
   }, [expandedCompareOptionIdx]);
 
-  // Schedule & Pricing data (3 options × 3 metrics)
-  const scheduleData: Array<Array<{ label: string; value: string }>> = [
-    [
-      { label: "Base Scope Cost", value: "$250,000" },
-      { label: "Maximum Project Cost", value: "$341,700" },
-      { label: "Estimate Completion Time", value: "120 Days" },
-    ],
-    [
-      { label: "Base Scope Cost", value: "$125,800" },
-      { label: "Maximum Project Cost", value: "$211,000" },
-      { label: "Estimate Completion Time", value: "90 Days" },
-    ],
-    [
-      { label: "Base Scope Cost", value: "$650,000" },
-      { label: "Maximum Project Cost", value: "$1,233,000" },
-      { label: "Estimate Completion Time", value: "180 Days" },
-    ],
-  ];
+  type OptionSummary = {
+    title: string;
+    description: string;
+    duration: string;
+    price: string;
+    contractTotal: string;
+    monthly: string;
+    image: string;
+  };
 
-  // Comparison line item type
-  type CItem = {
+  type CompareLineItem = {
     name: string;
     qty: string;
     unit: string;
     img: string;
     imageStyle?: CSSProperties;
+    faded?: boolean;
   };
-  type CDash = { dash: true };
+
+  type CompareDash = { dash: true };
+
+  const optionSummaries: OptionSummary[] = [
+    {
+      title: "OPTION 1 - CHAIN LINK FENCE",
+      description:
+        "Durable / Low Maintenance / Cost-Effective Perimeter Security",
+      duration: "2–3 Weeks Estimated Construction Time",
+      price: "$8,615.00 USD",
+      contractTotal: "$8,615.00",
+      monthly: "$404.13 / mo",
+      image: OPTION_CARD_IMAGE_1,
+    },
+    {
+      title: "OPTION 2 - VINYL TRADITIONS FENCE",
+      description:
+        "Enhanced Privacy / Clean Appearance / Minimal Maintenance",
+      duration: "4–6 Weeks Estimated Construction Time",
+      price: "$9,999.00 USD",
+      contractTotal: "$9,999.00",
+      monthly: "$469.06 / mo",
+      image: OPTION_CARD_IMAGE_2,
+    },
+  ];
+
+  const scheduleData: Array<Array<{ label: string; value: string }>> = [
+    [
+      { label: "Contract Total", value: optionSummaries[0].contractTotal },
+      {
+        label: "Estimated Monthly Payment Starting at",
+        value: optionSummaries[0].monthly,
+      },
+      { label: "Estimated Construction Time", value: "2–3 Weeks" },
+    ],
+    [
+      { label: "Contract Total", value: optionSummaries[1].contractTotal },
+      {
+        label: "Estimated Monthly Payment Starting at",
+        value: optionSummaries[1].monthly,
+      },
+      { label: "Estimated Construction Time", value: "4–6 Weeks" },
+    ],
+  ];
 
   const normalizeCompareText = (value: string) =>
     value
@@ -2068,7 +2166,7 @@ function OptionsScreen({
   const findCompareSourceItem = (
     optionIdx: number,
     sectionTitle: string,
-    compareItem: CItem,
+    compareItem: CompareLineItem,
   ) => {
     const sourceSection = odaOptions[optionIdx].sections.find(
       (section) => section.name === sectionTitle,
@@ -2091,7 +2189,7 @@ function OptionsScreen({
   };
 
   const openCompareProductDetail = (
-    compareItem: CItem,
+    compareItem: CompareLineItem,
     sectionTitle: string,
     optionIdx: number,
   ) => {
@@ -2105,7 +2203,6 @@ function OptionsScreen({
       name: sectionTitle,
       spec: compareItem.name,
       price: 0,
-      productImages: [compareItem.img],
       previewImage: compareItem.img,
     };
 
@@ -2117,399 +2214,307 @@ function OptionsScreen({
     });
   };
 
-  // Comparison line item thumbnails — exact Figma assets for node 412:5599
-  const IF1 =
-    "/assets/figma-local/839abaa6-99cb-4cb6-acc4-b8757be02aa5-0527f2eab4.jpg";
-  const IF2 =
-    "/assets/figma-local/d2d53416-1c9e-4f51-9dce-7ebeb8605507-73a362c620.png";
-  const IF3 =
-    "/assets/figma-local/f260401f-d99d-48b4-a548-bbc84c8d405e-fdf6fca35d.png";
-  const IF4 =
-    "/assets/figma-local/5bb5b811-b579-412c-994d-dd7886732a14-5499cf28db.png";
-  const IF5 =
-    "/assets/figma-local/5ebfaeae-68b9-4675-b96a-e3d29543abdd-3ac3febcac.png";
-  const IF6 =
-    "/assets/figma-local/175eb359-f0c7-458e-ac60-a1c129e88689-d18588e1bf.jpg";
-  const IF7 =
-    "/assets/figma-local/48e8f73b-06ed-4c27-b398-3ef76be60cd3-451a15c8b3.jpg";
-  const IF8 =
-    "/assets/figma-local/17793a24-f973-407f-8da0-92c61ffc2e1e-de97a2fe6a.png";
-  const IF9 =
-    "/assets/figma-local/c4fcc113-156d-4050-a038-d5a2c6ead8b6-c72da730dc.jpg";
-  const KT1 =
-    "/assets/figma-local/da5f585e-4864-406d-8727-0df12a6a41a8-b356fb2043.png";
-  const KT2 =
-    "/assets/figma-local/aa23928a-01f8-49a3-ac44-9d5a77276f28-cbec4ae7d3.png";
-  const KT3 =
-    "/assets/figma-local/91b15597-7f23-4f5f-8189-884511344971-fd152e22a7.jpg";
-  const KT4 =
-    "/assets/figma-local/56750a6f-bc62-4cc3-8067-e5c5d7602c2a-6035b77e41.png";
-  const KT5 =
-    "/assets/figma-local/7e23b8db-6b7a-4934-bb71-451c895a6c41-948f2b0bd7.jpg";
-  const KT6 =
-    "/assets/figma-local/cbf92a3d-10dd-4f84-9272-e902be412313-1b7d33f904.jpg";
-  const KT7 =
-    "/assets/figma-local/806874b1-4718-4494-b168-e74baf12dbf3-fd193ebeb8.jpg";
-  const KT8 =
-    "/assets/figma-local/76d03b51-8070-4de7-a371-f502a5f8964f-c21dfbf151.jpg";
-  const KT9 =
-    "/assets/figma-local/c948e0a1-84e0-42c8-98c6-1e36f7605c83-4323cd45d6.png";
-  const BT1 =
-    "/assets/figma-local/76332eb0-9285-4c53-baa5-2e60879fe2b5-4fdc1fa8eb.jpg";
-  const BT2 =
-    "/assets/figma-local/9347fafe-c738-417b-af43-ce7de369166c-baf15f78ce.png";
-  const BT3 =
-    "/assets/figma-local/0e90cde4-e32e-4997-81a8-a7bf544fc203-27712ecce3.jpg";
-  const BT4 =
-    "/assets/figma-local/753bd493-f005-4731-bddd-2aba4b3bd45b-e7a437ece1.jpg";
-  const BT5 =
-    "/assets/figma-local/92bcb3db-ba5a-430d-aa4b-9dcc907ddc4d-33f0ab10c1.png";
-  const BT6 =
-    "/assets/figma-local/732b4b18-6007-4b15-939d-e6edc9904a24-aebcc35d99.jpg";
-  const BT7 =
-    "/assets/figma-local/c61c9b83-e90e-433b-83c5-92619b816e06-4d85623504.jpg";
-  const BT8 =
-    "/assets/figma-local/451cc17e-b5c0-4bf5-b5fc-be1937f8a16a-0cc954ac0c.png";
-  const PC1 =
-    "/assets/figma-local/1a5fcdf7-b33f-49f7-b351-4fb6ecc98b2c-12dcc9dfa7.jpg";
-  const PC3 =
-    "/assets/figma-local/93027c17-568b-4628-86d5-4e1224adad23-ee9b8edb15.jpg";
-
   const compareSections: Array<{
     title: string;
-    columns: (CItem | CDash)[][];
+    columns: (CompareLineItem | CompareDash)[][];
   }> = [
     {
-      title: "Base Scope",
+      title: "Fence Parts",
       columns: [
         [
           {
-            name: "Existing Surface Preparation & Demolition",
-            qty: "960",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Wall & Ceiling Preparation",
-            qty: "190",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Flooring Base Installation",
-            qty: "547",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Lighting & Electrical Adjustments",
-            qty: "128",
-            unit: "hrs.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Installation & Finishing Labor",
-            qty: "1,300",
-            unit: "hrs.",
-            img: COMPARE_BASE_SCOPE,
-          },
-        ],
-        [
-          {
-            name: "Existing Surface Preparation & Demolition",
-            qty: "720",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Wall & Ceiling Preparation",
-            qty: "190",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Flooring Base Installation",
-            qty: "400",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Lighting & Electrical Adjustments",
-            qty: "72",
-            unit: "hrs.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Installation & Finishing Labor",
-            qty: "900",
-            unit: "hrs.",
-            img: COMPARE_BASE_SCOPE,
-          },
-        ],
-        [
-          {
-            name: "Existing Surface Preparation & Demolition",
-            qty: "720",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Wall & Ceiling Preparation",
-            qty: "190",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Flooring Base Installation",
-            qty: "400",
-            unit: "sqf.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Lighting & Electrical Adjustments",
-            qty: "300",
-            unit: "hrs.",
-            img: COMPARE_BASE_SCOPE,
-          },
-          {
-            name: "Installation & Finishing Labor",
-            qty: "2,600",
-            unit: "hrs.",
-            img: COMPARE_BASE_SCOPE,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Interior Finishes",
-      columns: [
-        [
-          {
-            name: "Oak Wood - 600x100mm - Herringbone Pattern",
-            qty: "1,240",
-            unit: "sqf.",
-            img: IF1,
-          },
-          {
-            name: "Decorative Plaster Wall Finish - White",
-            qty: "2,280",
-            unit: "sqf.",
-            img: IF2,
-          },
-        ],
-        [
-          {
-            name: "Wide-Plank Oak Wood Flooring – Natural Matte Finish",
-            qty: "1,240",
-            unit: "sqf.",
-            img: IF3,
-          },
-          {
-            name: "Microcement Wall Finish – Warm Light Greige",
-            qty: "2,280",
-            unit: "sqf.",
-            img: IF4,
-          },
-          {
-            name: "Flush Baseboard & Trim Detail – Soft White",
-            qty: "420",
-            unit: "lf.",
-            img: IF5,
-          },
-        ],
-        [
-          {
-            name: "Dark Walnut Wood Flooring – Chevron Pattern",
-            qty: "1,240",
-            unit: "sqf.",
-            img: IF6,
-          },
-          {
-            name: "Decorative Wall Panel Molding – Warm Ivory",
-            qty: "2,280",
-            unit: "sqf.",
-            img: IF7,
-          },
-          {
-            name: "Black Marble Floor Border Inlay – Polished Finish",
-            qty: "420",
-            unit: "lf.",
-            img: IF8,
-          },
-          {
-            name: "Ceiling Medallion & Trim Detail Package – Soft White",
-            qty: "6",
-            unit: "sets",
-            img: IF9,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Kitchen",
-      columns: [
-        [
-          {
-            name: "Liebherr WKb 4612 Barrique Wine Cabinet (195 bottles, Glass Door)",
-            qty: "1",
-            unit: "pcs.",
-            img: KT1,
-          },
-          {
-            name: "Extended Stone Edge Countertop",
-            qty: "5",
-            unit: "sqf.",
-            img: KT2,
-          },
-          {
-            name: "Handleless Cabinet Front Upgrade – Natural Oak Veneer",
-            qty: "42",
-            unit: "pcs.",
-            img: KT3,
-          },
-        ],
-        [
-          {
-            name: "Integrated Panel-Ready Refrigerator",
-            qty: "1",
-            unit: "pcs.",
-            img: KT4,
-          },
-          {
-            name: "Waterfall Stone Island Countertop – Honed Beige Quartzite",
-            qty: "5",
-            unit: "sqf.",
-            img: KT5,
-          },
-        ],
-        [
-          {
-            name: "Built-In Espresso Walnut Cabinetry – Brass Detail Trim",
-            qty: "42",
-            unit: "pcs.",
-            img: KT6,
-          },
-          {
-            name: "Calacatta Gold Marble Countertop – Polished Finish",
-            qty: "5",
-            unit: "sqf.",
-            img: KT7,
-          },
-          {
-            name: "Fluted Glass Bar Cabinet – Backlit Display Shelving",
-            qty: "1",
-            unit: "pcs.",
-            img: KT8,
-          },
-          {
-            name: "Statement Pendant Lighting – Aged Brass Finish",
-            qty: "3",
-            unit: "pcs.",
-            img: KT9,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Bathroom",
-      columns: [
-        [
-          {
-            name: "Floating Custom Teak Wood Design Vanity",
-            qty: "3",
-            unit: "pcs.",
-            img: BT1,
-          },
-          {
-            name: "Royal Infinity J-480 (seats 7-8)",
+            name: "8F x 4' KK Extruded Blk",
             qty: "2",
-            unit: "pcs.",
-            img: BT2,
+            unit: "pcs",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
           },
           {
-            name: "Kohler Moxie Showerhead with Wireless Speaker",
+            name: "8F x 5' KK Extruded Blk",
+            qty: "2",
+            unit: "pcs",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: 'Btm Lock Slat 2" Mesh Dsn',
             qty: "4",
-            unit: "sets",
-            img: BT3,
+            unit: "pcs",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: 'Btm Lock Slat 2" Mesh Dsn',
+            qty: "5",
+            unit: "pcs",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: "3/8 x 21' SE 17ga Poly Blk",
+            qty: "9",
+            unit: "rolls",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: "5/8 x 8' 16ga Polyester Blk",
+            qty: "11",
+            unit: "rolls",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: "8 x 9' 16ga Polyester Blk",
+            qty: "2",
+            unit: "rolls",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: "3/8 x 8' 16ga Polyester Blk",
+            qty: "2",
+            unit: "rolls",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
           },
         ],
         [
           {
-            name: "Frameless Glass Shower Enclosure – Clear Low-Iron Glass",
+            name: "Vinyl | Stratford | 4' | Panel | White",
+            qty: "17",
+            unit: "sec.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: "Vinyl | Stratford | 4' | End Post | White",
             qty: "2",
+            unit: "pcs.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: "Vinyl | Stratford | 4' | Corner Post | White",
+            qty: "8",
+            unit: "pcs.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: "Vinyl | Stratford | 4' | Line Post | White",
+            qty: "32",
+            unit: "pcs.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+        ],
+      ],
+    },
+    {
+      title: "Gate",
+      columns: [
+        [
+          {
+            name: "4 x 5 Weld SWG 17g 9F Blk",
+            qty: "1",
             unit: "sets",
-            img: BT4,
+            img: OPTION_GATE_IMAGE_1,
+          },
+          {
+            name: "5 x 4 Weld SWG 17g 9F Blk",
+            qty: "1",
+            unit: "sets",
+            img: OPTION_GATE_IMAGE_1,
+          },
+          {
+            name: "5 x 5 Weld SWG 17g 9F Blk",
+            qty: "1",
+            unit: "sets",
+            img: OPTION_GATE_IMAGE_2,
+          },
+        ],
+        [
+          {
+            name: "Vinyl | Stratford | 4' | 5'W Gate | White",
+            qty: "1",
+            unit: "sets",
+            img: OPTION_GATE_IMAGE_3,
             imageStyle: {
-              width: "100.82%",
-              height: "134.43%",
-              left: "-0.82%",
-              top: "-0.17%",
+              width: "139%",
+              height: "139%",
+              left: "-19.5%",
+              top: "-19.5%",
               maxWidth: "none",
             },
           },
           {
-            name: "Rain Shower System – Brushed Nickel",
-            qty: "2",
-            unit: "pcs.",
-            img: BT5,
-          },
-        ],
-        [
-          {
-            name: "Custom Walnut Vanity – Stone Top with Brass Hardware",
-            qty: "2",
+            name: "Vinyl | Stratford | 5' | 4'W Gate | White",
+            qty: "1",
             unit: "sets",
-            img: BT6,
+            img: OPTION_GATE_IMAGE_3,
+            imageStyle: {
+              width: "139%",
+              height: "139%",
+              left: "-19.5%",
+              top: "-19.5%",
+              maxWidth: "none",
+            },
           },
           {
-            name: "Bookmatched Marble Feature Wall – Polished Finish",
-            qty: "2",
+            name: "Vinyl | Stratford | 5' | 5'W Gate | White",
+            qty: "1",
             unit: "sets",
-            img: BT7,
-          },
-          {
-            name: "Rain Shower System – Brushed Nickel",
-            qty: "2",
-            unit: "pcs.",
-            img: BT8,
+            img: OPTION_GATE_IMAGE_4,
           },
         ],
       ],
     },
     {
-      title: "Post-Construction Service",
+      title: "Sections",
       columns: [
-        [{ name: "Surface Care Package", qty: "1", unit: "srv.", img: PC1 }],
-        [{ dash: true as const }],
         [
           {
-            name: "Post-Construction White Glove Styling & Setup",
-            qty: "1",
-            unit: "srv.",
-            img: COMPARE_BASE_SCOPE,
+            name: `BCL | 5' | 58" Tension Bar`,
+            qty: "6",
+            unit: "pcs.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
           },
           {
-            name: "Luxury Surface Care & Maintenance Package",
-            qty: "2",
-            unit: "srv.",
-            img: PC3,
+            name: `BCL | 5' | 9' Terminal Post`,
+            qty: "6",
+            unit: "pcs.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
           },
         ],
+        [
+          {
+            name: `7/8" x 8' CQ20 Galv Post`,
+            qty: "2",
+            unit: "pcs.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+          {
+            name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`,
+            qty: "2",
+            unit: "pcs.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+        ],
+      ],
+    },
+    {
+      title: "Hardware",
+      columns: [
+        [
+          {
+            name: `3/8" DC Rail End Poly Blk`,
+            qty: "4",
+            unit: "pcs",
+            img: OPTION_HARDWARE_IMAGE_1,
+          },
+          {
+            name: `3/8" Brace Band Poly Blk`,
+            qty: "12",
+            unit: "pcs.",
+            img: OPTION_HARDWARE_IMAGE_2,
+            faded: true,
+          },
+          {
+            name: `3/8" DC Cap Poly Blk`,
+            qty: "6",
+            unit: "pcs.",
+            img: OPTION_HARDWARE_IMAGE_2,
+            faded: true,
+          },
+          {
+            name: `3/8" Tension Band Poly`,
+            qty: "12",
+            unit: "pcs.",
+            img: OPTION_HARDWARE_IMAGE_3,
+          },
+        ],
+        [
+          {
+            name: `Vinyl | 5" New England Cap - White`,
+            qty: "18",
+            unit: "pcs.",
+            img: OPTION_HARDWARE_IMAGE_4,
+          },
+          {
+            name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`,
+            qty: "2",
+            unit: "pcs.",
+            img: OPTION_HARDWARE_IMAGE_5,
+          },
+          {
+            name: `Vinyl | Std Latch - 1 Side - External - Keyed - Black`,
+            qty: "1",
+            unit: "sets",
+            img: OPTION_HARDWARE_IMAGE_2,
+            faded: true,
+          },
+          {
+            name: `Vinyl | Std Self Close Adj Hinge - Pair - Black`,
+            qty: "2",
+            unit: "pairs",
+            img: OPTION_HARDWARE_IMAGE_2,
+            faded: true,
+          },
+        ],
+      ],
+    },
+    {
+      title: "Additional Materials",
+      columns: [
+        [
+          {
+            name: "Concrete 50 lb Bag",
+            qty: "18",
+            unit: "bags",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+        ],
+        [
+          {
+            name: "Concrete 50 lb Bag",
+            qty: "20",
+            unit: "bags",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+        ],
+      ],
+    },
+    {
+      title: "Services",
+      columns: [
+        [
+          {
+            name: "Soil Condition Survey",
+            qty: "2",
+            unit: "svc.",
+            img: OPTION_CHAIN_PLACEHOLDER,
+            faded: true,
+          },
+        ],
+        [{ dash: true as const }],
       ],
     },
   ];
 
   const optionNames = [
-    "OPTION 1 - THE TIME LESS ORIGINAL",
-    "OPTION 2 - THE ZEN SANCTUARY",
-    "OPTION 3 - THE GATSBY HERITAGE",
+    optionSummaries[0].title,
+    optionSummaries[1].title,
   ];
 
-  // Reusable option card — image uses Figma's exact crop: h=126.97%, top=-19.53%
   const OptionCard = ({ optIdx }: { optIdx: number }) => {
-    const opt = odaOptions[optIdx];
-    // Only Option 1 (index 0) uses whitespace-nowrap on subtitle per Figma design
-    const subtitleWhiteSpace = optIdx === 0 ? "nowrap" : "normal";
+    const opt = optionSummaries[optIdx];
     return (
       <div
         className="flex flex-col items-center"
@@ -2527,17 +2532,14 @@ function OptionsScreen({
           style={{ aspectRatio: "800/471" }}
         >
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={opt.images[0]}
+              src={opt.image}
               alt=""
               style={{
                 position: "absolute",
-                height: "126.97%",
+                inset: 0,
                 width: "100%",
-                left: 0,
-                top: "-19.53%",
-                maxWidth: "none",
+                height: "100%",
                 objectFit: "cover",
               }}
             />
@@ -2545,7 +2547,7 @@ function OptionsScreen({
         </div>
         <div
           className="flex flex-col items-start w-full"
-          style={{ padding: `0 ${sv(28)}`, gap: sv(4), lineHeight: "normal" }}
+          style={{ padding: `0 ${sv(28)}`, gap: sv(4) }}
         >
           <p
             style={{
@@ -2553,22 +2555,10 @@ function OptionsScreen({
               fontWeight: 600,
               color: "#262626",
               width: "100%",
+              lineHeight: "normal",
             }}
           >
             {opt.title}
-          </p>
-          <p
-            style={{
-              fontSize: sv(14),
-              color: "#737373",
-              width: "100%",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: subtitleWhiteSpace,
-              height: sv(38),
-            }}
-          >
-            {opt.subtitle}
           </p>
         </div>
         <div
@@ -2576,21 +2566,42 @@ function OptionsScreen({
           style={{ padding: `0 ${sv(28)}`, gap: sv(28) }}
         >
           <div
-            className="flex flex-col w-full"
-            style={{
-              gap: sv(4),
-              fontSize: sv(14),
-              color: "#262626",
-              letterSpacing: sv(-0.14),
-              lineHeight: "normal",
-            }}
+            className="flex flex-col items-start w-full"
+            style={{ gap: sv(4) }}
           >
-            <p style={{ fontWeight: 400 }}>{opt.materials[0]}</p>
-            <p style={{ fontWeight: 400 }}>
-              {opt.deliveryDays} Days Estimate Delivery Time
+            <p
+              style={{
+                fontSize: sv(14),
+                color: "#262626",
+                width: "100%",
+                letterSpacing: sv(-0.14),
+                lineHeight: "normal",
+              }}
+            >
+              {opt.description}
             </p>
-            <p style={{ fontWeight: 600 }}>
-              Starting from {formatPrice(opt.priceFrom)} USD
+            <p
+              style={{
+                fontSize: sv(14),
+                color: "#262626",
+                width: "100%",
+                letterSpacing: sv(-0.14),
+                lineHeight: "normal",
+              }}
+            >
+              {opt.duration}
+            </p>
+            <p
+              style={{
+                fontSize: sv(20),
+                fontWeight: 600,
+                color: "#262626",
+                width: "100%",
+                letterSpacing: sv(-0.2),
+                lineHeight: "normal",
+              }}
+            >
+              {opt.price}
             </p>
           </div>
           <div className="flex items-center justify-end w-full">
@@ -2604,7 +2615,7 @@ function OptionsScreen({
                 flex: "1 0 0",
                 height: sv(40),
                 padding: `${sv(6)} ${sv(16)}`,
-                backgroundColor: "#262626",
+                backgroundColor: "#d41a32",
                 color: "white",
                 fontSize: sv(14),
                 fontWeight: 600,
@@ -2612,7 +2623,7 @@ function OptionsScreen({
                 borderRadius: sv(4),
               }}
             >
-              Select &amp; Configure
+              Select
             </button>
           </div>
         </div>
@@ -2620,13 +2631,12 @@ function OptionsScreen({
     );
   };
 
-  // Comparison line item row — matches Figma exactly
   const LineItem = ({
     item,
     sectionTitle,
     optionIdx,
   }: {
-    item: CItem | CDash;
+    item: CompareLineItem | CompareDash;
     sectionTitle: string;
     optionIdx: number;
   }) => {
@@ -2698,6 +2708,7 @@ function OptionsScreen({
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
+                  opacity: item.faded ? 0.1 : 1,
                 }
               }
             />
@@ -2730,7 +2741,7 @@ function OptionsScreen({
               style={{ width: sv(24), height: sv(24) }}
             >
               <img
-                src={COMPARE_INFO_ICON}
+                src={OPTION_INFO_ICON}
                 alt=""
                 className="pointer-events-none"
                 style={{ width: sv(16.333), height: sv(16.333) }}
@@ -2765,182 +2776,40 @@ function OptionsScreen({
         fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
       }}
     >
-      {/* ── Top area: Nav + Title + Cards ── */}
-      <div style={{ width: sv(1440), minHeight: "100vh", margin: "0 auto" }}>
-        {/* Nav — height sv(99): 31px top pad + 24px icons + 44px gap to title = 99px matches Figma y=99 */}
-        <nav
-          className="flex justify-between"
-          style={{
-            height: sv(99),
-            padding: `${sv(31)} ${sv(217)} 0`,
-            alignItems: "flex-start",
-          }}
-        >
-          <button
-            onClick={onHome}
-            className="flex items-center justify-center text-[#262626]"
-            style={{ width: sv(24), height: sv(24) }}
-          >
-            <svg
-              style={{ width: sv(18), height: sv(16) }}
-              viewBox="0 0 18 16"
-              fill="none"
-            >
-              <path
-                d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <ODALogo size="sm" />
-          <button
-            className="flex items-center justify-center text-[#737373]"
-            style={{ width: sv(24), height: sv(24) }}
-          >
-            <svg
-              style={{ width: sv(17), height: sv(17) }}
-              viewBox="0 0 17 17"
-              fill="none"
-            >
-              <circle
-                cx="8.5"
-                cy="5.5"
-                r="3"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-              <path
-                d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-        </nav>
-
-        {/* Page title — Figma: Segoe UI Regular 24px tracking-[1.92px] centered */}
-        <p
-          className="text-center whitespace-nowrap"
-          style={{
-            fontSize: sv(24),
-            fontWeight: 400,
-            color: "#262626",
-            letterSpacing: sv(1.92),
-            lineHeight: "normal",
-            paddingBottom: sv(40),
-          }}
-        >
-          SELECT YOUR OPTION
-        </p>
-
-        {/* 3-column option cards */}
+      {/* Fixed sticky comparison header */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          backgroundColor: "white",
+          borderBottom: "0.5px solid rgba(0,0,0,0.2)",
+          boxShadow: "0px 4px 3px 0px rgba(123,123,123,0.1)",
+          display: hideComparisonHeader ? "none" : undefined,
+        }}
+      >
         <div
-          ref={topOptionsRef}
-          className="flex"
-          style={{ gap: sv(32), padding: `0 ${sv(80)}` }}
-        >
-          {odaOptions.map((_, i) => (
-            <OptionCard key={i} optIdx={i} />
-          ))}
-        </div>
-
-        {/* Need support + Compare Options button */}
-        <div
-          className="flex flex-col items-center"
-          style={{ gap: sv(16), paddingTop: sv(24), paddingBottom: sv(80) }}
-        >
-          <div
-            className="flex flex-col items-center text-center"
-            style={{ gap: sv(4), lineHeight: "normal" }}
-          >
-            <p style={{ fontSize: sv(14), fontWeight: 600, color: "#262626" }}>
-              Need support choosing a option?
-            </p>
-            <p style={{ fontSize: sv(14), fontWeight: 300, color: "#262626" }}>
-              Compare different options to help you decide which one fits you
-              best.
-            </p>
-          </div>
-          <button
-            onClick={scrollToCompare}
-            className="flex items-center justify-center hover:opacity-80 transition-opacity"
-            style={{
-              height: sv(32),
-              padding: `${sv(6)} ${sv(4)}`,
-              borderRadius: sv(4),
-              gap: sv(4),
-              color: "#262626",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            {/* double-chevron-down icon */}
-            <svg
-              style={{ width: sv(24), height: sv(24) }}
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M8 8L12 12L16 8"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8 13L12 17L16 13"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span
-              style={{
-                fontSize: sv(14),
-                lineHeight: "normal",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Compare Options
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Comparison section ── */}
-      <div ref={compareRef}>
-        {/* Sticky comparison header — full viewport width */}
-        <div
-          className="relative bg-white"
+          className="relative flex items-center"
           style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 20,
-            borderBottom: "0.5px solid rgba(0,0,0,0.2)",
-            boxShadow: "0px 4px 3px 0px rgba(123,123,123,0.1)",
-            display: hideComparisonHeader ? "none" : "flex",
-            alignItems: "center",
-            gap: sv(32),
+            width: sv(1440),
+            margin: "0 auto",
+            gap: sv(24),
             padding: `0 ${sv(80)}`,
-            overflow: "visible",
           }}
         >
           {optionNames.map((name, i) => (
             <button
               key={i}
-              className="flex items-center justify-center"
+              className="flex items-center"
               style={{
                 flex: "1 0 0",
                 height: sv(48),
                 padding: `0 ${sv(8)}`,
                 gap: sv(4),
-                background: "none",
                 border: "none",
+                background: "transparent",
                 cursor: "pointer",
               }}
               onClick={() =>
@@ -2952,25 +2821,30 @@ function OptionsScreen({
                   fontSize: sv(14),
                   fontWeight: 600,
                   color: "#262626",
+                  lineHeight: "normal",
                   whiteSpace: "nowrap",
                 }}
               >
                 {name}
               </p>
-              {/* chevron-down */}
-              <svg
-                style={{ width: sv(16), height: sv(16), flexShrink: 0 }}
-                viewBox="0 0 16 16"
-                fill="none"
+              <div
+                className="flex items-center justify-center"
+                style={{ width: sv(16), height: sv(16) }}
               >
-                <path
-                  d="M4 6L8 10L12 6"
-                  stroke="#262626"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+                <div
+                  style={{
+                    width: sv(16),
+                    height: sv(16),
+                    transform: "rotate(90deg)",
+                  }}
+                >
+                  <img
+                    src={OPTION_STICKY_CHEVRON}
+                    alt=""
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                </div>
+              </div>
             </button>
           ))}
           {expandedCompareOptionIdx !== null && !hideComparisonHeader && (
@@ -2986,7 +2860,7 @@ function OptionsScreen({
               }}
             >
               <div className="flex" style={{ gap: sv(32) }}>
-                {odaOptions.map((_, i) => (
+                {optionSummaries.map((_, i) => (
                   <div key={i} style={{ flex: "1 0 0", minWidth: 0 }}>
                     {i === expandedCompareOptionIdx ? (
                       <div
@@ -3006,76 +2880,128 @@ function OptionsScreen({
             </div>
           )}
         </div>
+      </div>
 
-        {/* Comparison tables — 1280px centered (matches Figma frame width) */}
+      <div style={{ width: sv(1440), minHeight: "100vh", margin: "0 auto" }}>
         <div
+          className="flex items-center justify-center"
+          style={{ paddingTop: sv(28) }}
+        >
+          <div
+            className="flex items-center justify-between"
+            style={{ width: sv(991), height: sv(30) }}
+          >
+            <button
+              onClick={onHome}
+              className="flex items-center justify-center"
+              style={{ width: sv(24), height: sv(24) }}
+            >
+              <img
+                src={OPTION_HOME_ICON}
+                alt="Home"
+                style={{ width: sv(17.99), height: sv(15.977) }}
+              />
+            </button>
+            <img
+              src={OPTION_LOGO_IMAGE}
+              alt="Madison Fence Company"
+              style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+            />
+            <button
+              className="flex items-center justify-center"
+              style={{ width: sv(24), height: sv(24) }}
+            >
+              <img
+                src={OPTION_USER_ICON}
+                alt="Account"
+                style={{ width: sv(14), height: sv(15.977) }}
+              />
+            </button>
+          </div>
+        </div>
+
+        <div
+          className="flex flex-col items-center"
           style={{
-            width: sv(1280),
-            margin: "0 auto",
-            paddingTop: sv(64),
-            paddingBottom: sv(80),
+            width: sv(1440),
+            padding: `${sv(41)} ${sv(80)} ${sv(80)}`,
+            gap: sv(96),
           }}
         >
-          {/* Schedule and Pricing — title Semibold 28px centered, metrics with border-top */}
-          <div style={{ marginBottom: sv(64) }}>
-            <p
-              style={{
-                fontSize: sv(28),
-                fontWeight: 600,
-                color: "#262626",
-                textAlign: "center",
-                lineHeight: "normal",
-                marginBottom: sv(48),
-              }}
+          <div
+            className="flex flex-col items-center"
+            style={{ width: "100%", gap: sv(24) }}
+          >
+            <div
+              ref={topOptionsRef}
+              className="flex items-start"
+              style={{ width: "100%", gap: sv(32) }}
             >
-              Schedule and Pricing
-            </p>
-            <div className="flex" style={{ gap: sv(32) }}>
-              {scheduleData.map((col, ci) => (
-                <div key={ci} style={{ flex: "1 0 0" }}>
-                  {col.map((item, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        borderTop: "0.5px solid rgba(0,0,0,0.1)",
-                        paddingTop: sv(16),
-                        paddingBottom: sv(16),
-                        textAlign: "center",
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: sv(14),
-                          fontWeight: 400,
-                          color: "#737373",
-                          letterSpacing: sv(-0.14),
-                          lineHeight: "normal",
-                          textAlign: "center",
-                        }}
-                      >
-                        {item.label}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: sv(24),
-                          fontWeight: 600,
-                          color: "#262626",
-                          lineHeight: "normal",
-                          textAlign: "center",
-                        }}
-                      >
-                        {item.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+              {optionSummaries.map((_, i) => (
+                <OptionCard key={i} optIdx={i} />
               ))}
+            </div>
+            <div
+              className="flex flex-col items-center"
+              style={{ width: sv(420), gap: sv(16), paddingBottom: sv(80) }}
+            >
+              <div
+                className="text-center"
+                style={{ fontSize: sv(14), color: "#262626" }}
+              >
+                <p style={{ fontWeight: 600, marginBottom: sv(4) }}>
+                  Need support choosing a option?
+                </p>
+                <p style={{ fontWeight: 300 }}>
+                  Compare different options to help you decide which one fits you
+                  best.
+                </p>
+              </div>
+              <button
+                onClick={scrollToCompare}
+                className="flex items-center justify-center"
+                style={{
+                  width: sv(141),
+                  height: sv(32),
+                  padding: `${sv(6)} ${sv(4)}`,
+                  gap: sv(4),
+                  borderRadius: sv(4),
+                  background: "transparent",
+                  border: "none",
+                  color: "#262626",
+                }}
+              >
+                <div
+                  className="flex items-center justify-end"
+                  style={{ width: sv(20) }}
+                >
+                  <div
+                    className="relative"
+                    style={{ width: sv(24), height: sv(24) }}
+                  >
+                    <img
+                      src={OPTION_COMPARE_ICON}
+                      alt=""
+                      style={{
+                        position: "absolute",
+                        width: sv(10.131),
+                        height: sv(10.131),
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                  </div>
+                </div>
+                <span style={{ fontSize: sv(14), lineHeight: sv(18), whiteSpace: "nowrap" }}>
+                  Compare Options
+                </span>
+              </button>
             </div>
           </div>
 
-          {/* Comparison sections — title Semibold 28px centered, line items */}
-          {compareSections.map((section) => (
-            <div key={section.title} style={{ marginBottom: sv(64) }}>
+          <div ref={compareRef} className="flex flex-col items-center" style={{ width: "100%", gap: sv(64) }}>
+            <div className="flex flex-col items-center" style={{ width: "100%", gap: sv(32) }}>
               <p
                 style={{
                   fontSize: sv(28),
@@ -3083,115 +3009,170 @@ function OptionsScreen({
                   color: "#262626",
                   textAlign: "center",
                   lineHeight: "normal",
-                  marginBottom: sv(48),
+                  width: "100%",
                 }}
               >
-                {section.title}
+                Schedule and Pricing
               </p>
-              <div
-                className="mx-auto flex"
-                style={{
-                  width: sv(1264),
-                  gap: sv(32),
-                  alignItems: "flex-start",
-                }}
-              >
-                {section.columns.map((items, ci) => (
-                  <div
-                    key={ci}
-                    style={{ width: sv(400), flex: `0 0 ${sv(400)}` }}
-                  >
-                    {items.map((item, i) => (
-                      <LineItem
-                        key={i}
-                        item={item}
-                        sectionTitle={section.title}
-                        optionIdx={ci}
-                      />
+              <div className="flex items-start" style={{ width: "100%", gap: sv(32) }}>
+                {scheduleData.map((column, columnIndex) => (
+                  <div key={columnIndex} className="flex flex-col" style={{ flex: "1 0 0" }}>
+                    {column.map((item, itemIndex) => (
+                      <div
+                        key={itemIndex}
+                        className="flex flex-col items-start"
+                        style={{
+                          borderTop: "0.5px solid rgba(0,0,0,0.1)",
+                          padding: `${sv(16)} 0`,
+                          width: "100%",
+                          textAlign: "center",
+                        }}
+                      >
+                        <p
+                          style={{
+                            width: "100%",
+                            fontSize: sv(14),
+                            color: "#737373",
+                            letterSpacing: sv(-0.14),
+                            lineHeight: "normal",
+                          }}
+                        >
+                          {item.label}
+                        </p>
+                        <p
+                          style={{
+                            width: "100%",
+                            fontSize: sv(24),
+                            fontWeight: 600,
+                            color: "#262626",
+                            lineHeight: "normal",
+                          }}
+                        >
+                          {item.value}
+                        </p>
+                      </div>
                     ))}
                   </div>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* ── Decision made section ── */}
-      <div
-        ref={decisionSectionRef}
-        style={{
-          width: sv(1440),
-          margin: "0 auto",
-          paddingTop: sv(80),
-          paddingBottom: sv(110),
-        }}
-      >
-        <div
-          className="flex flex-col items-center"
-          style={{ gap: sv(2), marginBottom: sv(40) }}
-        >
-          <p
-            style={{
-              fontSize: sv(36),
-              fontWeight: 600,
-              color: "#262626",
-              textAlign: "center",
-              lineHeight: "normal",
-            }}
+            {compareSections.map((section) => (
+              <div
+                key={section.title}
+                className="flex flex-col items-center"
+                style={{ width: "100%", gap: sv(32) }}
+              >
+                <p
+                  style={{
+                    fontSize: sv(28),
+                    fontWeight: 600,
+                    color: "#262626",
+                    textAlign: "center",
+                    lineHeight: "normal",
+                    width: "100%",
+                  }}
+                >
+                  {section.title}
+                </p>
+                <div
+                  className="flex items-start"
+                  style={{ width: "100%", gap: sv(32) }}
+                >
+                  {section.columns.map((items, columnIndex) => (
+                    <div
+                      key={columnIndex}
+                      className="flex flex-col items-start"
+                      style={{ flex: "1 0 0" }}
+                    >
+                      {items.map((item, itemIndex) => (
+                        <LineItem
+                          key={itemIndex}
+                          item={item}
+                          sectionTitle={section.title}
+                          optionIdx={columnIndex}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div
+            ref={decisionSectionRef}
+            className="flex flex-col items-start"
+            style={{ width: "100%", gap: sv(40) }}
           >
-            Decision made?
-          </p>
-          <button
-            onClick={scrollToTop}
-            className="flex items-center justify-center hover:opacity-80 transition-opacity"
-            style={{
-              height: sv(40),
-              padding: `${sv(6)} ${sv(12)}`,
-              backgroundColor: "white",
-              borderRadius: sv(4),
-              gap: sv(4),
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            {/* arrow-up icon */}
-            <svg
-              style={{ width: sv(24), height: sv(24) }}
-              viewBox="0 0 24 24"
-              fill="none"
+            <div
+              className="flex flex-col items-center"
+              style={{ width: "100%", gap: sv(2) }}
             >
-              <path
-                d="M12 19V5"
-                stroke="#262626"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M5 12L12 5L19 12"
-                stroke="#262626"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span
-              style={{
-                fontSize: sv(14),
-                color: "rgba(0,0,0,0.85)",
-                lineHeight: "normal",
-                whiteSpace: "nowrap",
-              }}
+              <p
+                style={{
+                  width: "100%",
+                  fontSize: sv(36),
+                  fontWeight: 600,
+                  color: "#262626",
+                  textAlign: "center",
+                  lineHeight: "normal",
+                }}
+              >
+                Decision made?
+              </p>
+              <button
+                onClick={scrollToTop}
+                className="flex items-center justify-center"
+                style={{
+                  width: sv(276),
+                  height: sv(40),
+                  padding: `${sv(6)} ${sv(12)}`,
+                  gap: sv(4),
+                  borderRadius: sv(4),
+                  border: "none",
+                  backgroundColor: "#ffffff",
+                  color: "rgba(0,0,0,0.85)",
+                }}
+              >
+                <div
+                  className="flex items-center justify-end"
+                  style={{ width: sv(20) }}
+                >
+                  <div
+                    className="relative"
+                    style={{ width: sv(24), height: sv(24) }}
+                  >
+                    <img
+                      src={OPTION_BACK_TO_TOP_ICON}
+                      alt=""
+                      style={{
+                        position: "absolute",
+                        width: sv(12.008),
+                        height: sv(14),
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                  </div>
+                </div>
+                <span style={{ fontSize: sv(14), lineHeight: sv(18) }}>
+                  Back to Top
+                </span>
+              </button>
+            </div>
+            <div
+              className="flex items-start"
+              style={{ width: "100%", gap: sv(32) }}
             >
-              Back to Top
-            </span>
-          </button>
+              {optionSummaries.map((_, i) => (
+                <OptionCard key={i} optIdx={i} />
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="flex" style={{ gap: sv(32), padding: `0 ${sv(80)}` }}>
-          {odaOptions.map((_, i) => (
-            <OptionCard key={i} optIdx={i} />
-          ))}
-        </div>
+
       </div>
 
       {compareProductDetailModal && (
@@ -3484,7 +3465,7 @@ function SummaryGroup({
                       src={item.thumbnailSrc}
                       alt=""
                       fill
-                      className="object-cover"
+                      className="object-cover opacity-10"
                       sizes="44px"
                     />
                   </div>
@@ -3624,12 +3605,10 @@ function SignModal({
   const [zoom, setZoom] = useState(1);
   const { clientName } = odaProjectInfo;
   const contractPages = [
-    "/pdf/1.png",
-    "/pdf/2.png",
-    "/pdf/3.png",
-    "/pdf/4.png",
-    "/pdf/5.png",
-    "/pdf/6.png",
+    "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_1 1.png",
+    "/pdf2/Madison Fence - Howland_页面_2 2.png",
+    "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_3 1.png",
+    "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_4 1.png",
   ];
 
   return (
@@ -3837,14 +3816,14 @@ function SignModal({
             scope, pricing, and terms outlined in this agreement.
           </p>
           <button
-            className="w-full bg-black text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
             style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(2) }}
             onClick={() => {
               onClose();
               onApprove();
             }}
           >
-            Sign & Approve
+            Sign
           </button>
         </div>
       </div>
@@ -3893,10 +3872,13 @@ function ProductDetailModal({
       return item.swatchProductImages[idx];
     if (item.productImages?.length) return item.productImages;
     if (item.previewImage) return [item.previewImage];
-    return [THUMB_BASE_SCOPE];
+    return [];
   };
   const currentImages = getImagesForSwatch(activeSwatchIdx);
-  const mainImage = currentImages[activeThumb] ?? currentImages[0];
+  const mainImage = currentImages[activeThumb] ?? currentImages[0] ?? null;
+  // Use placeholder opacity when there are no real product photos
+  const hasRealImages = !!(item.productImages?.length || item.swatchProductImages?.length);
+  const imgOpacity = hasRealImages ? 1 : 0.1;
 
   // Price for the currently displayed swatch variant
   const swatchPrices = item.swatchPrices ?? item.addonSwatchPrices;
@@ -3968,51 +3950,57 @@ function ProductDetailModal({
           >
             {/* Hero image: aspect 732:510, border-radius 8px */}
             <div
-              className="relative w-full overflow-hidden"
+              className="relative w-full overflow-hidden bg-[#f0f0f0]"
               style={{ aspectRatio: "732/510", borderRadius: sv(8) }}
             >
-              <Image
-                src={mainImage}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="840px"
-              />
+              {mainImage && (
+                <Image
+                  src={mainImage}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="840px"
+                  style={{ opacity: imgOpacity }}
+                />
+              )}
             </div>
 
             {/* Thumbnail strip: 3 photos of the current product — gap 8px, 86×64 each */}
-            <div className="flex" style={{ gap: sv(8) }}>
-              {currentImages.map((src, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveThumb(i)}
-                  className="flex-shrink-0"
-                  style={{
-                    width: sv(86),
-                    height: sv(64),
-                    borderRadius: sv(4),
-                    padding: sv(2),
-                    border:
-                      i === activeThumb
-                        ? "1.5px solid #000000"
-                        : "1.5px solid transparent",
-                  }}
-                >
-                  <div
-                    className="relative w-full h-full overflow-hidden"
-                    style={{ borderRadius: sv(2) }}
+            {currentImages.length > 0 && (
+              <div className="flex" style={{ gap: sv(8) }}>
+                {currentImages.map((src, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveThumb(i)}
+                    className="flex-shrink-0"
+                    style={{
+                      width: sv(86),
+                      height: sv(64),
+                      borderRadius: sv(4),
+                      padding: sv(2),
+                      border:
+                        i === activeThumb
+                          ? "1.5px solid #000000"
+                          : "1.5px solid transparent",
+                    }}
                   >
-                    <Image
-                      src={src}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="86px"
-                    />
-                  </div>
-                </button>
-              ))}
-            </div>
+                    <div
+                      className="relative w-full h-full overflow-hidden"
+                      style={{ borderRadius: sv(2) }}
+                    >
+                      <Image
+                        src={src}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="86px"
+                        style={{ opacity: imgOpacity }}
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right column — matches Figma 330:3285: flex-[1_0_0] h-full items-start gap-24px */}
@@ -4204,159 +4192,53 @@ function DetailScreen({
   onApprove: () => void;
   onHome: () => void;
 }) {
-  const [currentImage, setCurrentImage] = useState(0);
-  const [sections, setSections] = useState(
-    option.sections.map((s) => ({
-      ...s,
-      collapsed: false,
-      items: s.items.map((item) => ({ ...item })),
-    })),
-  );
-  const [searchQuery, setSearchQuery] = useState("");
   const [showSignModal, setShowSignModal] = useState(false);
   const [drawingZoom, setDrawingZoom] = useState(1);
   const [drawingModalOpen, setDrawingModalOpen] = useState(false);
   const [modalZoom, setModalZoom] = useState(1);
-  const [productLayoutAlt, setProductLayoutAlt] = useState(false);
-  const [hideTopSummaryActions, setHideTopSummaryActions] = useState(false);
   const [productDetailModal, setProductDetailModal] = useState<{
     item: ODAItem;
     sectionName: string;
     onSelect: (swatchIdx: number) => void;
   } | null>(null);
-  const summaryRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const updateTopSummaryActions = () => {
-      if (!summaryRef.current) return;
-      const scaledStickyTop =
-        (182 / 1440) * Math.min(Math.max(window.innerWidth, 1280), 2560);
-      setHideTopSummaryActions(
-        summaryRef.current.getBoundingClientRect().top <= scaledStickyTop,
-      );
-    };
+  // Fixed product sections for Option 2 - Vinyl Traditions Fence
+  const mkItem = (id: string, name: string, price: number, img: string): ODAItem => ({
+    id, name, spec: "", price, previewImage: img,
+  });
+  const fenceParts: SummaryLineItem[] = [
+    { name: "Vinyl | Stratford | 4' | Panel | White", qty: "17", unit: "sec.", price: 2125, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-1", "Vinyl | Stratford | 4' | Panel | White", 2125, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Stratford | 4' | End Post | White", qty: "2", unit: "pcs", price: 140, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-2", "Vinyl | Stratford | 4' | End Post | White", 140, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Stratford | 4' | Corner Post | White", qty: "8", unit: "pcs.", price: 520, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-3", "Vinyl | Stratford | 4' | Corner Post | White", 520, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Stratford | 4' | Line Post | White", qty: "32", unit: "pcs", price: 760, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-4", "Vinyl | Stratford | 4' | Line Post | White", 760, FENCE_THUMB_PANEL) },
+  ];
+  const gateItems: SummaryLineItem[] = [
+    { name: "Vinyl | Stratford | 4' | 5'W Gate | White", qty: "1", unit: "sets", price: 560, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem("g-1", "Vinyl | Stratford | 4' | 5'W Gate | White", 560, FENCE_THUMB_GATE_1) },
+    { name: "Vinyl | Stratford | 5' | 4'W Gate | White", qty: "1", unit: "sets", price: 520, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem("g-2", "Vinyl | Stratford | 5' | 4'W Gate | White", 520, FENCE_THUMB_GATE_1) },
+    { name: "Vinyl | Stratford | 5' | 5'W Gate | White", qty: "1", unit: "sets", price: 610, thumbnailSrc: FENCE_THUMB_GATE_3, showChange: false, odaItem: mkItem("g-3", "Vinyl | Stratford | 5' | 5'W Gate | White", 610, FENCE_THUMB_GATE_3) },
+  ];
+  const sectionParts: SummaryLineItem[] = [
+    { name: `7/8" x 8' CQ20 Galv Post`, qty: "2", unit: "pcs.", price: 90, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("sp-1", `7/8" x 8' CQ20 Galv Post`, 90, FENCE_THUMB_PANEL) },
+    { name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`, qty: "2", unit: "pcs.", price: 120, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("sp-2", `5" x 5" Heavy Duty Post Stiffeners`, 120, FENCE_THUMB_PANEL) },
+  ];
+  const hardwareItems: SummaryLineItem[] = [
+    { name: `Vinyl | 5" New England Cap - White`, qty: "18", unit: "pcs.", price: 85, thumbnailSrc: FENCE_THUMB_CAP, showChange: false, odaItem: mkItem("hw-1", `Vinyl | 5" New England Cap - White`, 85, FENCE_THUMB_CAP) },
+    { name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, qty: "2", unit: "pcs.", price: 140, thumbnailSrc: FENCE_THUMB_POST_INSERT, showChange: false, odaItem: mkItem("hw-2", `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, 140, FENCE_THUMB_POST_INSERT) },
+    { name: "Vinyl | Std Latch - 1 Side - External - Keyed - Black", qty: "1", unit: "sets", price: 95, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("hw-3", "Vinyl | Std Latch - 1 Side - External - Keyed - Black", 95, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Std Self Close Adj Hinge - Pair - Black", qty: "2", unit: "pairs", price: 110, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("hw-4", "Vinyl | Std Self Close Adj Hinge - Pair - Black", 110, FENCE_THUMB_PANEL) },
+  ];
+  const additionalMaterial: SummaryLineItem[] = [
+    { name: "Concrete 50 lb Bag", qty: "20", unit: "bags", price: 305, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("am-1", "Concrete 50 lb Bag", 305, FENCE_THUMB_PANEL) },
+  ];
 
-    updateTopSummaryActions();
-    window.addEventListener("scroll", updateTopSummaryActions, {
-      passive: true,
-    });
-    window.addEventListener("resize", updateTopSummaryActions);
-
-    return () => {
-      window.removeEventListener("scroll", updateTopSummaryActions);
-      window.removeEventListener("resize", updateTopSummaryActions);
-    };
-  }, []);
-
-  const openProductDetail = (item: ODAItem, sectionIdx: number) => {
+  const handleProductInfoClick = (item: SummaryLineItem) => {
+    if (!item.odaItem) return;
     setProductDetailModal({
-      item,
-      sectionName: item.name,
-      onSelect: (swatchIdx: number) => {
-        if (item.isAddon) {
-          selectAddonSwatch(sectionIdx, item.id, swatchIdx);
-        } else {
-          selectSwatch(sectionIdx, item.id, swatchIdx);
-        }
-        setProductDetailModal(null);
-      },
+      item: item.odaItem,
+      sectionName: item.sectionName ?? item.name,
+      onSelect: () => undefined,
     });
   };
-
-  const toggleSection = (sectionIdx: number) => {
-    setSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIdx ? { ...s, collapsed: !s.collapsed } : s,
-      ),
-    );
-  };
-
-  const toggleAddon = (sectionIdx: number, itemId: string) => {
-    setSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIdx
-          ? {
-              ...s,
-              items: s.items.map((item) =>
-                item.id === itemId
-                  ? { ...item, selected: !item.selected }
-                  : item,
-              ),
-            }
-          : s,
-      ),
-    );
-  };
-
-  const selectSwatch = (
-    sectionIdx: number,
-    itemId: string,
-    swatchIdx: number,
-  ) => {
-    setSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIdx
-          ? {
-              ...s,
-              items: s.items.map((item) =>
-                item.id === itemId
-                  ? { ...item, selectedSwatch: swatchIdx }
-                  : item,
-              ),
-            }
-          : s,
-      ),
-    );
-  };
-
-  const selectAddonSwatch = (
-    sectionIdx: number,
-    itemId: string,
-    swatchIdx: number,
-  ) => {
-    setSections((prev) =>
-      prev.map((s, i) =>
-        i === sectionIdx
-          ? {
-              ...s,
-              items: s.items.map((item) =>
-                item.id === itemId
-                  ? { ...item, selectedAddonSwatch: swatchIdx }
-                  : item,
-              ),
-            }
-          : s,
-      ),
-    );
-  };
-
-  const allItems = sections.flatMap((s) => s.items);
-  const materialDelta = allItems
-    .filter((i) => !i.isAddon && i.swatchPrices)
-    .reduce((sum, i) => {
-      const current = i.swatchPrices![i.selectedSwatch ?? 0];
-      const base = i.swatchPrices![0];
-      return sum + (current - base);
-    }, 0);
-  const addonTotal = allItems
-    .filter((i) => i.isAddon && i.selected)
-    .reduce((sum, i) => sum + getItemPrice(i), 0);
-  const total = option.priceFrom + materialDelta + addonTotal;
-  const monthlyPayment = Math.round(
-    total * (option.monthlyPayment / option.priceFrom),
-  );
-
-  const filteredSections = sections
-    .map((s) => ({
-      ...s,
-      items: s.items.filter(
-        (item) =>
-          searchQuery === "" ||
-          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.spec.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-    }))
-    .filter((s) => s.items.length > 0);
 
   return (
     <div
@@ -4365,7 +4247,7 @@ function DetailScreen({
         fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
       }}
     >
-      {/* Sticky header wrapper */}
+      {/* Sticky header */}
       <div className="sticky top-0 z-50 bg-white">
         <div style={{ width: sv(1440), margin: "0 auto" }}>
           {/* Nav Row 1: home | logo | user */}
@@ -4418,9 +4300,9 @@ function DetailScreen({
             </button>
           </nav>
 
-          {/* Nav Row 2: actions | pricing | buttons */}
+          {/* Nav Row 2: Change Option only */}
           <div
-            className="flex items-center justify-between border-b"
+            className="flex items-center border-b"
             style={{
               paddingTop: sv(16),
               paddingBottom: sv(16),
@@ -4430,223 +4312,16 @@ function DetailScreen({
               borderColor: "rgba(0,0,0,0.2)",
             }}
           >
-            {/* Left: Change Option + Contact Sales */}
-            <div className="flex items-center" style={{ gap: sv(32) }}>
-              <button
-                onClick={onBack}
-                className="flex items-center text-[#262626] hover:opacity-60 transition-opacity"
-                style={{
-                  gap: sv(4),
-                  height: sv(32),
-                  paddingLeft: sv(4),
-                  paddingRight: sv(4),
-                  borderRadius: sv(4),
-                  fontSize: sv(14),
-                }}
-              >
-                <svg
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  style={{ width: sv(14), height: sv(14) }}
-                >
-                  <path
-                    d="M13 7H1M6 2L1 7L6 12"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Change Option
-              </button>
-              <button
-                className="flex items-center text-[#262626] hover:opacity-60 transition-opacity"
-                style={{
-                  gap: sv(6),
-                  height: sv(32),
-                  paddingLeft: sv(4),
-                  paddingRight: sv(4),
-                  borderRadius: sv(4),
-                  fontSize: sv(14),
-                }}
-              >
-                {/* Phone icon */}
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  style={{ width: sv(16), height: sv(16) }}
-                >
-                  <path
-                    d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.1"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Contact Sales
-              </button>
-            </div>
-
-            {/* Right: pricing block + action buttons */}
-            {!hideTopSummaryActions && (
-              <div className="flex items-center" style={{ gap: sv(16) }}>
-                {/* Pricing: monthly | separator | total */}
-                <div className="flex items-stretch" style={{ height: sv(40) }}>
-                  {/* Monthly payment */}
-                  <div
-                    className="flex flex-col justify-between"
-                    style={{ paddingLeft: sv(8), paddingRight: sv(12) }}
-                  >
-                    <div className="flex items-center" style={{ gap: sv(6) }}>
-                      {/* Calculator icon */}
-                      <svg
-                        viewBox="0 0 11 14"
-                        fill="none"
-                        className="flex-shrink-0"
-                        style={{ width: sv(11), height: sv(14) }}
-                      >
-                        <rect
-                          x="0.5"
-                          y="0.5"
-                          width="10"
-                          height="13"
-                          rx="1"
-                          stroke="#262626"
-                          strokeWidth="1"
-                        />
-                        <path
-                          d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2"
-                          stroke="#262626"
-                          strokeWidth="0.9"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <span
-                        className="text-[#262626] leading-none"
-                        style={{ fontSize: sv(18) }}
-                      >
-                        {formatPrice(monthlyPayment)} /mo
-                      </span>
-                    </div>
-                    <span
-                      className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
-                      style={{ fontSize: sv(10), maxWidth: sv(200) }}
-                    >
-                      Monthly payment via financing service provider
-                    </span>
-                  </div>
-                  {/* Vertical separator */}
-                  <div
-                    className="flex-shrink-0 bg-[rgba(0,0,0,0.2)] self-stretch"
-                    style={{ width: "0.5px" }}
-                  />
-                  {/* Total */}
-                  <div
-                    className="flex flex-col justify-between"
-                    style={{
-                      paddingLeft: sv(12),
-                      paddingRight: sv(8),
-                      width: sv(150),
-                    }}
-                  >
-                    <span
-                      className="text-[#262626] leading-none"
-                      style={{ fontSize: sv(18) }}
-                    >
-                      {formatPrice(total)}.00
-                    </span>
-                    <span
-                      className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
-                      style={{ fontSize: sv(10) }}
-                    >
-                      Tax &amp; fees included
-                    </span>
-                  </div>
-                </div>
-
-                {/* Buttons */}
-                <div className="flex items-center" style={{ gap: sv(8) }}>
-                  <button
-                    className="border border-[#262626] bg-white text-[#262626] hover:bg-[#262626] hover:text-white transition-colors flex-shrink-0"
-                    style={{
-                      width: sv(108),
-                      height: sv(40),
-                      fontSize: sv(14),
-                      borderRadius: sv(4),
-                    }}
-                    onClick={() => {
-                      if (summaryRef.current) {
-                        const top =
-                          summaryRef.current.getBoundingClientRect().top +
-                          window.scrollY -
-                          158;
-                        window.scrollTo({ top, behavior: "smooth" });
-                      }
-                    }}
-                  >
-                    Summary
-                  </button>
-                  <button
-                    className="bg-[#262626] text-white font-semibold hover:bg-black transition-colors flex-shrink-0"
-                    style={{
-                      height: sv(40),
-                      fontSize: sv(14),
-                      borderRadius: sv(4),
-                      paddingLeft: sv(16),
-                      paddingRight: sv(16),
-                    }}
-                    onClick={() => setShowSignModal(true)}
-                  >
-                    Sign &amp; Approve
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        {/* end max-width inner */}
-      </div>
-      {/* end sticky header */}
-
-      {/* Main content: 842px gallery + 505px config */}
-      <div
-        className="flex items-start"
-        style={{
-          width: sv(1440),
-          margin: "0 auto",
-          paddingLeft: sv(32),
-          paddingRight: sv(32),
-          paddingTop: sv(30),
-          gap: sv(32),
-        }}
-      >
-        {/* Left: Image Gallery (fills remaining width) */}
-        <div
-          className="flex-1 min-w-0 flex flex-col"
-          style={{ position: "sticky", alignSelf: "flex-start", top: sv(156), gap: sv(10) }}
-        >
-          {/* Main image with expand button */}
-          <div
-            className="relative overflow-hidden bg-[#F0F0F0]"
-            style={{ aspectRatio: "864/633", borderRadius: sv(8) }}
-          >
-            <Image
-              src={option.images[currentImage]}
-              alt="Room view"
-              fill
-              className="object-cover object-top"
-              sizes="(max-width:1500px) calc(100vw - 569px), 900px"
-              priority
-            />
-            {/* Expand icon: bottom-right, 32×32 */}
             <button
-              className="absolute bg-white/80 flex items-center justify-center hover:bg-white transition-colors"
+              onClick={onBack}
+              className="flex items-center text-[#262626] hover:opacity-60 transition-opacity"
               style={{
-                bottom: sv(12),
-                right: sv(12),
-                width: sv(32),
+                gap: sv(4),
                 height: sv(32),
+                paddingLeft: sv(4),
+                paddingRight: sv(4),
                 borderRadius: sv(4),
+                fontSize: sv(14),
               }}
             >
               <svg
@@ -4655,1193 +4330,414 @@ function DetailScreen({
                 style={{ width: sv(14), height: sv(14) }}
               >
                 <path
-                  d="M9.5 1H13V4.5M4.5 13H1V9.5M13 9.5V13H9.5M1 4.5V1H4.5"
-                  stroke="#262626"
+                  d="M13 7H1M6 2L1 7L6 12"
+                  stroke="currentColor"
                   strokeWidth="1.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </svg>
-            </button>
-          </div>
-
-          {/* Thumbnails: 86×64, 1.5px border on selected */}
-          <div className="flex items-center" style={{ gap: sv(8) }}>
-            {option.images.map((img, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentImage(i)}
-                className="relative flex-shrink-0 overflow-hidden"
-                style={{
-                  width: sv(86),
-                  height: sv(64),
-                  padding: sv(2),
-                  borderRadius: sv(4),
-                  border:
-                    i === currentImage
-                      ? "1.5px solid #262626"
-                      : "1.5px solid transparent",
-                }}
-              >
-                <Image
-                  src={img}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  style={{ borderRadius: sv(2) }}
-                  sizes="86px"
-                />
-              </button>
-            ))}
-          </div>
-
-          {/* Caption: image-specific */}
-          <p className="text-[#262626]" style={{ fontSize: sv(14) }}>
-            {option.sections[0]?.name ?? "Interior"} Preview {currentImage + 1}
-          </p>
-        </div>
-
-        {/* Right: Configuration panel (505px fixed, scrolls with page) */}
-        <div
-          className="flex-shrink-0 flex flex-col"
-          style={{
-            width: sv(505),
-            gap: sv(23),
-            paddingBottom: sv(40),
-            paddingLeft: sv(8),
-            paddingRight: sv(8),
-          }}
-        >
-          {/* Option title + project label */}
-          <div className="flex flex-col text-[#262626]">
-            <p
-              className="font-semibold leading-snug"
-              style={{ fontSize: sv(20) }}
-            >
-              {option.title}
-            </p>
-            <p style={{ fontSize: sv(14) }}>{odaProjectInfo.projectLabel}</p>
-          </div>
-
-          {/* Search bar: 0.5px border, rounded-[2px] */}
-          <div
-            className="flex items-center"
-            style={{
-              gap: sv(4),
-              padding: `${sv(8)} ${sv(12)}`,
-              borderRadius: sv(2),
-              border: "0.5px solid black",
-            }}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              className="flex-shrink-0 text-[#737373]"
-              style={{ width: sv(16), height: sv(16) }}
-            >
-              <circle
-                cx="7"
-                cy="7"
-                r="4.5"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-              <path
-                d="M10.5 10.5L14 14"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search Configuration / Upgrade / Add-ons"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 text-[#737373] placeholder-[#737373] outline-none bg-transparent"
-              style={{ fontSize: sv(12) }}
-            />
-          </div>
-
-          {/* Section cards */}
-          <div className="flex flex-col" style={{ gap: sv(24) }}>
-            {filteredSections.map((section, sectionIdx) => (
-              <div
-                key={section.name}
-                className="bg-white flex flex-col"
-                style={{
-                  borderRadius: sv(12),
-                  paddingTop: sv(16),
-                  paddingLeft: sv(12),
-                  paddingRight: sv(12),
-                  paddingBottom: sv(24),
-                  gap: sv(24),
-                  boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
-                }}
-              >
-                {/* Section header: title (semibold 16px) + collapse toggle */}
-                <div className="flex items-center justify-between">
-                  <p
-                    className="font-semibold text-[#262626]"
-                    style={{ fontSize: sv(16) }}
-                  >
-                    {section.name}
-                  </p>
-                  <button
-                    onClick={() => toggleSection(sectionIdx)}
-                    className="flex items-center justify-center hover:opacity-50 transition-opacity"
-                    style={{ width: sv(16), height: sv(16) }}
-                  >
-                    {section.collapsed ? (
-                      /* Plus = collapsed */
-                      <svg
-                        viewBox="0 0 13 13"
-                        fill="none"
-                        style={{ width: sv(13), height: sv(13) }}
-                      >
-                        <path
-                          d="M6.5 1v11M1 6.5h11"
-                          stroke="black"
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    ) : (
-                      /* Minus line = expanded */
-                      <div
-                        className="bg-black"
-                        style={{ width: sv(13), height: "0.5px" }}
-                      />
-                    )}
-                  </button>
-                </div>
-
-                {/* Items — hidden when collapsed */}
-                {!section.collapsed &&
-                  section.items.map((item) => (
-                    <div key={item.id}>
-                      {item.isAddon ? (
-                        /* ── Add-on: bordered sub-card ── */
-                        <div
-                          className="bg-white flex flex-col cursor-pointer"
-                          style={{
-                            borderRadius: sv(8),
-                            border: `1px solid ${item.selected ? "#262626" : "#BFBFBF"}`,
-                            padding: `${sv(8)} ${sv(8)} ${sv(12)} ${sv(16)}`,
-                          }}
-                          onClick={() => toggleAddon(sectionIdx, item.id)}
-                        >
-                          {/* Info row: 64px min height, pr-4 to clear checkbox */}
-                          <div
-                            className="flex items-center"
-                            style={{
-                              paddingRight: sv(16),
-                              gap: sv(12),
-                              minHeight: sv(64),
-                            }}
-                          >
-                            <div
-                              className="flex-1 min-w-0 flex flex-col justify-center"
-                              style={{ gap: sv(2) }}
-                            >
-                              <button
-                                type="button"
-                                className="w-fit max-w-full text-left"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openProductDetail(item, sectionIdx);
-                                }}
-                              >
-                                <p
-                                  className="font-semibold text-[#262626] truncate"
-                                  style={{ fontSize: sv(14) }}
-                                >
-                                  {item.name}
-                                </p>
-                              </button>
-                              <div
-                                className="flex items-center"
-                                style={{ gap: sv(8) }}
-                              >
-                                <p
-                                  className="text-[#262626] truncate"
-                                  style={{ fontSize: sv(14) }}
-                                >
-                                  {item.spec}
-                                </p>
-                                <button
-                                  className="flex-shrink-0 hover:opacity-60 transition-opacity"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openProductDetail(item, sectionIdx);
-                                  }}
-                                >
-                                  <InfoIcon />
-                                </button>
-                              </div>
-                              <p
-                                className="font-semibold text-[#737373]"
-                                style={{ fontSize: sv(14) }}
-                              >
-                                {formatPrice(getItemPrice(item))}
-                              </p>
-                            </div>
-                            {/* 24px checkbox, rounded-[2px], border-black when unchecked */}
-                            <div
-                              className={`flex-shrink-0 flex items-center justify-center transition-colors ${item.selected ? "bg-[#262626]" : "border border-black"}`}
-                              style={{
-                                width: sv(24),
-                                height: sv(24),
-                                borderRadius: sv(2),
-                              }}
-                            >
-                              {item.selected && (
-                                <svg
-                                  viewBox="0 0 10 8"
-                                  fill="none"
-                                  style={{ width: sv(10), height: sv(8) }}
-                                >
-                                  <path
-                                    d="M1 4L3.5 6.5L9 1"
-                                    stroke="white"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Below: swatches row OR single 64×64 preview */}
-                          {item.addonSwatches &&
-                          item.addonSwatches.length > 0 ? (
-                            <div
-                              className="flex"
-                              style={{ gap: sv(10), marginTop: sv(4) }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {item.addonSwatches.map((sw, swIdx) => (
-                                <button
-                                  key={swIdx}
-                                  onClick={() =>
-                                    selectAddonSwatch(
-                                      sectionIdx,
-                                      item.id,
-                                      swIdx,
-                                    )
-                                  }
-                                  className="relative overflow-hidden flex-shrink-0"
-                                  style={{
-                                    width: sv(64),
-                                    height: sv(64),
-                                    padding: sv(2),
-                                    borderRadius: sv(4),
-                                    border:
-                                      item.selectedAddonSwatch === swIdx
-                                        ? "1.5px solid black"
-                                        : "1.5px solid transparent",
-                                  }}
-                                >
-                                  <Image
-                                    src={sw}
-                                    alt=""
-                                    fill
-                                    className="object-cover"
-                                    style={{ borderRadius: sv(2) }}
-                                    sizes="64px"
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          ) : item.previewImage ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openProductDetail(item, sectionIdx);
-                              }}
-                              className="relative overflow-hidden"
-                              style={{
-                                marginTop: sv(4),
-                                padding: sv(2),
-                                borderRadius: sv(4),
-                                width: sv(64),
-                                height: sv(64),
-                              }}
-                            >
-                              <Image
-                                src={item.previewImage!}
-                                alt=""
-                                fill
-                                className="object-cover"
-                                style={{ borderRadius: sv(2) }}
-                                sizes="64px"
-                              />
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : (
-                        /* ── Standard item: pl-16 pr-8 within card ── */
-                        <div
-                          className="flex flex-col"
-                          style={{ paddingLeft: sv(16), paddingRight: sv(8) }}
-                        >
-                          {/* 64px text block: name / spec+info / price */}
-                          <div
-                            className="flex flex-col justify-between"
-                            style={{
-                              minHeight: sv(64),
-                              paddingTop: sv(4),
-                              paddingBottom: sv(4),
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <button
-                                type="button"
-                                className="text-left"
-                                onClick={() =>
-                                  openProductDetail(item, sectionIdx)
-                                }
-                              >
-                                <p
-                                  className="font-semibold text-[#262626]"
-                                  style={{ fontSize: sv(14) }}
-                                >
-                                  {item.name}
-                                </p>
-                              </button>
-                            </div>
-                            <div
-                              className="flex items-center"
-                              style={{ gap: sv(8) }}
-                            >
-                              <p
-                                className="text-[#262626] truncate"
-                                style={{ fontSize: sv(14) }}
-                              >
-                                {item.spec}
-                              </p>
-                              <button
-                                className="flex-shrink-0 hover:opacity-60 transition-opacity"
-                                onClick={() => {
-                                  openProductDetail(item, sectionIdx);
-                                }}
-                              >
-                                <InfoIcon />
-                              </button>
-                            </div>
-                            <p
-                              className="font-semibold text-[#737373]"
-                              style={{ fontSize: sv(14) }}
-                            >
-                              $ {getItemPrice(item).toLocaleString()}
-                            </p>
-                          </div>
-                          {/* Photo swatches: 64×64, gap-[10px] */}
-                          {item.swatches && item.swatches.length > 0 && (
-                            <div
-                              className="flex items-center"
-                              style={{ gap: sv(10) }}
-                            >
-                              {item.swatches.map((sw, swIdx) => (
-                                <button
-                                  key={swIdx}
-                                  onClick={() =>
-                                    selectSwatch(sectionIdx, item.id, swIdx)
-                                  }
-                                  className="relative overflow-hidden flex-shrink-0"
-                                  style={{
-                                    width: sv(64),
-                                    height: sv(64),
-                                    padding: sv(2),
-                                    borderRadius: sv(4),
-                                    border:
-                                      item.selectedSwatch === swIdx
-                                        ? "1.5px solid black"
-                                        : "1.5px solid transparent",
-                                  }}
-                                >
-                                  <Image
-                                    src={sw}
-                                    alt=""
-                                    fill
-                                    className="object-cover"
-                                    style={{ borderRadius: sv(2) }}
-                                    sizes="64px"
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom: centered Summary button, pt-[40px] container, icon on LEFT */}
-          <div
-            className="flex flex-col items-center"
-            style={{ paddingTop: sv(40) }}
-          >
-            <button
-              onClick={() => {
-                if (summaryRef.current) {
-                  const top =
-                    summaryRef.current.getBoundingClientRect().top +
-                    window.scrollY -
-                    158;
-                  window.scrollTo({ top, behavior: "smooth" });
-                }
-              }}
-              className="flex items-center justify-center border border-[#262626] bg-white text-[#262626] hover:bg-[#262626] hover:text-white transition-colors"
-              style={{
-                width: sv(136),
-                height: sv(40),
-                fontSize: sv(16),
-                borderRadius: sv(4),
-                gap: sv(2),
-              }}
-            >
-              {/* Chevron-down icon on the LEFT */}
-              <svg
-                viewBox="0 0 18 18"
-                fill="none"
-                className="flex-shrink-0"
-                style={{ width: sv(18), height: sv(18) }}
-              >
-                <path
-                  d="M4 7L9 12L14 7"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Summary
+              Change Option
             </button>
           </div>
         </div>
       </div>
 
-      {/* ─── Summary Section ──────────────────────────────────────────────────── */}
-      <div ref={summaryRef} style={{ marginTop: sv(80) }}>
+      {/* Main content: left 840px + right 505px */}
+      <div
+        className="flex items-start justify-between"
+        style={{
+          width: sv(1440),
+          margin: "0 auto",
+          paddingLeft: sv(32),
+          paddingRight: sv(32),
+          paddingTop: sv(25),
+          paddingBottom: sv(64),
+        }}
+      >
+        {/* ── Left column: Drawings + Products + Reviews ── */}
         <div
-          style={{
-            width: sv(1440),
-            margin: "0 auto",
-            paddingLeft: sv(32),
-            paddingRight: sv(32),
-            paddingTop: sv(48),
-            paddingBottom: sv(64),
-          }}
+          className="flex flex-col flex-shrink-0"
+          style={{ width: sv(840), gap: sv(27) }}
         >
+          {/* All Included/Selected Products */}
           <div
-            className="flex items-start justify-between"
-            style={{ gap: sv(32) }}
+            className="bg-white flex flex-col"
+            style={{
+              borderRadius: sv(12),
+              paddingLeft: sv(24),
+              paddingRight: sv(24),
+              paddingTop: sv(16),
+              paddingBottom: sv(24),
+              gap: sv(24),
+              boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
+            }}
           >
-            {/* ── Left column: drawings card + items card + reviews card ── */}
+            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+              <p
+                className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(14) }}
+              >
+                All Included/Selected Products
+              </p>
+            </div>
+            <SummaryGroup name="Fence Parts" items={fenceParts} onInfoClick={handleProductInfoClick} />
+            <SummaryGroup name="Gate" items={gateItems} onInfoClick={handleProductInfoClick} />
+            <SummaryGroup name="Sections" items={sectionParts} onInfoClick={handleProductInfoClick} />
+            <SummaryGroup name="Hardware" items={hardwareItems} onInfoClick={handleProductInfoClick} />
+            <SummaryGroup name="Additional Material" items={additionalMaterial} onInfoClick={handleProductInfoClick} />
+          </div>
+
+          {/* Drawings card */}
+          <div
+            className="bg-white flex flex-col"
+            style={{
+              borderRadius: sv(12),
+              paddingLeft: sv(24),
+              paddingRight: sv(24),
+              paddingTop: sv(16),
+              paddingBottom: sv(24),
+              gap: sv(24),
+              boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+              <p
+                className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(14) }}
+              >
+                Drawings
+              </p>
+            </div>
             <div
-              className="flex flex-col flex-shrink-0"
-              style={{ width: sv(840), gap: sv(27) }}
+              className="relative"
+              style={{ width: sv(792), height: sv(539) }}
             >
-              {/* Drawings */}
               <div
-                className="bg-white flex flex-col"
-                style={{
-                  borderRadius: sv(12),
-                  paddingLeft: sv(24),
-                  paddingRight: sv(24),
-                  paddingTop: sv(16),
-                  paddingBottom: sv(24),
-                  gap: sv(24),
-                  boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
-                }}
+                className="overflow-hidden relative"
+                style={{ width: sv(792), height: sv(492) }}
               >
-                {/* Header */}
                 <div
-                  className="flex items-center"
-                  style={{ paddingTop: sv(16) }}
-                >
-                  <p
-                    className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: sv(14) }}
-                  >
-                    Drawings
-                  </p>
-                </div>
-
-                {/* Content area: 792 × 539, image viewport + zoom controls */}
-                <div
-                  className="relative"
-                  style={{ width: sv(792), height: sv(539) }}
-                >
-                  {/* Image viewport: fixed size, clips overflow */}
-                  <div
-                    className="overflow-hidden relative"
-                    style={{ width: sv(792), height: sv(492) }}
-                  >
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        transform: `scale(${drawingZoom})`,
-                        transformOrigin: "center center",
-                        transition: "transform 0.15s ease",
-                      }}
-                    >
-                      <Image
-                        src="/assets/drawing-floor-plan.png"
-                        alt="Floor Plan"
-                        fill
-                        className="object-contain"
-                        sizes="792px"
-                      />
-                    </div>
-                  </div>
-
-                  {/* View Controls: absolute bottom-left */}
-                  <div
-                    className="absolute bottom-0 left-0 flex items-center"
-                    style={{ gap: sv(12), padding: `${sv(24)} ${sv(32)}` }}
-                  >
-                    {/* Zoom In */}
-                    <button
-                      onClick={() =>
-                        setDrawingZoom((z) => Math.min(z + 0.25, 3))
-                      }
-                      className="flex-shrink-0 flex items-center justify-center"
-                      style={{
-                        width: sv(48),
-                        height: sv(48),
-                        borderRadius: sv(4),
-                        backdropFilter: "blur(2px)",
-                        backgroundColor: "rgba(0,0,0,0.6)",
-                        boxShadow: "0 0 2px rgba(0,0,0,0.25)",
-                      }}
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        style={{ width: sv(24), height: sv(24) }}
-                      >
-                        <circle
-                          cx="10.5"
-                          cy="10.5"
-                          r="6.5"
-                          stroke="white"
-                          strokeWidth="1.5"
-                        />
-                        <path
-                          d="M7.5 10.5h6M10.5 7.5v6"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M16 16l4 4"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
-                    {/* Zoom Out */}
-                    <button
-                      onClick={() =>
-                        setDrawingZoom((z) => Math.max(z - 0.25, 0.5))
-                      }
-                      className="flex-shrink-0 flex items-center justify-center"
-                      style={{
-                        width: sv(48),
-                        height: sv(48),
-                        borderRadius: sv(4),
-                        backdropFilter: "blur(2px)",
-                        backgroundColor: "rgba(0,0,0,0.6)",
-                        boxShadow: "0 0 2px rgba(0,0,0,0.25)",
-                      }}
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        style={{ width: sv(24), height: sv(24) }}
-                      >
-                        <circle
-                          cx="10.5"
-                          cy="10.5"
-                          r="6.5"
-                          stroke="white"
-                          strokeWidth="1.5"
-                        />
-                        <path
-                          d="M7.5 10.5h6"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M16 16l4 4"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </button>
-                    {/* Expand / Open Modal */}
-                    <button
-                      onClick={() => {
-                        setModalZoom(1);
-                        setDrawingModalOpen(true);
-                      }}
-                      className="flex-shrink-0 flex items-center justify-center"
-                      style={{
-                        width: sv(48),
-                        height: sv(48),
-                        borderRadius: sv(4),
-                        backdropFilter: "blur(2px)",
-                        backgroundColor: "rgba(0,0,0,0.6)",
-                        boxShadow: "0 0 2px rgba(0,0,0,0.25)",
-                      }}
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        style={{ width: sv(24), height: sv(24) }}
-                      >
-                        <path
-                          d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* All Included/Selected Products */}
-              <div
-                className="bg-white flex flex-col"
-                style={{
-                  borderRadius: sv(12),
-                  paddingLeft: sv(24),
-                  paddingRight: sv(24),
-                  paddingTop: sv(16),
-                  paddingBottom: sv(24),
-                  gap: sv(24),
-                  boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
-                }}
-              >
-                {/* Card header */}
-                <div
-                  className="flex items-center justify-between"
-                  style={{ paddingTop: sv(16) }}
-                >
-                  <p
-                    className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: sv(14) }}
-                  >
-                    All Included/Selected Products
-                  </p>
-                  {/* Swap Layout toggle */}
-                  <button
-                    onClick={() => setProductLayoutAlt((v) => !v)}
-                    className="flex items-center flex-shrink-0 hover:bg-[#f5f5f5] transition-colors"
-                    style={{
-                      height: sv(32),
-                      padding: `${sv(6)} ${sv(4)}`,
-                      borderRadius: sv(4),
-                      gap: sv(4),
-                    }}
-                  >
-                    <div
-                      className="flex items-center justify-center overflow-clip flex-shrink-0"
-                      style={{
-                        width: sv(24),
-                        height: sv(24),
-                        borderRadius: sv(2),
-                        padding: sv(1),
-                      }}
-                    >
-                      {/* Layout icon: compact ↔ large */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={
-                          productLayoutAlt
-                            ? "/assets/icon-layout-large.svg"
-                            : "/assets/icon-layout-compact.svg"
-                        }
-                        alt=""
-                        style={{
-                          width: sv(15),
-                          height: sv(14),
-                          display: "block",
-                          flexShrink: 0,
-                        }}
-                      />
-                    </div>
-                    <span
-                      className="text-[#262626]"
-                      style={{ fontSize: sv(14), lineHeight: "18px" }}
-                    >
-                      Swap Layout
-                    </span>
-                  </button>
-                </div>
-
-                {/* Base Scope */}
-                <SummaryGroup
-                  name="Base Scope"
-                  layoutAlt={productLayoutAlt}
-                  items={[
-                    {
-                      name: "Existing Surface Preparation & Demolition",
-                      qty: "960",
-                      unit: "sqf.",
-                      price: 42900,
-                      showChange: false,
-                      thumbnailSrc: THUMB_BASE_SCOPE,
-                    },
-                    {
-                      name: "Wall & Ceiling Preparation",
-                      qty: "190",
-                      unit: "sqf.",
-                      price: 24100,
-                      showChange: false,
-                      thumbnailSrc: THUMB_BASE_SCOPE,
-                    },
-                    {
-                      name: "Flooring Base Installation",
-                      qty: "547",
-                      unit: "sqf.",
-                      price: 4600,
-                      showChange: false,
-                      thumbnailSrc: THUMB_BASE_SCOPE,
-                    },
-                    {
-                      name: "Lighting & Electrical Adjustments",
-                      qty: "128",
-                      unit: "hrs.",
-                      price: 7270,
-                      showChange: false,
-                      thumbnailSrc: THUMB_BASE_SCOPE,
-                    },
-                    {
-                      name: "Installation & Finishing Labor",
-                      qty: "1,300",
-                      unit: "hrs.",
-                      price: 87580,
-                      showChange: false,
-                      thumbnailSrc: THUMB_BASE_SCOPE,
-                    },
-                  ]}
-                />
-
-                {/* Dynamic sections: standard items always shown, add-ons only if selected */}
-                {sections.map((section, sectionIdx) => {
-                  const lineItems: SummaryLineItem[] = section.items
-                    .filter((item) => !item.isAddon || item.selected)
-                    .map((item) => ({
-                      name: item.spec,
-                      qty: "1",
-                      unit: "each",
-                      price: getItemPrice(item),
-                      thumbnailSrc: item.isAddon
-                        ? (item.addonSwatches?.[
-                            item.selectedAddonSwatch ?? 0
-                          ] ?? item.previewImage)
-                        : item.swatches?.[item.selectedSwatch ?? 0],
-                      showChange: true,
-                      odaItem: item,
-                    }));
-                  if (lineItems.length === 0) return null;
-                  return (
-                    <SummaryGroup
-                      key={section.name}
-                      name={section.name}
-                      items={lineItems}
-                      layoutAlt={productLayoutAlt}
-                      onInfoClick={(lineItem) => {
-                        if (!lineItem.odaItem) return;
-                        const theItem = lineItem.odaItem;
-                        setProductDetailModal({
-                          item: theItem,
-                          sectionName: theItem.name,
-                          onSelect: (swatchIdx: number) => {
-                            if (theItem.isAddon) {
-                              selectAddonSwatch(
-                                sectionIdx,
-                                theItem.id,
-                                swatchIdx,
-                              );
-                            } else {
-                              selectSwatch(sectionIdx, theItem.id, swatchIdx);
-                            }
-                            setProductDetailModal(null);
-                          },
-                        });
-                      }}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Reviews card */}
-              <div
-                className="bg-white flex flex-col"
-                style={{
-                  borderRadius: sv(12),
-                  paddingLeft: sv(24),
-                  paddingRight: sv(24),
-                  paddingTop: sv(24),
-                  paddingBottom: sv(32),
-                  gap: sv(24),
-                  boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
-                }}
-              >
-                {/* Logo */}
-                <div
+                  className="absolute inset-0"
                   style={{
-                    height: sv(48),
-                    display: "flex",
-                    alignItems: "center",
+                    transform: `scale(${drawingZoom})`,
+                    transformOrigin: "center center",
+                    transition: "transform 0.15s ease",
                   }}
                 >
-                  <ODALogo size="lg" />
+                  <Image
+                    src={FENCE_DRAWING_MAP}
+                    alt="Fence Drawing"
+                    fill
+                    className="object-contain"
+                    sizes="792px"
+                  />
                 </div>
-                {/* Company info */}
-                <div className="flex flex-col" style={{ gap: sv(8) }}>
-                  <p
-                    className="font-semibold text-[#262626]"
-                    style={{ fontSize: sv(16) }}
-                  >
-                    ODA Architecture
-                  </p>
-                  <div className="flex items-center" style={{ gap: sv(16) }}>
-                    <div className="flex items-center" style={{ gap: sv(4) }}>
-                      {/* Star icon */}
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="#262626"
-                        style={{ width: sv(16), height: sv(16) }}
-                      >
-                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-                      </svg>
-                      <span
-                        className="text-[#262626]"
-                        style={{ fontSize: sv(14) }}
-                      >
-                        4.6
-                      </span>
-                    </div>
-                    <span
-                      className="text-[#262626]"
-                      style={{ fontSize: sv(14) }}
-                    >
-                      (243 reviews)
-                    </span>
-                    <span
-                      className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                      style={{ fontSize: sv(14), fontWeight: 300 }}
-                    >
-                      https://oda-architecture.com/
-                    </span>
-                  </div>
-                </div>
-                {/* Quotes */}
-                <div
-                  className="flex flex-col"
-                  style={{ gap: sv(24), fontWeight: 300, lineHeight: 1.5 }}
-                >
-                  {[
-                    {
-                      quote:
-                        '"The result feels custom in all the right ways. ODA Architecture helped us make smart choices on materials, finishes, and layout, and the whole experience felt far more seamless than we expected."',
-                      author: "— Priya and Kevin S., Irvine, CA",
-                    },
-                    {
-                      quote:
-                        '"ODA Architecture made the entire renovation process feel clear and intentional. We never felt overwhelmed, and every decision felt easier because the options were presented so thoughtfully."',
-                      author: "— Emily R., Pasadena, CA",
-                    },
-                    {
-                      quote:
-                        '"From design through final execution, ODA Architecture brought a level of care and clarity that gave us real confidence. The space feels elevated, functional, and much more aligned with how we actually live."',
-                      author: "— Sophia L., Glendale, CA",
-                    },
-                  ].map((r, i) => (
-                    <div
-                      key={i}
-                      className="flex flex-col"
-                      style={{ gap: sv(4) }}
-                    >
-                      <p
-                        className="text-[#262626]"
-                        style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}
-                      >
-                        {r.quote}
-                      </p>
-                      <p
-                        className="text-[#262626]"
-                        style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}
-                      >
-                        {r.author}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+              </div>
+              <div
+                className="absolute bottom-0 left-0 flex items-center"
+                style={{ gap: sv(12), padding: `${sv(24)} ${sv(32)}` }}
+              >
                 <button
-                  className="text-[#262626] underline text-left w-fit"
+                  onClick={() => setDrawingZoom((z) => Math.min(z + 0.25, 3))}
+                  className="flex-shrink-0 flex items-center justify-center"
+                  style={{
+                    width: sv(48),
+                    height: sv(48),
+                    borderRadius: sv(4),
+                    backdropFilter: "blur(2px)",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    boxShadow: "0 0 2px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                    <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                    <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setDrawingZoom((z) => Math.max(z - 0.25, 0.5))}
+                  className="flex-shrink-0 flex items-center justify-center"
+                  style={{
+                    width: sv(48),
+                    height: sv(48),
+                    borderRadius: sv(4),
+                    backdropFilter: "blur(2px)",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    boxShadow: "0 0 2px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                    <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                    <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => { setModalZoom(1); setDrawingModalOpen(true); }}
+                  className="flex-shrink-0 flex items-center justify-center"
+                  style={{
+                    width: sv(48),
+                    height: sv(48),
+                    borderRadius: sv(4),
+                    backdropFilter: "blur(2px)",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    boxShadow: "0 0 2px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                    <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Reviews card */}
+          <div
+            className="bg-white flex flex-col"
+            style={{
+              borderRadius: sv(12),
+              paddingLeft: sv(24),
+              paddingRight: sv(24),
+              paddingTop: sv(24),
+              paddingBottom: sv(32),
+              gap: sv(24),
+              boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div style={{ height: sv(60), display: "flex", alignItems: "center" }}>
+              <ODALogo size="lg" />
+            </div>
+            <div className="flex flex-col" style={{ gap: sv(8) }}>
+              <p className="font-semibold text-[#262626]" style={{ fontSize: sv(16) }}>
+                Madison Fence Company
+              </p>
+              <div className="flex items-center" style={{ gap: sv(16) }}>
+                <div className="flex items-center" style={{ gap: sv(4) }}>
+                  <svg viewBox="0 0 24 24" fill="#262626" style={{ width: sv(16), height: sv(16) }}>
+                    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                  </svg>
+                  <span className="text-[#262626]" style={{ fontSize: sv(14) }}>4.6</span>
+                </div>
+                <span className="text-[#262626]" style={{ fontSize: sv(14) }}>(882 reviews)</span>
+                <span className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14), fontWeight: 300 }}>
+                  https://www.gomadisonfence.com/
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col" style={{ gap: sv(24), fontWeight: 300, lineHeight: 1.5 }}>
+              {[
+                {
+                  quote: `"I had such a great experience with Madison Fence Company! From start to finish, everything was handled so smoothly and professionally. Pei, the owner, is truly wonderful, knowledgeable, honest, and committed to making sure the job is done right. Junyu, who handles the scheduling, is equally fantastic, she's so organized, friendly, and always kept me updated, which made the whole process stress-free."`,
+                  author: "— Aileen, Grand Rapids Michigan",
+                },
+                {
+                  quote: `"First and foremost. I'd like to say this about Madison Fence Company. When I needed someone to come out and look at my fencing to get me a quote? Not only were they johnny on the spot with fast service the quote was extremely reasonable. Their workers were very courteous, professional and experienced. This company was and will always be my first choice for my home needs for fencing replacement and repairs. Thanks guys for being of great service."`,
+                  author: "— Joe, Grand Rapids, Michigan",
+                },
+                {
+                  quote: `"We had an outstanding experience from start to finish! The communication throughout the entire process was top notch! The team's knowledge and professionalism was excellent every step of the way. They helped guide us seamlessly through HOA and city requirements, which made the project stress free. Michael was fantastic. Mary in the office was always prompt and clear with updates. Henry, our project manager, was kind, knowledgeable, and incredibly helpful. Isaac, our installer, did an amazing job. The fence looks perfect and it was all completed in just two days. Truly a 10 out of 10 experience. Highly recommend!"`,
+                  author: "— Mary, Grand Rapids Michigan",
+                },
+              ].map((r, i) => (
+                <div key={i} className="flex flex-col" style={{ gap: sv(4) }}>
+                  <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{r.quote}</p>
+                  <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>{r.author}</p>
+                </div>
+              ))}
+            </div>
+            <button className="text-[#262626] underline text-left w-fit" style={{ fontSize: sv(14) }}>
+              Read more
+            </button>
+          </div>
+        </div>
+
+        {/* ── Right column: pricing summary ── */}
+        <div
+          className="flex-shrink-0 flex flex-col sticky"
+          style={{ width: sv(505), gap: sv(23), top: sv(140) }}
+        >
+          {/* Title */}
+          <div className="flex flex-col" style={{ gap: sv(4) }}>
+            <div className="flex flex-col text-[#262626]">
+              <p className="font-semibold" style={{ fontSize: sv(20) }}>
+                SUMMARY - OPTION 2 - VINYL TRADITIONS FENCE
+              </p>
+              <p style={{ fontSize: sv(14) }}>Henderson Backyard Fence</p>
+            </div>
+          </div>
+
+          {/* Contract Total + Monthly Payment */}
+          <div
+            className="flex flex-col"
+            style={{
+              gap: sv(16),
+              paddingTop: sv(24),
+              paddingBottom: sv(24),
+              borderTop: "0.5px solid rgba(0,0,0,0.2)",
+            }}
+          >
+            <div className="flex flex-col">
+              <p
+                className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(14) }}
+              >
+                Contact Total <sup style={{ fontSize: "7px" }}>1</sup>
+              </p>
+              <p
+                className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(32) }}
+              >
+                $9,999.00
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <p
+                className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(14) }}
+              >
+                Estimated Monthly Payment{" "}
+                <sup style={{ fontSize: "7px" }}>2</sup>
+              </p>
+              <p
+                className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(24), fontWeight: 300 }}
+              >
+                $469.06 / mo
+              </p>
+            </div>
+          </div>
+
+          {/* Price breakdown */}
+          <div
+            className="flex flex-col"
+            style={{
+              gap: sv(8),
+              paddingTop: sv(24),
+              paddingBottom: sv(24),
+              borderTop: "0.5px solid rgba(0,0,0,0.2)",
+            }}
+          >
+            {[
+              { label: "Materials & Components", value: "$6,180" },
+              { label: "Installation", value: "$2,850" },
+              { label: "Discount <-5%>", value: "-$300" },
+              { label: "Sales Tax & Fees", value: "$1,269" },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex flex-col" style={{ paddingBottom: sv(2) }}>
+                <p
+                  className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
                   style={{ fontSize: sv(14) }}
                 >
-                  Read more
-                </button>
+                  {label}
+                </p>
+                <p
+                  className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
+                  style={{ fontSize: sv(20) }}
+                >
+                  {value}
+                </p>
               </div>
-            </div>
+            ))}
+          </div>
 
-            {/* ── Right column: pricing summary ── */}
-            <div
-              className="flex-shrink-0 flex flex-col sticky"
-              style={{ width: sv(505), gap: sv(23), top: sv(144) }}
+          {/* Action buttons */}
+          <div className="flex flex-col" style={{ gap: sv(12) }}>
+            {/* Sign & Approve — RED */}
+            <button
+              className="w-full text-white font-semibold hover:opacity-90 transition-opacity flex items-center justify-center"
+              style={{
+                height: sv(40),
+                fontSize: sv(14),
+                borderRadius: sv(4),
+                backgroundColor: "#d41a32",
+              }}
+              onClick={() => setShowSignModal(true)}
             >
-              {/* Title */}
-              <div className="flex flex-col text-[#262626]">
-                <p className="font-semibold" style={{ fontSize: sv(20) }}>
-                  SUMMARY - {option.title.split(" - ")[0]}
-                </p>
-                <p style={{ fontSize: sv(14) }}>
-                  {odaProjectInfo.projectLabel}
-                </p>
-              </div>
-
-              {/* Contact Total + Monthly Payment */}
-              <div
-                className="flex flex-col"
-                style={{
-                  gap: sv(16),
-                  paddingTop: sv(24),
-                  paddingBottom: sv(24),
-                  borderTop: "0.5px solid rgba(0,0,0,0.2)",
-                }}
+              Sign &amp; Approve
+            </button>
+            {/* Explore Payment & Financing */}
+            <button
+              className="w-full border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+              style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(4) }}
+            >
+              <svg viewBox="0 0 11 14" fill="none" className="flex-shrink-0" style={{ width: sv(11), height: sv(14) }}>
+                <rect x="0.5" y="0.5" width="10" height="13" rx="1" stroke="currentColor" strokeWidth="1" />
+                <path d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+              </svg>
+              Explore Payment &amp; Financing
+            </button>
+            {/* Contact Sales + Download Config */}
+            <div className="flex" style={{ gap: sv(12) }}>
+              <button
+                className="flex-1 border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(4) }}
               >
-                <div className="flex flex-col">
-                  <p
-                    className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: sv(14) }}
-                  >
-                    Contact Total <sup style={{ fontSize: "7px" }}>1</sup>
-                  </p>
-                  <p
-                    className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: sv(32) }}
-                  >
-                    $ {total.toLocaleString()}
-                  </p>
-                </div>
-                <div className="flex flex-col">
-                  <p
-                    className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: sv(14) }}
-                  >
-                    Estimated Monthly Payment{" "}
-                    <sup style={{ fontSize: "7px" }}>2</sup>
-                  </p>
-                  <p
-                    className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: sv(24), fontWeight: 300 }}
-                  >
-                    $ {monthlyPayment.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              {/* Price breakdown */}
-              <div
-                className="flex flex-col"
-                style={{
-                  gap: sv(8),
-                  paddingTop: sv(24),
-                  paddingBottom: sv(24),
-                  borderTop: "0.5px solid rgba(0,0,0,0.2)",
-                }}
+                <svg viewBox="0 0 16 16" fill="none" className="flex-shrink-0" style={{ width: sv(16), height: sv(16) }}>
+                  <path d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+                </svg>
+                Contact Sales
+              </button>
+              <button
+                className="flex-1 border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), gap: sv(4) }}
               >
-                {[
-                  { label: "Base Scope", value: option.priceFrom },
-                  {
-                    label: "Selected Upgrades & Add-ons",
-                    value: addonTotal + materialDelta,
-                  },
-                  {
-                    label: "Permit & Inspection Fees",
-                    value: Math.round(option.priceFrom * 0.045),
-                  },
-                  { label: "Sales Tax", value: Math.round(total * 0.075) },
-                ].map(({ label, value }) => (
-                  <div
-                    key={label}
-                    className="flex flex-col"
-                    style={{ paddingBottom: sv(2) }}
-                  >
-                    <p
-                      className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
-                      style={{ fontSize: sv(14) }}
-                    >
-                      {label}
-                    </p>
-                    <p
-                      className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                      style={{ fontSize: sv(20) }}
-                    >
-                      $ {value.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex flex-col" style={{ gap: sv(12) }}>
-                {/* Sign & Approve */}
-                <button
-                  className="w-full bg-[#262626] text-white font-semibold hover:bg-black transition-colors flex items-center justify-center"
-                  style={{
-                    height: sv(40),
-                    fontSize: sv(14),
-                    borderRadius: sv(4),
-                  }}
-                  onClick={() => setShowSignModal(true)}
-                >
-                  Sign &amp; Approve
-                </button>
-                {/* Explore Payment & Financing */}
-                <button
-                  className="w-full border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
-                  style={{
-                    height: sv(40),
-                    fontSize: sv(14),
-                    borderRadius: sv(4),
-                    gap: sv(4),
-                  }}
-                >
-                  <svg
-                    viewBox="0 0 11 14"
-                    fill="none"
-                    className="flex-shrink-0"
-                    style={{ width: sv(11), height: sv(14) }}
-                  >
-                    <rect
-                      x="0.5"
-                      y="0.5"
-                      width="10"
-                      height="13"
-                      rx="1"
-                      stroke="currentColor"
-                      strokeWidth="1"
-                    />
-                    <path
-                      d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2"
-                      stroke="currentColor"
-                      strokeWidth="0.9"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  Explore Payment &amp; Financing
-                </button>
-                {/* Contact Sales + Download */}
-                <div className="flex" style={{ gap: sv(12) }}>
-                  <button
-                    className="flex-1 border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
-                    style={{
-                      height: sv(40),
-                      fontSize: sv(14),
-                      borderRadius: sv(4),
-                      gap: sv(4),
-                    }}
-                  >
-                    <svg
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      className="flex-shrink-0"
-                      style={{ width: sv(16), height: sv(16) }}
-                    >
-                      <path
-                        d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z"
-                        stroke="currentColor"
-                        strokeWidth="1.1"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Contact Sales
-                  </button>
-                  <button
-                    className="flex-1 border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
-                    style={{
-                      height: sv(40),
-                      fontSize: sv(14),
-                      borderRadius: sv(4),
-                      gap: sv(4),
-                    }}
-                  >
-                    <svg
-                      viewBox="0 0 17 18"
-                      fill="none"
-                      className="flex-shrink-0"
-                      style={{ width: sv(17), height: sv(18) }}
-                    >
-                      <path
-                        d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Download Config [PDF]
-                  </button>
-                </div>
-              </div>
-
-              {/* Footnotes */}
-              <div
-                className="flex flex-col"
-                style={{
-                  gap: sv(12),
-                  paddingTop: sv(24),
-                  fontWeight: 300,
-                  lineHeight: 1.5,
-                }}
-              >
-                <p
-                  className="text-[#262626]"
-                  style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}
-                >
-                  <sup style={{ fontSize: "7px" }}>1 </sup>
-                  Total project pricing is subject to change based on applicable
-                  taxes, fees, payment timing, and any final project
-                  adjustments. The final amount presented at the time of payment
-                  will control.
-                </p>
-                <p
-                  className="text-[#262626]"
-                  style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}
-                >
-                  <sup style={{ fontSize: "7px" }}>2 </sup>
-                  Any monthly payment information shown is an estimate only and
-                  is not a financing offer. Final payment amounts, interest
-                  rates, and loan terms are subject to lender review and will be
-                  confirmed during the formal application process.
-                </p>
-                <button
-                  className="text-[#262626] underline text-left w-fit"
-                  style={{ fontSize: sv(11) }}
-                >
-                  Read more
-                </button>
-              </div>
+                <svg viewBox="0 0 17 18" fill="none" className="flex-shrink-0" style={{ width: sv(17), height: sv(18) }}>
+                  <path d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Download Config [PDF]
+              </button>
             </div>
+          </div>
+
+          {/* Inspection Report */}
+          <button
+            className="flex items-center text-[#262626] hover:opacity-60 transition-opacity"
+            style={{
+              height: sv(32),
+              gap: sv(4),
+              paddingLeft: sv(4),
+              paddingRight: sv(4),
+              borderRadius: sv(4),
+            }}
+          >
+            <span
+              className="flex items-center justify-end flex-shrink-0"
+              style={{ width: sv(20) }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                <rect x="4.5" y="4" width="15" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M8.5 4V3.5C8.5 3.224 8.724 3 9 3h6c.276 0 .5.224.5.5V4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span style={{ fontSize: sv(14) }}>Inspection Report</span>
+          </button>
+
+          {/* Footnotes */}
+          <div
+            className="flex flex-col"
+            style={{ gap: sv(12), paddingTop: sv(24), fontWeight: 300, lineHeight: 1.5 }}
+          >
+            <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>
+              <sup style={{ fontSize: "7px" }}>1 </sup>
+              Total project pricing is subject to change based on applicable
+              taxes, fees, payment timing, and any final project
+              adjustments. The final amount presented at the time of payment
+              will control.
+            </p>
+            <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>
+              <sup style={{ fontSize: "7px" }}>2 </sup>
+              Any monthly payment information shown is an estimate only and
+              is not a financing offer. Final payment amounts, interest
+              rates, and loan terms are subject to lender review and will be
+              confirmed during the formal application process.
+            </p>
+            <button className="text-[#262626] underline text-left w-fit" style={{ fontSize: sv(11) }}>
+              Read more
+            </button>
           </div>
         </div>
       </div>
@@ -5884,37 +4780,16 @@ function DetailScreen({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               onClick={() => setDrawingModalOpen(false)}
               className="absolute flex items-center justify-center hover:bg-[#f0f0f0] transition-colors text-[#262626]"
-              style={{
-                top: sv(20),
-                right: sv(20),
-                width: sv(32),
-                height: sv(32),
-                borderRadius: "50%",
-              }}
+              style={{ top: sv(20), right: sv(20), width: sv(32), height: sv(32), borderRadius: "50%" }}
             >
-              <svg
-                viewBox="0 0 14 14"
-                fill="none"
-                style={{ width: sv(14), height: sv(14) }}
-              >
-                <path
-                  d="M1 1l12 12M13 1L1 13"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
+              <svg viewBox="0 0 14 14" fill="none" style={{ width: sv(14), height: sv(14) }}>
+                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </button>
-
-            {/* Image area */}
-            <div
-              className="relative flex-1 overflow-hidden"
-              style={{ borderRadius: sv(8) }}
-            >
+            <div className="relative flex-1 overflow-hidden" style={{ borderRadius: sv(8) }}>
               <div
                 className="absolute inset-0"
                 style={{
@@ -5923,123 +4798,38 @@ function DetailScreen({
                   transition: "transform 0.15s ease",
                 }}
               >
-                <Image
-                  src="/assets/drawing-floor-plan.png"
-                  alt="Floor Plan"
-                  fill
-                  className="object-contain"
-                  sizes="1104px"
-                />
+                <Image src={FENCE_DRAWING_MAP} alt="Fence Drawing" fill className="object-contain" sizes="1104px" />
               </div>
-
-              {/* Zoom controls — bottom-left inside image area */}
-              <div
-                className="absolute flex items-center"
-                style={{ bottom: sv(24), left: sv(32), gap: sv(12) }}
-              >
-                {/* Zoom In */}
+              <div className="absolute flex items-center" style={{ bottom: sv(24), left: sv(32), gap: sv(12) }}>
                 <button
                   onClick={() => setModalZoom((z) => Math.min(z + 0.25, 3))}
                   className="flex-shrink-0 flex items-center justify-center"
-                  style={{
-                    width: sv(48),
-                    height: sv(48),
-                    borderRadius: sv(4),
-                    backdropFilter: "blur(2px)",
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    boxShadow: "0 0 2px rgba(0,0,0,0.25)",
-                  }}
+                  style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: "blur(2px)", backgroundColor: "rgba(0,0,0,0.6)", boxShadow: "0 0 2px rgba(0,0,0,0.25)" }}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    style={{ width: sv(24), height: sv(24) }}
-                  >
-                    <circle
-                      cx="10.5"
-                      cy="10.5"
-                      r="6.5"
-                      stroke="white"
-                      strokeWidth="1.5"
-                    />
-                    <path
-                      d="M7.5 10.5h6M10.5 7.5v6"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M16 16l4 4"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                    <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                    <path d="M7.5 10.5h6M10.5 7.5v6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                 </button>
-                {/* Zoom Out */}
                 <button
                   onClick={() => setModalZoom((z) => Math.max(z - 0.25, 0.5))}
                   className="flex-shrink-0 flex items-center justify-center"
-                  style={{
-                    width: sv(48),
-                    height: sv(48),
-                    borderRadius: sv(4),
-                    backdropFilter: "blur(2px)",
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    boxShadow: "0 0 2px rgba(0,0,0,0.25)",
-                  }}
+                  style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: "blur(2px)", backgroundColor: "rgba(0,0,0,0.6)", boxShadow: "0 0 2px rgba(0,0,0,0.25)" }}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    style={{ width: sv(24), height: sv(24) }}
-                  >
-                    <circle
-                      cx="10.5"
-                      cy="10.5"
-                      r="6.5"
-                      stroke="white"
-                      strokeWidth="1.5"
-                    />
-                    <path
-                      d="M7.5 10.5h6"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M16 16l4 4"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                    <circle cx="10.5" cy="10.5" r="6.5" stroke="white" strokeWidth="1.5" />
+                    <path d="M7.5 10.5h6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 16l4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                 </button>
-                {/* Center / Reset */}
                 <button
                   onClick={() => setModalZoom(1)}
                   className="flex-shrink-0 flex items-center justify-center"
-                  style={{
-                    width: sv(48),
-                    height: sv(48),
-                    borderRadius: sv(4),
-                    backdropFilter: "blur(2px)",
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    boxShadow: "0 0 2px rgba(0,0,0,0.25)",
-                  }}
+                  style={{ width: sv(48), height: sv(48), borderRadius: sv(4), backdropFilter: "blur(2px)", backgroundColor: "rgba(0,0,0,0.6)", boxShadow: "0 0 2px rgba(0,0,0,0.25)" }}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    style={{ width: sv(24), height: sv(24) }}
-                  >
-                    <path
-                      d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                  <svg viewBox="0 0 24 24" fill="none" style={{ width: sv(24), height: sv(24) }}>
+                    <path d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
               </div>
@@ -6062,14 +4852,54 @@ function ApprovedScreen({
   const [activeTab, setActiveTab] = useState("Project Home");
   const tabs = [
     "Project Home",
-    "Updates",
+    "Contract",
+    "Documents",
     "Products",
     "Drawings",
-    "Documents",
     "Invoices & Payments",
-    "Previews",
   ];
-  const sections = option.sections;
+
+  const mkItem2 = (id: string, name: string, price: number, img: string): ODAItem => ({
+    id, name, spec: "", price, previewImage: img,
+  });
+  const fenceParts: SummaryLineItem[] = [
+    { name: "Vinyl | Stratford | 4' | Panel | White", qty: "17", unit: "sec.", price: 2125, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-1", "Vinyl | Stratford | 4' | Panel | White", 2125, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Stratford | 4' | End Post | White", qty: "2", unit: "pcs", price: 140, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-2", "Vinyl | Stratford | 4' | End Post | White", 140, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Stratford | 4' | Corner Post | White", qty: "8", unit: "pcs.", price: 520, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-3", "Vinyl | Stratford | 4' | Corner Post | White", 520, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Stratford | 4' | Line Post | White", qty: "32", unit: "pcs", price: 760, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-4", "Vinyl | Stratford | 4' | Line Post | White", 760, FENCE_THUMB_PANEL) },
+  ];
+  const gateItems: SummaryLineItem[] = [
+    { name: "Vinyl | Stratford | 4' | 5'W Gate | White", qty: "1", unit: "sets", price: 560, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem2("g-1", "Vinyl | Stratford | 4' | 5'W Gate | White", 560, FENCE_THUMB_GATE_1) },
+    { name: "Vinyl | Stratford | 5' | 4'W Gate | White", qty: "1", unit: "sets", price: 520, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem2("g-2", "Vinyl | Stratford | 5' | 4'W Gate | White", 520, FENCE_THUMB_GATE_1) },
+    { name: "Vinyl | Stratford | 5' | 5'W Gate | White", qty: "1", unit: "sets", price: 610, thumbnailSrc: FENCE_THUMB_GATE_3, showChange: false, odaItem: mkItem2("g-3", "Vinyl | Stratford | 5' | 5'W Gate | White", 610, FENCE_THUMB_GATE_3) },
+  ];
+  const sectionParts: SummaryLineItem[] = [
+    { name: `7/8" x 8' CQ20 Galv Post`, qty: "2", unit: "pcs.", price: 90, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("sp-1", `7/8" x 8' CQ20 Galv Post`, 90, FENCE_THUMB_PANEL) },
+    { name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`, qty: "2", unit: "pcs.", price: 120, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("sp-2", `5" x 5" Heavy Duty Post Stiffeners`, 120, FENCE_THUMB_PANEL) },
+  ];
+  const hardwareItems: SummaryLineItem[] = [
+    { name: `Vinyl | 5" New England Cap - White`, qty: "18", unit: "pcs.", price: 85, thumbnailSrc: FENCE_THUMB_CAP, showChange: false, odaItem: mkItem2("hw-1", `Vinyl | 5" New England Cap - White`, 85, FENCE_THUMB_CAP) },
+    { name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, qty: "2", unit: "pcs.", price: 140, thumbnailSrc: FENCE_THUMB_POST_INSERT, showChange: false, odaItem: mkItem2("hw-2", `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, 140, FENCE_THUMB_POST_INSERT) },
+    { name: "Vinyl | Std Latch - 1 Side - External - Keyed - Black", qty: "1", unit: "sets", price: 95, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("hw-3", "Vinyl | Std Latch - 1 Side - External - Keyed - Black", 95, FENCE_THUMB_PANEL) },
+    { name: "Vinyl | Std Self Close Adj Hinge - Pair - Black", qty: "2", unit: "pairs", price: 110, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("hw-4", "Vinyl | Std Self Close Adj Hinge - Pair - Black", 110, FENCE_THUMB_PANEL) },
+  ];
+  const additionalMaterial: SummaryLineItem[] = [
+    { name: "Concrete 50 lb Bag", qty: "20", unit: "bags", price: 305, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("am-1", "Concrete 50 lb Bag", 305, FENCE_THUMB_PANEL) },
+  ];
+
+  const [approvedProductDetailModal, setApprovedProductDetailModal] = useState<{
+    item: ODAItem;
+    sectionName: string;
+    onSelect: (swatchIdx: number) => void;
+  } | null>(null);
+  const handleApprovedProductInfoClick = (item: SummaryLineItem) => {
+    if (!item.odaItem) return;
+    setApprovedProductDetailModal({
+      item: item.odaItem,
+      sectionName: item.sectionName ?? item.name,
+      onSelect: () => undefined,
+    });
+  };
 
   const updates = [
     {
@@ -6341,134 +5171,60 @@ function ApprovedScreen({
                 Approved Scope
               </p>
             </div>
-            <SummaryGroup
-              name="Base Scope"
-              items={[
-                {
-                  name: "Existing Surface Preparation & Demolition",
-                  qty: "960",
-                  unit: "sqf.",
-                  price: 42900,
-                  showChange: false,
-                  thumbnailSrc: THUMB_BASE_SCOPE,
-                },
-                {
-                  name: "Wall & Ceiling Preparation",
-                  qty: "190",
-                  unit: "sqf.",
-                  price: 24100,
-                  showChange: false,
-                  thumbnailSrc: THUMB_BASE_SCOPE,
-                },
-                {
-                  name: "Flooring Base Installation",
-                  qty: "547",
-                  unit: "sqf.",
-                  price: 4600,
-                  showChange: false,
-                  thumbnailSrc: THUMB_BASE_SCOPE,
-                },
-                {
-                  name: "Lighting & Electrical Adjustments",
-                  qty: "128",
-                  unit: "hrs.",
-                  price: 7270,
-                  showChange: false,
-                  thumbnailSrc: THUMB_BASE_SCOPE,
-                },
-                {
-                  name: "Installation & Finishing Labor",
-                  qty: "1,300",
-                  unit: "hrs.",
-                  price: 87580,
-                  showChange: false,
-                  thumbnailSrc: THUMB_BASE_SCOPE,
-                },
-              ]}
-            />
-            {sections.map((section) => {
-              const lineItems: SummaryLineItem[] = section.items
-                .filter((item) => !item.isAddon || item.selected)
-                .map((item) => ({
-                  name: item.spec,
-                  qty: "1",
-                  unit: "each",
-                  price: getItemPrice(item),
-                  thumbnailSrc: item.isAddon
-                    ? (item.addonSwatches?.[item.selectedAddonSwatch ?? 0] ??
-                      item.previewImage)
-                    : item.swatches?.[item.selectedSwatch ?? 0],
-                  showChange: false,
-                }));
-              if (lineItems.length === 0) return null;
-              return (
-                <SummaryGroup
-                  key={section.name}
-                  name={section.name}
-                  items={lineItems}
-                />
-              );
-            })}
+            <SummaryGroup name="Fence Parts" items={fenceParts} onInfoClick={handleApprovedProductInfoClick} />
+            <SummaryGroup name="Gate" items={gateItems} onInfoClick={handleApprovedProductInfoClick} />
+            <SummaryGroup name="Sections" items={sectionParts} onInfoClick={handleApprovedProductInfoClick} />
+            <SummaryGroup name="Hardware" items={hardwareItems} onInfoClick={handleApprovedProductInfoClick} />
+            <SummaryGroup name="Additional Material" items={additionalMaterial} onInfoClick={handleApprovedProductInfoClick} />
           </div>
 
-          {/* Move-In Service */}
+          {/* Drawings card */}
           <div
-            className="bg-white overflow-hidden flex"
+            className="bg-white flex flex-col"
             style={{
               borderRadius: sv(12),
+              paddingLeft: sv(24),
+              paddingRight: sv(24),
+              paddingTop: sv(16),
+              paddingBottom: sv(24),
+              gap: sv(24),
               boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
             }}
           >
-            <div
-              className="relative flex-shrink-0"
-              style={{ width: sv(416), height: sv(325) }}
-            >
-              <Image
-                src="/assets/move-in-service.png"
-                alt=""
-                fill
-                className="object-cover"
-                sizes="416px"
-              />
-            </div>
-            <div
-              className="flex-1 flex flex-col items-start justify-center min-w-0"
-              style={{ gap: sv(16), paddingLeft: sv(48), paddingRight: sv(24) }}
-            >
-              <p
-                className="text-[#262626] leading-[1.5] w-full"
-                style={{
-                  fontSize: sv(24),
-                  letterSpacing: "-0.72px",
-                  fontFamily: "'Segoe UI Variable', 'Segoe UI', sans-serif",
-                  fontWeight: 400,
-                }}
-              >
-                Move-In Service
+            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+              <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
+                Drawings
               </p>
-              <p
-                className="text-[#262626] leading-[1.5] w-full"
-                style={{
-                  fontSize: sv(12),
-                  letterSpacing: "-0.24px",
-                  fontWeight: 300,
-                }}
-              >
-                Settle into your newly finished home with additional move-in
-                support designed to make the final transition feel effortless,
-                organized, and ready for everyday living.
-              </p>
-              <button
-                className="flex items-center justify-center bg-[#262626] text-white hover:opacity-80 transition-opacity"
-                style={{
-                  padding: `${sv(6)} ${sv(12)}`,
-                  fontSize: sv(9),
-                  borderRadius: sv(2),
-                }}
-              >
-                Learn More
-              </button>
             </div>
+            <div className="relative" style={{ width: sv(792), height: sv(539) }}>
+              <div className="overflow-hidden relative" style={{ width: sv(792), height: sv(521) }}>
+                <Image
+                  src={FENCE_DRAWING_MAP}
+                  alt="Fence Drawing"
+                  fill
+                  className="object-contain"
+                  sizes="792px"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Fence Extended Warranty — full-bleed image card */}
+          <div
+            className="relative overflow-hidden flex-shrink-0 w-full"
+            style={{
+              aspectRatio: "1365 / 1024",
+              borderRadius: sv(12),
+              boxShadow: "0px 2px 10px 0px rgba(0,0,0,0.12), 0px 1px 2px 0px rgba(0,0,0,0.06)",
+            }}
+          >
+            <Image
+              src={FENCE_WARRANTY_IMG}
+              alt="Fence Extended Warranty"
+              fill
+              className="object-cover"
+              sizes="840px"
+            />
           </div>
         </div>
 
@@ -6480,7 +5236,7 @@ function ApprovedScreen({
           {/* Title */}
           <div className="flex flex-col w-full text-[#262626] leading-normal">
             <p className="font-semibold w-full" style={{ fontSize: sv(20) }}>
-              {odaProjectInfo.projectLabel}
+              Fence Replacement - Henderson Backyard Fence
             </p>
             <p className="w-full" style={{ fontSize: sv(14) }}>
               Proposal Approved on 3/18/2026
@@ -6510,8 +5266,8 @@ function ApprovedScreen({
                   className="leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
                   style={{ fontSize: sv(20) }}
                 >
-                  <span className="text-[#262626]">$100,450 / </span>
-                  <span className="text-[#737373]">$273,090</span>
+                  <span className="text-[#262626]">$4,998 / </span>
+                  <span className="text-[#737373]">$9,999</span>
                 </p>
                 {/* Progress bar */}
                 <div
@@ -6546,13 +5302,13 @@ function ApprovedScreen({
                 className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(32) }}
               >
-                $68,000
+                $4,999
               </p>
               <p
                 className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(12) }}
               >
-                1/3 balance due at 50% completion{" "}
+                100% balance due at project completion{" "}
                 <span style={{ fontWeight: 300 }}>&lt;5/26/2028&gt;</span>
               </p>
             </div>
@@ -6562,7 +5318,7 @@ function ApprovedScreen({
           <div className="flex flex-col w-full" style={{ gap: sv(12) }}>
             {/* Make A Payment */}
             <button
-              className="w-full bg-[#262626] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+              className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
               style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
             >
               Make A Payment
@@ -6795,6 +5551,14 @@ function ApprovedScreen({
           </div>
         </div>
       </div>
+      {approvedProductDetailModal && (
+        <ProductDetailModal
+          item={approvedProductDetailModal.item}
+          sectionName={approvedProductDetailModal.sectionName}
+          onSelect={approvedProductDetailModal.onSelect}
+          onClose={() => setApprovedProductDetailModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -6807,7 +5571,19 @@ export default function ODAProposalPageCopy({
 }) {
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [selectedOption, setSelectedOption] = useState(0);
+  const [visible, setVisible] = useState(true);
   const goToLanding = () => setScreen("landing");
+
+  const navigateTo = (next: Screen) => {
+    setVisible(false);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      setScreen(next);
+      requestAnimationFrame(() => {
+        setVisible(true);
+      });
+    }, 150);
+  };
 
   useEffect(() => {
     const syncStateFromUrl = () => {
@@ -6841,18 +5617,20 @@ export default function ODAProposalPageCopy({
     window.history.replaceState(null, "", nextUrl);
   }, [screen, selectedOption]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [screen]);
 
   return (
-    <>
+    <div
+      style={{
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.15s ease",
+      }}
+    >
       {screen === "email" && (
-        <EmailScreen onContinue={() => setScreen("landing")} />
+        <EmailScreen onContinue={() => navigateTo("landing")} />
       )}
       {screen === "landing" && (
         <LandingScreen
-          onContinue={() => setScreen("options")}
+          onContinue={() => navigateTo("options")}
           onHome={goToLanding}
         />
       )}
@@ -6860,33 +5638,15 @@ export default function ODAProposalPageCopy({
         <OptionsScreen
           selectedOption={selectedOption}
           onSelect={setSelectedOption}
-          onContinue={() => setScreen("detail")}
+          onContinue={() => navigateTo("detail")}
           onHome={goToLanding}
         />
       )}
       {screen === "detail" && (
         <DetailScreen
           option={odaOptions[selectedOption]}
-          onBack={() => setScreen("options")}
-          onApprove={() => {
-            const html = document.documentElement;
-            const body = document.body;
-            const prevHtmlScrollBehavior = html.style.scrollBehavior;
-            const prevBodyScrollBehavior = body.style.scrollBehavior;
-
-            html.style.scrollBehavior = "auto";
-            body.style.scrollBehavior = "auto";
-            window.scrollTo(0, 0);
-            setScreen("approved");
-
-            requestAnimationFrame(() => {
-              window.scrollTo(0, 0);
-              requestAnimationFrame(() => {
-                html.style.scrollBehavior = prevHtmlScrollBehavior;
-                body.style.scrollBehavior = prevBodyScrollBehavior;
-              });
-            });
-          }}
+          onBack={() => navigateTo("options")}
+          onApprove={() => navigateTo("approved")}
           onHome={goToLanding}
         />
       )}
@@ -6896,6 +5656,6 @@ export default function ODAProposalPageCopy({
           onHome={goToLanding}
         />
       )}
-    </>
+    </div>
   );
 }

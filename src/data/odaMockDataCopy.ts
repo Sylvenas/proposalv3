@@ -536,7 +536,7 @@ export const odaOptions: ODAOption[] = [
 ]
 
 export const odaProjectInfo = {
-  clientName: 'Junyu Zhang',
+  clientName: 'Michael Rozier',
   projectAddress: '2847 Maple Grove Drive, Austin TX 78746',
   projectName: 'Maple Grove Residence',
   projectLabel: 'Home Renovation - Suite 2505, Broadway Tower',
