@@ -141,6 +141,21 @@ const FENCE_THUMB_CAP = "/assets/fence-thumb-cap.png";       // New England Cap
 const FENCE_THUMB_POST_INSERT = "/assets/fence-thumb-post-insert.png"; // Aluminum Gate Post Insert
 const FENCE_WARRANTY_IMG = "/assets/fence-extended-warranty.jpg";      // Fence Extended Warranty promo card
 
+const CONTRACT_PAGES = [
+  "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_1 1.png",
+  "/pdf2/Madison Fence - Howland_页面_2 2.png",
+  "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_3 1.png",
+  "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_4 1.png",
+];
+const EMAIL_CONTENT_LOGO =
+  "https://www.figma.com/api/mcp/asset/e182eb12-f01c-4deb-a581-866053874a4c";
+const PRODUCT_DETAIL_EMPTY_LOGO =
+  "https://www.figma.com/api/mcp/asset/851b002b-204b-43ec-9e80-70ecd0b77d17";
+
+function isPlaceholderProductImage(src?: string | null) {
+  return src === OPTION_CHAIN_PLACEHOLDER;
+}
+
 function getItemPrice(item: ODAItem): number {
   if (!item.isAddon) {
     return item.swatchPrices?.[item.selectedSwatch ?? 0] ?? item.price;
@@ -191,16 +206,8 @@ function ODALogo({
 function EmailScreen({ onContinue }: { onContinue: () => void }) {
   const {
     clientName,
-    projectName,
-    preparedBy,
-    company,
-    companyAddress,
-    phone,
-    email,
-    emailImage,
   } = odaProjectInfo;
   const firstName = clientName.split(" ")[0];
-  const option = odaOptions[0];
 
   // Icon helpers — matches Figma's overflow-clip 20×20 container with centered shape
   const OI = ({
@@ -852,7 +859,7 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
                       </p>
                     </div>
                     <div className="flex flex-col gap-[7px] text-[#424242] whitespace-nowrap">
-                      <p className="text-[16px] leading-[16px]">{`ODA Architecture <service@oda-architecture.com>`}</p>
+                      <p className="text-[16px] leading-[16px]">{`Madison Fence Company <service@madisonfence.com>`}</p>
                       <div className="flex gap-[6px] items-center text-[14px]">
                         <p>To:</p>
                         <p>You</p>
@@ -888,87 +895,83 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
                 <div className="flex-1 min-h-0 overflow-y-auto bg-white pl-[65px] pr-[28px]">
                   <div className="bg-[#fafafa] w-full" style={{ height: 1 }} />
                   {/* Grey surround */}
-                  <div className="bg-[#f0f0f0] flex justify-center py-[31px] w-full">
-                    <div className="flex flex-col" style={{ width: 612 }}>
+                  <div
+                    className="bg-[#f0f0f0] flex flex-col items-start py-[31px] w-full"
+                    style={{ paddingLeft: 220, paddingRight: 220 }}
+                  >
+                    <div className="flex flex-col" style={{ width: 720 }}>
                       {/* White email card */}
-                      <div className="bg-white flex flex-col gap-[27px] items-start pb-[64px] pt-[48px] px-[54px]">
-                        {/* ODA Logo */}
-                        <div style={{ height: 44, width: 225 }}>
-                          <ODALogo size="md" />
-                        </div>
-                        {/* Hero image */}
+                      <div className="bg-white flex flex-col gap-[27px] items-center pb-[64px] pt-[48px] px-[54px]">
                         <div
-                          className="relative w-full overflow-hidden"
-                          style={{ aspectRatio: "2666/1662" }}
+                          className="relative flex-shrink-0"
+                          style={{ width: 240, height: 240 }}
                         >
-                          <Image
-                            src={emailImage}
-                            alt="Project Preview"
-                            fill
-                            className="object-cover"
-                            sizes="504px"
+                          <img
+                            src={EMAIL_CONTENT_LOGO}
+                            alt="Madison Fence Company"
+                            className="absolute inset-0 block size-full object-cover"
                           />
                         </div>
                         {/* Hi */}
                         <p
-                          className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[16px]"
+                          className="min-w-full text-[12px] text-[rgba(0,0,0,0.85)] leading-[16px]"
                           style={{ fontWeight: 300 }}
                         >
                           Hi {firstName},
                         </p>
                         {/* Body paragraphs */}
                         <div
-                          className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
+                          className="min-w-full text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
                           style={{ fontWeight: 300 }}
                         >
                           <p className="mb-[6px]">
-                            Your project proposal from ODA Architecture is
-                            ready.
+                            Your fence project proposal from Madison Fence
+                            Company is ready.
                           </p>
                           <p>
-                            You can now explore your project online — compare
-                            package options, customize selected upgrades and
-                            add-ons, and review pricing before signing your
-                            agreement.
+                            You can now review your project online — compare
+                            fence options, review included materials and gate
+                            configurations, explore available financing, and
+                            confirm pricing before approving your agreement.
                           </p>
                         </div>
                         {/* What you can do */}
                         <div
-                          className="text-[rgba(0,0,0,0.85)]"
+                          className="min-w-full text-[rgba(0,0,0,0.85)]"
                           style={{ fontWeight: 300 }}
                         >
                           <p className="font-semibold text-[16px] leading-[20px] mb-[6px]">
                             What you can do
                           </p>
                           <ul className="text-[12px] leading-[20px] list-disc pl-5">
-                            <li>Compare Good / Better / Best options</li>
-                            <li>Select upgrades and optional add-ons</li>
+                            <li>Compare available fence options</li>
                             <li>
-                              Review your project scope, pricing and financing
-                              offers in real time
+                              Review included materials, gate details, and
+                              project scope
                             </li>
-                            <li>{`Sign your contract online when you're ready`}</li>
+                            <li>Explore payment and financing options</li>
+                            <li>{`Sign your agreement online when you're ready`}</li>
                           </ul>
                         </div>
                         {/* Project info */}
                         <p
-                          className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
+                          className="min-w-full whitespace-pre-wrap text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
                           style={{ fontWeight: 300 }}
                         >
                           <span style={{ fontWeight: 600 }}>Project:</span>
-                          {` ${projectName}`}
+                          {` Henderson Backyard Fence Replacement`}
                           <br />
                           <span style={{ fontWeight: 600 }}>Prepared by:</span>
-                          {` ${preparedBy.split(",")[0]}`}
+                          {` Leslie Cheung`}
                           <br />
                           <span style={{ fontWeight: 600 }}>
                             Proposal total starting from:
                           </span>
-                          {` $ ${option.priceFrom.toLocaleString()}.00`}
+                          {` $8,615.00`}
                         </p>
                         {/* CTA */}
                         <div
-                          className="bg-black flex items-center justify-center px-[16px] py-[6px] rounded-[2px] flex-shrink-0"
+                          className="bg-[#d41a32] flex items-center justify-center px-[16px] py-[6px] rounded-[2px] flex-shrink-0"
                           style={{ height: 40 }}
                         >
                           <button
@@ -985,19 +988,19 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
                         </div>
                         {/* Sign-off */}
                         <p
-                          className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
+                          className="min-w-full text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
                           style={{ fontWeight: 300 }}
                         >
                           If you have any questions, you can contact your sales
-                          rep {preparedBy.split(",")[0]} directly before making
-                          your final selection.
+                          representative Leslie Cheung directly before making
+                          your final decision.
                         </p>
                         <div
-                          className="text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
+                          className="min-w-full text-[12px] text-[rgba(0,0,0,0.85)] leading-[20px]"
                           style={{ fontWeight: 300 }}
                         >
                           <p className="mb-[6px]">Thank you,</p>
-                          <p>ODA Architecture</p>
+                          <p>Madison Fence Company</p>
                         </div>
                       </div>
                       {/* Email footer */}
@@ -1009,11 +1012,12 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           className="leading-[12px] w-full"
                           style={{ fontWeight: 400 }}
                         >
-                          {company}
+                          Madison Fence Company
                           <br />
-                          {companyAddress}
+                          1268 Wilshire Boulevard, Suite 410, Santa Monica, CA
+                          90403
                           <br />
-                          {phone} | {email}
+                          (310) 555-0126 | hello@oda-architecture.com
                           <br />
                           License #CSLB 1098421
                         </p>
@@ -1034,9 +1038,9 @@ function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           className="leading-[12px] w-full"
                           style={{ letterSpacing: "-0.16px" }}
                         >
-                          You are receiving this email because ODA Architecture
-                          has invited you to review your project online. Your
-                          digital proposal may include configurable package
+                          You are receiving this email because Madison Fence
+                          Company has invited you to review your project online.
+                          Your digital proposal may include configurable package
                           options, upgrades, add-ons, and estimated pricing.
                           Final contract terms are defined by the signed
                           agreement and may vary based on site conditions,
@@ -1292,12 +1296,13 @@ function InspectionDetailModal({
                 </div>
               </div>
               <button
-                className="bg-white border border-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                className="bg-white flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
                 style={{
                   width: sv(132),
                   height: sv(40),
                   borderRadius: sv(4),
                   gap: sv(2),
+                  border: "none",
                   color: "rgba(0,0,0,0.85)",
                   fontSize: sv(14),
                 }}
@@ -1377,6 +1382,7 @@ function LandingScreen({
   const HERO_DESIGN_HEIGHT = 1024;
   const HERO_MAX_SCALE = 1;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const heroActionsRef = useRef<HTMLDivElement>(null);
   const [inspectionModal, setInspectionModal] = useState<{
     entryIndex: number;
     mediaIndex: number;
@@ -1391,11 +1397,20 @@ function LandingScreen({
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
+
     const onScroll = () => {
-      const scrollTop = container.scrollTop;
-      const vh = container.clientHeight;
-      setIsInspectionSectionPinned(scrollTop >= vh);
+      const actionsRect = heroActionsRef.current?.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      if (!actionsRect) {
+        setIsInspectionSectionPinned(false);
+        return;
+      }
+
+      setIsInspectionSectionPinned(actionsRect.bottom <= containerRect.top);
     };
+
+    onScroll();
     container.addEventListener("scroll", onScroll, { passive: true });
     return () => container.removeEventListener("scroll", onScroll);
   }, []);
@@ -1610,6 +1625,7 @@ function LandingScreen({
               Build Your Dream Fence
             </p>
             <div
+              ref={heroActionsRef}
               className="flex items-center"
               style={{ marginTop: hsv(86), gap: hsv(8) }}
             >
@@ -1658,7 +1674,12 @@ function LandingScreen({
             position: "sticky",
             top: 0,
             zIndex: 20,
-            borderBottom: `0.5px solid rgba(0,0,0,0.2)`,
+            borderBottom: isInspectionSectionPinned
+              ? `0.5px solid rgba(0,0,0,0.2)`
+              : "0.5px solid transparent",
+            opacity: isInspectionSectionPinned ? 1 : 0,
+            pointerEvents: isInspectionSectionPinned ? "auto" : "none",
+            transition: "opacity 0.2s ease, border-color 0.2s ease",
           }}
         >
           <div
@@ -1666,9 +1687,6 @@ function LandingScreen({
               width: "100%",
               maxWidth: sv(1440),
               margin: "0 auto",
-              opacity: isInspectionSectionPinned ? 1 : 0,
-              pointerEvents: isInspectionSectionPinned ? "auto" : "none",
-              transition: "opacity 0.2s ease",
             }}
           >
             <InspectionNavBar />
@@ -1731,9 +1749,11 @@ function LandingScreen({
                 style={{
                   height: sv(40),
                   padding: `0 ${sv(16)}`,
-                  backgroundColor: "#262626",
+                  backgroundColor: "rgb(212, 26, 50)",
                   color: "white",
+                  border: "none",
                   borderRadius: sv(4),
+                  boxShadow: "0 10px 20px rgba(227,87,28,0.24)",
                   fontSize: sv(14),
                   fontWeight: 600,
                   lineHeight: "normal",
@@ -2019,8 +2039,7 @@ function OptionsScreen({
   onHome: () => void;
 }) {
   const compareRef = useRef<HTMLDivElement>(null);
-  const topOptionsRef = useRef<HTMLDivElement>(null);
-  const decisionSectionRef = useRef<HTMLDivElement>(null);
+  const selectButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const expandedCompareCardRef = useRef<HTMLDivElement>(null);
   const [hideComparisonHeader, setHideComparisonHeader] = useState(true);
   const [expandedCompareOptionIdx, setExpandedCompareOptionIdx] = useState<
@@ -2038,38 +2057,30 @@ function OptionsScreen({
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   useEffect(() => {
-    const topOptionsEl = topOptionsRef.current;
-    const decisionEl = decisionSectionRef.current;
-    if (!topOptionsEl || !decisionEl) return;
-
-    let isTopOptionsVisible = true;
-    let isDecisionVisible = false;
-
     const syncHeaderVisibility = () => {
-      setHideComparisonHeader(isTopOptionsVisible || isDecisionVisible);
+      const hasVisibleSelectButton = selectButtonRefs.current.some((button) => {
+        if (!button) return false;
+        const rect = button.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+      });
+
+      setHideComparisonHeader(hasVisibleSelectButton);
     };
 
-    const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (entry.target === topOptionsEl) {
-            isTopOptionsVisible = entry.isIntersecting;
-          }
-          if (entry.target === decisionEl) {
-            isDecisionVisible = entry.isIntersecting;
-          }
-        });
-        syncHeaderVisibility();
-      },
-      { threshold: 0.01 }
-    );
-
-    observer.observe(topOptionsEl);
-    observer.observe(decisionEl);
     syncHeaderVisibility();
+    window.addEventListener("scroll", syncHeaderVisibility, { passive: true });
+    window.addEventListener("resize", syncHeaderVisibility, { passive: true });
 
-    return () => observer.disconnect();
+    return () => {
+      window.removeEventListener("scroll", syncHeaderVisibility);
+      window.removeEventListener("resize", syncHeaderVisibility);
+    };
   }, []);
+
+  const setSelectButtonRef =
+    (index: number) => (element: HTMLButtonElement | null) => {
+      selectButtonRefs.current[index] = element;
+    };
 
   useEffect(() => {
     if (expandedCompareOptionIdx === null) return;
@@ -2513,7 +2524,13 @@ function OptionsScreen({
     optionSummaries[1].title,
   ];
 
-  const OptionCard = ({ optIdx }: { optIdx: number }) => {
+  const OptionCard = ({
+    optIdx,
+    selectButtonRef,
+  }: {
+    optIdx: number;
+    selectButtonRef?: (element: HTMLButtonElement | null) => void;
+  }) => {
     const opt = optionSummaries[optIdx];
     return (
       <div
@@ -2606,6 +2623,7 @@ function OptionsScreen({
           </div>
           <div className="flex items-center justify-end w-full">
             <button
+              ref={selectButtonRef}
               onClick={() => {
                 onSelect(optIdx);
                 onContinue();
@@ -2643,7 +2661,7 @@ function OptionsScreen({
     if ("dash" in item) {
       return (
         <div
-          className="flex items-start"
+          className="flex items-start w-full"
           style={{
             borderTop: "0.5px solid rgba(0,0,0,0.1)",
             paddingTop: sv(12),
@@ -2933,12 +2951,15 @@ function OptionsScreen({
             style={{ width: "100%", gap: sv(24) }}
           >
             <div
-              ref={topOptionsRef}
               className="flex items-start"
               style={{ width: "100%", gap: sv(32) }}
             >
               {optionSummaries.map((_, i) => (
-                <OptionCard key={i} optIdx={i} />
+                <OptionCard
+                  key={i}
+                  optIdx={i}
+                  selectButtonRef={setSelectButtonRef(i)}
+                />
               ))}
             </div>
             <div
@@ -3101,7 +3122,6 @@ function OptionsScreen({
           </div>
 
           <div
-            ref={decisionSectionRef}
             className="flex flex-col items-start"
             style={{ width: "100%", gap: sv(40) }}
           >
@@ -3167,7 +3187,11 @@ function OptionsScreen({
               style={{ width: "100%", gap: sv(32) }}
             >
               {optionSummaries.map((_, i) => (
-                <OptionCard key={i} optIdx={i} />
+                <OptionCard
+                  key={i}
+                  optIdx={i}
+                  selectButtonRef={setSelectButtonRef(i + optionSummaries.length)}
+                />
               ))}
             </div>
           </div>
@@ -3465,8 +3489,13 @@ function SummaryGroup({
                       src={item.thumbnailSrc}
                       alt=""
                       fill
-                      className="object-cover opacity-10"
+                      className="object-cover"
                       sizes="44px"
+                      style={{
+                        opacity: isPlaceholderProductImage(item.thumbnailSrc)
+                          ? 0.1
+                          : 1,
+                      }}
                     />
                   </div>
                 ) : (
@@ -3604,12 +3633,6 @@ function SignModal({
 }) {
   const [zoom, setZoom] = useState(1);
   const { clientName } = odaProjectInfo;
-  const contractPages = [
-    "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_1 1.png",
-    "/pdf2/Madison Fence - Howland_页面_2 2.png",
-    "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_3 1.png",
-    "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_4 1.png",
-  ];
 
   return (
     <div
@@ -3666,7 +3689,7 @@ function SignModal({
               className="flex flex-col bg-[#f5f5f5]"
               style={{ width: `${zoom * 100}%`, minWidth: "100%", gap: sv(16) }}
             >
-              {contractPages.map((pageSrc, index) => (
+              {CONTRACT_PAGES.map((pageSrc, index) => (
                 <Image
                   key={pageSrc}
                   src={pageSrc}
@@ -3876,9 +3899,11 @@ function ProductDetailModal({
   };
   const currentImages = getImagesForSwatch(activeSwatchIdx);
   const mainImage = currentImages[activeThumb] ?? currentImages[0] ?? null;
-  // Use placeholder opacity when there are no real product photos
-  const hasRealImages = !!(item.productImages?.length || item.swatchProductImages?.length);
-  const imgOpacity = hasRealImages ? 1 : 0.1;
+  const hasOnlyPlaceholderImages =
+    currentImages.length > 0 &&
+    currentImages.every((src) => isPlaceholderProductImage(src));
+  // Only dim placeholder assets; real product photos should render normally.
+  const imgOpacity = hasOnlyPlaceholderImages ? 0.1 : 1;
 
   // Price for the currently displayed swatch variant
   const swatchPrices = item.swatchPrices ?? item.addonSwatchPrices;
@@ -3948,25 +3973,50 @@ function ProductDetailModal({
             className="flex flex-col justify-between flex-shrink-0"
             style={{ width: sv(840), paddingBottom: sv(24) }}
           >
-            {/* Hero image: aspect 732:510, border-radius 8px */}
-            <div
-              className="relative w-full overflow-hidden bg-[#f0f0f0]"
-              style={{ aspectRatio: "732/510", borderRadius: sv(8) }}
-            >
-              {mainImage && (
-                <Image
-                  src={mainImage}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="840px"
-                  style={{ opacity: imgOpacity }}
-                />
-              )}
-            </div>
+            {hasOnlyPlaceholderImages ? (
+              <div
+                className="relative w-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                style={{
+                  height: sv(577),
+                  borderRadius: sv(8),
+                  backgroundColor: "#d9d9d9",
+                }}
+              >
+                <div
+                  className="relative flex-shrink-0"
+                  style={{ width: sv(175), height: sv(175) }}
+                >
+                  <Image
+                    src={PRODUCT_DETAIL_EMPTY_LOGO}
+                    alt=""
+                    fill
+                    sizes="175px"
+                    className="object-contain"
+                    style={{ opacity: 0.95, mixBlendMode: "screen" }}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Hero image: aspect 732:510, border-radius 8px */
+              <div
+                className="relative w-full overflow-hidden bg-[#f0f0f0]"
+                style={{ aspectRatio: "732/510", borderRadius: sv(8) }}
+              >
+                {mainImage && (
+                  <Image
+                    src={mainImage}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="840px"
+                    style={{ opacity: imgOpacity }}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Thumbnail strip: 3 photos of the current product — gap 8px, 86×64 each */}
-            {currentImages.length > 0 && (
+            {!hasOnlyPlaceholderImages && currentImages.length > 0 && (
               <div className="flex" style={{ gap: sv(8) }}>
                 {currentImages.map((src, i) => (
                   <button
@@ -4057,7 +4107,7 @@ function ProductDetailModal({
                 </div>
 
                 {/* Alternative product swatches — gap 10px, items-center, shrink-0 — Figma 330:3605 */}
-                {swatches.length > 0 && (
+                {!hasOnlyPlaceholderImages && swatches.length > 0 && (
                   <div
                     className="flex items-center flex-shrink-0"
                     style={{ gap: sv(10) }}
@@ -4150,7 +4200,7 @@ function ProductDetailModal({
 
             {/* CTA button — Figma 330:3583: shrink-0, auto-width (parent has items-start) */}
             {/* selected → gray bg #737373 text #333; unselected → dark bg #262626 text #fff */}
-            {!hideSelectButton && (
+            {!hideSelectButton && !hasOnlyPlaceholderImages && (
               <button
                 className="flex items-center justify-center flex-shrink-0 transition-colors"
                 style={{
@@ -4850,6 +4900,7 @@ function ApprovedScreen({
   onHome: () => void;
 }) {
   const [activeTab, setActiveTab] = useState("Project Home");
+  const [approvedContractZoom, setApprovedContractZoom] = useState(1);
   const tabs = [
     "Project Home",
     "Contract",
@@ -4900,34 +4951,6 @@ function ApprovedScreen({
       onSelect: () => undefined,
     });
   };
-
-  const updates = [
-    {
-      date: "9/18/2027",
-      dateNote: " <3 days ago>",
-      title: "Wall & Ceiling Preparation Completed",
-      desc: "Surface preparation for the walls and ceilings is now complete. The project is moving forward into the next phase of interior finish installation.",
-      photos: [
-        "/assets/update-ps-1.png",
-        "/assets/update-ps-2.png",
-        "/assets/update-ps-3.png",
-      ],
-    },
-    {
-      date: "6/02/2027",
-      dateNote: "",
-      title: "Construction In Progress",
-      desc: "On-site work has officially started. Our team is currently completing site preparation and beginning the first phase of installation.",
-      photos: [],
-    },
-    {
-      date: "5/25/2027",
-      dateNote: "",
-      title: "Demolition Work Completed",
-      desc: "Demolition work has been completed and the project area has been cleared for the next phase of construction. Site preparation and layout work will begin next.",
-      photos: ["/assets/update-ps-4.png"],
-    },
-  ];
 
   return (
     <div
@@ -4993,7 +5016,7 @@ function ApprovedScreen({
           <div
             className="flex items-center overflow-x-auto scrollbar-none"
             style={{
-              padding: `${sv(16)} ${sv(32)}`,
+              padding: `${sv(16)} ${sv(32)} 0`,
               borderBottom: "0.5px solid rgba(0,0,0,0.2)",
             }}
           >
@@ -5005,7 +5028,7 @@ function ApprovedScreen({
                   className="flex-shrink-0 flex items-center justify-center text-[rgba(0,0,0,0.85)]"
                   style={{
                     height: sv(32),
-                    padding: `${sv(6)} ${sv(12)}`,
+                    padding: `${sv(6)} ${sv(12)} ${sv(16)}`,
                     fontSize: sv(14),
                     borderBottom:
                       activeTab === tab
@@ -5038,518 +5061,525 @@ function ApprovedScreen({
         {/* Left column: 840px */}
         <div
           className="flex-shrink-0 flex flex-col"
-          style={{ width: sv(840), gap: sv(27) }}
+          style={{ width: activeTab === "Contract" ? "100%" : sv(840), gap: sv(27) }}
         >
-          {/* Project Updates */}
-          <div
-            className="bg-white flex flex-col"
-            style={{
-              borderRadius: sv(12),
-              paddingLeft: sv(24),
-              paddingRight: sv(24),
-              paddingTop: sv(16),
-              paddingBottom: sv(24),
-              gap: sv(24),
-              boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
-            }}
-          >
-            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
-              <p
-                className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                style={{ fontSize: sv(14) }}
-              >
-                Project Updates
-              </p>
-            </div>
-
-            {updates.map((update, i) => (
-              <div
-                key={i}
-                className="flex flex-col w-full"
-                style={{
-                  paddingTop: sv(12),
-                  borderTop: "0.5px solid rgba(0,0,0,0.1)",
-                }}
-              >
-                {/* Date line */}
-                <p className="leading-normal mb-0" style={{ fontSize: sv(12) }}>
-                  <span className="font-semibold text-[#737373]">
-                    {update.date}
-                  </span>
-                  {update.dateNote && (
-                    <span className="text-[#262626]">{update.dateNote}</span>
-                  )}
-                </p>
-                {/* Title + info icon */}
+          {activeTab === "Contract" ? (
+            <div
+              className="flex flex-col relative"
+              style={{
+                width: "100%",
+                maxWidth: sv(902),
+                margin: "0 auto",
+              }}
+            >
+              <div className="relative min-h-0">
                 <div
-                  className="flex items-center w-full"
-                  style={{ gap: sv(2) }}
+                  className="overflow-auto"
+                  style={{ height: sv(1120) }}
                 >
-                  <p
-                    className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap leading-normal"
-                    style={{ fontSize: sv(14) }}
-                  >
-                    {update.title}
-                  </p>
                   <div
-                    className="flex-shrink-0 flex items-center justify-center"
-                    style={{ width: sv(24), height: sv(24) }}
+                    className="flex flex-col bg-[#f5f5f5]"
+                    style={{
+                      width: `${approvedContractZoom * 100}%`,
+                      minWidth: "100%",
+                      gap: sv(16),
+                    }}
                   >
-                    <InfoIcon />
-                  </div>
-                </div>
-                {/* Description */}
-                <p
-                  className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
-                  style={{ fontSize: sv(12), fontWeight: 300 }}
-                >
-                  {update.desc}
-                </p>
-                {/* Photos */}
-                {update.photos.length > 0 && (
-                  <div
-                    className="flex items-center"
-                    style={{ gap: sv(4), paddingTop: sv(8) }}
-                  >
-                    {update.photos.map((photo, j) => (
-                      <div
-                        key={j}
-                        className="flex-shrink-0"
-                        style={{
-                          width: sv(64),
-                          height: sv(64),
-                          padding: sv(2),
-                          borderRadius: sv(4),
-                        }}
-                      >
-                        <div
-                          className="relative w-full h-full overflow-hidden"
-                          style={{ borderRadius: sv(2) }}
-                        >
-                          <Image
-                            src={photo}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            sizes="64px"
-                          />
-                        </div>
-                      </div>
+                    {CONTRACT_PAGES.map((pageSrc, index) => (
+                      <Image
+                        key={pageSrc}
+                        src={pageSrc}
+                        alt={`Contract page ${index + 1}`}
+                        width={2380}
+                        height={3368}
+                        className="w-full h-auto block bg-white"
+                      />
                     ))}
                   </div>
-                )}
-              </div>
-            ))}
-
-            {/* Show More */}
-            <div
-              className="flex flex-col justify-center text-center whitespace-nowrap text-[rgba(0,0,0,0.85)]"
-              style={{ fontSize: sv(14) }}
-            >
-              <button className="underline leading-normal">Show More</button>
-            </div>
-          </div>
-
-          {/* Approved Scope */}
-          <div
-            className="bg-white flex flex-col"
-            style={{
-              borderRadius: sv(12),
-              paddingLeft: sv(24),
-              paddingRight: sv(24),
-              paddingTop: sv(16),
-              paddingBottom: sv(24),
-              gap: sv(24),
-              boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
-            }}
-          >
-            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
-              <p
-                className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
-                style={{ fontSize: sv(14) }}
-              >
-                Approved Scope
-              </p>
-            </div>
-            <SummaryGroup name="Fence Parts" items={fenceParts} onInfoClick={handleApprovedProductInfoClick} />
-            <SummaryGroup name="Gate" items={gateItems} onInfoClick={handleApprovedProductInfoClick} />
-            <SummaryGroup name="Sections" items={sectionParts} onInfoClick={handleApprovedProductInfoClick} />
-            <SummaryGroup name="Hardware" items={hardwareItems} onInfoClick={handleApprovedProductInfoClick} />
-            <SummaryGroup name="Additional Material" items={additionalMaterial} onInfoClick={handleApprovedProductInfoClick} />
-          </div>
-
-          {/* Drawings card */}
-          <div
-            className="bg-white flex flex-col"
-            style={{
-              borderRadius: sv(12),
-              paddingLeft: sv(24),
-              paddingRight: sv(24),
-              paddingTop: sv(16),
-              paddingBottom: sv(24),
-              gap: sv(24),
-              boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
-            }}
-          >
-            <div className="flex items-center" style={{ paddingTop: sv(16) }}>
-              <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
-                Drawings
-              </p>
-            </div>
-            <div className="relative" style={{ width: sv(792), height: sv(539) }}>
-              <div className="overflow-hidden relative" style={{ width: sv(792), height: sv(521) }}>
-                <Image
-                  src={FENCE_DRAWING_MAP}
-                  alt="Fence Drawing"
-                  fill
-                  className="object-contain"
-                  sizes="792px"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Fence Extended Warranty — full-bleed image card */}
-          <div
-            className="relative overflow-hidden flex-shrink-0 w-full"
-            style={{
-              aspectRatio: "1365 / 1024",
-              borderRadius: sv(12),
-              boxShadow: "0px 2px 10px 0px rgba(0,0,0,0.12), 0px 1px 2px 0px rgba(0,0,0,0.06)",
-            }}
-          >
-            <Image
-              src={FENCE_WARRANTY_IMG}
-              alt="Fence Extended Warranty"
-              fill
-              className="object-cover"
-              sizes="840px"
-            />
-          </div>
-        </div>
-
-        {/* Right column: 505px, sticky */}
-        <div
-          className="flex-shrink-0 flex flex-col items-center sticky"
-          style={{ width: sv(505), gap: sv(23), top: sv(158) }}
-        >
-          {/* Title */}
-          <div className="flex flex-col w-full text-[#262626] leading-normal">
-            <p className="font-semibold w-full" style={{ fontSize: sv(20) }}>
-              Fence Replacement - Henderson Backyard Fence
-            </p>
-            <p className="w-full" style={{ fontSize: sv(14) }}>
-              Proposal Approved on 3/18/2026
-            </p>
-          </div>
-
-          {/* Payment Progress + Next Payment */}
-          <div
-            className="flex flex-col w-full"
-            style={{
-              gap: sv(16),
-              paddingTop: sv(24),
-              paddingBottom: sv(24),
-              borderTop: "0.5px solid rgba(0,0,0,0.2)",
-            }}
-          >
-            {/* Payment Progress */}
-            <div className="flex flex-col w-full" style={{ gap: sv(4) }}>
-              <p
-                className="text-[#737373] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
-                style={{ fontSize: sv(14) }}
-              >
-                Payment Progress <sup style={{ fontSize: "7px" }}>1</sup>
-              </p>
-              <div className="flex flex-col items-start w-full">
-                <p
-                  className="leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
-                  style={{ fontSize: sv(20) }}
-                >
-                  <span className="text-[#262626]">$4,998 / </span>
-                  <span className="text-[#737373]">$9,999</span>
-                </p>
-                {/* Progress bar */}
+                </div>
                 <div
-                  className="flex items-center"
-                  style={{ width: sv(270), height: sv(18) }}
+                  className="absolute bottom-0 left-0 flex"
+                  style={{ gap: sv(12), padding: `${sv(24)} ${sv(24)}` }}
                 >
-                  <div
-                    className="flex-shrink-0"
+                  <button
+                    onClick={() =>
+                      setApprovedContractZoom((z) => Math.min(z + 0.25, 2))
+                    }
+                    className="flex items-center justify-center"
                     style={{
-                      width: sv(102),
-                      height: sv(2),
-                      background: "#262626",
+                      width: sv(48),
+                      height: sv(48),
+                      borderRadius: sv(4),
+                      backdropFilter: "blur(2px)",
+                      backgroundColor: "rgba(0,0,0,0.8)",
+                      boxShadow: "0 0 2px rgba(0,0,0,0.25)",
                     }}
-                  />
-                  <div
-                    className="flex-1"
-                    style={{ height: sv(2), background: "#d9d9d9" }}
-                  />
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      style={{ width: sv(20), height: sv(20) }}
+                    >
+                      <circle
+                        cx="10.5"
+                        cy="10.5"
+                        r="6.5"
+                        stroke="white"
+                        strokeWidth="1.5"
+                      />
+                      <path
+                        d="M7.5 10.5h6M10.5 7.5v6"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M16 16l4 4"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() =>
+                      setApprovedContractZoom((z) => Math.max(z - 0.25, 0.5))
+                    }
+                    className="flex items-center justify-center"
+                    style={{
+                      width: sv(48),
+                      height: sv(48),
+                      borderRadius: sv(4),
+                      backdropFilter: "blur(2px)",
+                      backgroundColor: "rgba(0,0,0,0.8)",
+                      boxShadow: "0 0 2px rgba(0,0,0,0.25)",
+                    }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      style={{ width: sv(20), height: sv(20) }}
+                    >
+                      <circle
+                        cx="10.5"
+                        cy="10.5"
+                        r="6.5"
+                        stroke="white"
+                        strokeWidth="1.5"
+                      />
+                      <path
+                        d="M7.5 10.5h6"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M16 16l4 4"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setApprovedContractZoom(1)}
+                    className="flex items-center justify-center"
+                    style={{
+                      width: sv(48),
+                      height: sv(48),
+                      borderRadius: sv(4),
+                      backdropFilter: "blur(2px)",
+                      backgroundColor: "rgba(0,0,0,0.8)",
+                      boxShadow: "0 0 2px rgba(0,0,0,0.25)",
+                    }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      style={{ width: sv(20), height: sv(20) }}
+                    >
+                      <path
+                        d="M4 9V4h5M4 4l6 6M20 9V4h-5m5 0l-6 6M4 15v5h5m-5 0l6-6M20 15v5h-5m5 0l-6-6"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Next Payment */}
-            <div className="flex flex-col w-full overflow-hidden text-ellipsis whitespace-nowrap">
-              <p
-                className="text-[#737373] leading-normal"
-                style={{ fontSize: sv(14) }}
-              >
-                Next Payment <sup style={{ fontSize: "7px" }}>2</sup>
-              </p>
-              <p
-                className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
-                style={{ fontSize: sv(32) }}
-              >
-                $4,999
-              </p>
-              <p
-                className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
-                style={{ fontSize: sv(12) }}
-              >
-                100% balance due at project completion{" "}
-                <span style={{ fontWeight: 300 }}>&lt;5/26/2028&gt;</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-col w-full" style={{ gap: sv(12) }}>
-            {/* Make A Payment */}
-            <button
-              className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
-              style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
-            >
-              Make A Payment
-            </button>
-
-            {/* Financing Service */}
-            <button
-              className="w-full border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
-              style={{
-                height: sv(40),
-                fontSize: sv(14),
-                borderRadius: sv(4),
-                gap: sv(2),
-              }}
-            >
-              <span
-                className="flex items-center justify-center h-full"
-                style={{ paddingLeft: sv(5), paddingRight: sv(5) }}
-              >
-                <svg
-                  viewBox="0 0 11 14"
-                  fill="none"
-                  className="flex-shrink-0"
-                  style={{ width: sv(11), height: sv(14) }}
-                >
-                  <rect
-                    x="0.5"
-                    y="0.5"
-                    width="10"
-                    height="13"
-                    rx="1"
-                    stroke="currentColor"
-                    strokeWidth="1"
-                  />
-                  <path
-                    d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2"
-                    stroke="currentColor"
-                    strokeWidth="0.9"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-              Financing Service
-            </button>
-
-            {/* Contact Sales + Request Change */}
-            <div className="flex w-full" style={{ gap: sv(12) }}>
-              <button
-                className="flex-1 border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+          ) : (
+            <>
+              {/* Approved Scope */}
+              <div
+                className="bg-white flex flex-col"
                 style={{
-                  height: sv(40),
-                  fontSize: sv(14),
-                  borderRadius: sv(4),
-                  gap: sv(2),
+                  borderRadius: sv(12),
+                  paddingLeft: sv(24),
+                  paddingRight: sv(24),
+                  paddingTop: sv(16),
+                  paddingBottom: sv(24),
+                  gap: sv(24),
+                  boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
                 }}
               >
-                <span
-                  className="flex items-center justify-center flex-shrink-0"
-                  style={{ width: sv(24), height: sv(22) }}
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    style={{ width: sv(16), height: sv(16) }}
+                <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+                  <p
+                    className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ fontSize: sv(14) }}
                   >
-                    <path
-                      d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z"
-                      stroke="currentColor"
-                      strokeWidth="1.1"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
-                Contact Sales
-              </button>
-              <button
-                className="flex-1 border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                    Approved Scope
+                  </p>
+                </div>
+                <SummaryGroup name="Fence Parts" items={fenceParts} onInfoClick={handleApprovedProductInfoClick} />
+                <SummaryGroup name="Gate" items={gateItems} onInfoClick={handleApprovedProductInfoClick} />
+                <SummaryGroup name="Sections" items={sectionParts} onInfoClick={handleApprovedProductInfoClick} />
+                <SummaryGroup name="Hardware" items={hardwareItems} onInfoClick={handleApprovedProductInfoClick} />
+                <SummaryGroup name="Additional Material" items={additionalMaterial} onInfoClick={handleApprovedProductInfoClick} />
+              </div>
+
+              {/* Drawings card */}
+              <div
+                className="bg-white flex flex-col"
                 style={{
-                  height: sv(40),
-                  fontSize: sv(14),
-                  borderRadius: sv(4),
-                  gap: sv(2),
+                  borderRadius: sv(12),
+                  paddingLeft: sv(24),
+                  paddingRight: sv(24),
+                  paddingTop: sv(16),
+                  paddingBottom: sv(24),
+                  gap: sv(24),
+                  boxShadow: "0px 0px 8px 0px rgba(0,0,0,0.2)",
                 }}
               >
-                <span
-                  className="flex items-center justify-center flex-shrink-0"
-                  style={{ width: sv(24), height: sv(24) }}
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    style={{ width: sv(16), height: sv(16) }}
-                  >
-                    <path
-                      d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM5 8h6M8 5l3 3-3 3"
-                      stroke="currentColor"
-                      strokeWidth="1.1"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                <div className="flex items-center" style={{ paddingTop: sv(16) }}>
+                  <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
+                    Drawings
+                  </p>
+                </div>
+                <div className="relative" style={{ width: sv(792), height: sv(539) }}>
+                  <div className="overflow-hidden relative" style={{ width: sv(792), height: sv(521) }}>
+                    <Image
+                      src={FENCE_DRAWING_MAP}
+                      alt="Fence Drawing"
+                      fill
+                      className="object-contain"
+                      sizes="792px"
                     />
-                  </svg>
-                </span>
-                Request Change
-              </button>
-            </div>
-          </div>
+                  </div>
+                </div>
+              </div>
 
-          {/* Download links */}
-          <div className="flex flex-col w-full">
-            <button
-              className="flex items-center bg-white w-full"
-              style={{
-                gap: sv(2),
-                height: sv(24),
-                paddingRight: sv(16),
-                paddingTop: sv(6),
-                paddingBottom: sv(6),
-                borderRadius: sv(4),
-              }}
-            >
-              <span
-                className="flex items-center justify-center flex-shrink-0"
-                style={{ width: sv(24), height: sv(24) }}
+              {/* Fence Extended Warranty — full-bleed image card */}
+              <div
+                className="relative overflow-hidden flex-shrink-0 w-full"
+                style={{
+                  aspectRatio: "1365 / 1024",
+                  borderRadius: sv(12),
+                  boxShadow: "0px 2px 10px 0px rgba(0,0,0,0.12), 0px 1px 2px 0px rgba(0,0,0,0.06)",
+                }}
               >
-                <svg
-                  viewBox="0 0 17 18"
-                  fill="none"
-                  style={{ width: sv(17), height: sv(18) }}
-                >
-                  <path
-                    d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15"
-                    stroke="#262626"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <span
-                className="text-[rgba(0,0,0,0.85)]"
-                style={{ fontSize: sv(12), lineHeight: "18px" }}
-              >
-                Download Contract Document [PDF]
-              </span>
-            </button>
-            <button
-              className="flex items-center bg-white w-full overflow-clip"
-              style={{
-                gap: sv(2),
-                height: sv(24),
-                paddingRight: sv(16),
-                paddingTop: sv(6),
-                paddingBottom: sv(6),
-                borderRadius: sv(4),
-              }}
-            >
-              <span
-                className="flex items-center justify-center flex-shrink-0"
-                style={{ width: sv(24), height: sv(18) }}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  style={{ width: sv(18), height: sv(18) }}
-                >
-                  <rect
-                    x="2"
-                    y="5"
-                    width="20"
-                    height="14"
-                    rx="2"
-                    stroke="#262626"
-                    strokeWidth="1.5"
-                  />
-                  <path
-                    d="M2 10h20M7 15h.01M12 15h5"
-                    stroke="#262626"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-              <span
-                className="text-[rgba(0,0,0,0.85)]"
-                style={{ fontSize: sv(12), lineHeight: "18px" }}
-              >
-                Payment Schedule &amp; Records
-              </span>
-            </button>
-          </div>
-
-          {/* Footnotes */}
-          <div
-            className="flex flex-col w-full"
-            style={{ gap: sv(12), paddingTop: sv(24) }}
-          >
-            <p
-              className="text-[#262626] leading-[0]"
-              style={{ fontWeight: 300, letterSpacing: "-0.22px" }}
-            >
-              <span className="leading-[1.5]" style={{ fontSize: sv(7) }}>
-                1{" "}
-              </span>
-              <span className="leading-[1.5]" style={{ fontSize: sv(11) }}>
-                Total project pricing is subject to change based on applicable
-                taxes, fees, payment timing, and any final project adjustments.
-                The final amount presented at the time of payment will control.
-              </span>
-            </p>
-            <p
-              className="text-[#262626] leading-[1.5] overflow-hidden text-ellipsis"
-              style={{
-                fontSize: sv(11),
-                fontWeight: 300,
-                letterSpacing: "-0.22px",
-              }}
-            >
-              <span style={{ fontSize: sv(7) }}>2 </span>
-              Any monthly payment information shown is an estimate only and is
-              not a financing offer. Final payment amounts, interest rates, and
-              loan terms are subject to lender review and will be confirmed
-              during the formal application process.
-            </p>
-            <div
-              className="flex flex-col justify-center text-center whitespace-nowrap text-[rgba(0,0,0,0.85)]"
-              style={{ fontSize: sv(11) }}
-            >
-              <button className="underline leading-normal">Read more</button>
-            </div>
-          </div>
+                <Image
+                  src={FENCE_WARRANTY_IMG}
+                  alt="Fence Extended Warranty"
+                  fill
+                  className="object-cover"
+                  sizes="840px"
+                />
+              </div>
+            </>
+          )}
         </div>
+
+        {activeTab !== "Contract" ? (
+          /* Right column: 505px, sticky */
+          <div
+            className="flex-shrink-0 flex flex-col items-center sticky"
+            style={{ width: sv(505), gap: sv(23), top: sv(158) }}
+          >
+            {/* Title */}
+            <div className="flex flex-col w-full text-[#262626] leading-normal">
+              <p className="font-semibold w-full" style={{ fontSize: sv(20) }}>
+                Fence Replacement - Henderson Backyard Fence
+              </p>
+              <p className="w-full" style={{ fontSize: sv(14) }}>
+                Proposal Approved on 3/18/2026
+              </p>
+            </div>
+
+            {/* Payment Progress + Next Payment */}
+            <div
+              className="flex flex-col w-full"
+              style={{
+                gap: sv(16),
+                paddingTop: sv(24),
+                paddingBottom: sv(24),
+                borderTop: "0.5px solid rgba(0,0,0,0.2)",
+              }}
+            >
+              {/* Payment Progress */}
+              <div className="flex flex-col w-full" style={{ gap: sv(4) }}>
+                <p
+                  className="text-[#737373] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
+                  style={{ fontSize: sv(14) }}
+                >
+                  Payment Progress <sup style={{ fontSize: "7px" }}>1</sup>
+                </p>
+                <div className="flex flex-col items-start w-full">
+                  <p
+                    className="leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ fontSize: sv(20) }}
+                  >
+                    <span className="text-[#262626]">$4,998 / </span>
+                    <span className="text-[#737373]">$9,999</span>
+                  </p>
+                  {/* Progress bar */}
+                  <div
+                    className="flex items-center"
+                    style={{ width: sv(270), height: sv(18) }}
+                  >
+                    <div
+                      className="flex-shrink-0"
+                      style={{
+                        width: sv(102),
+                        height: sv(2),
+                        background: "#262626",
+                      }}
+                    />
+                    <div
+                      className="flex-1"
+                      style={{ height: sv(2), background: "#d9d9d9" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Payment */}
+              <div className="flex flex-col w-full overflow-hidden text-ellipsis whitespace-nowrap">
+                <p
+                  className="text-[#737373] leading-normal"
+                  style={{ fontSize: sv(14) }}
+                >
+                  Next Payment <sup style={{ fontSize: "7px" }}>2</sup>
+                </p>
+                <p
+                  className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
+                  style={{ fontSize: sv(32) }}
+                >
+                  $4,999
+                </p>
+                <p
+                  className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
+                  style={{ fontSize: sv(12) }}
+                >
+                  100% balance due at project completion{" "}
+                  <span style={{ fontWeight: 300 }}>&lt;5/26/2028&gt;</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col w-full" style={{ gap: sv(12) }}>
+              {/* Make A Payment */}
+              <button
+                className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+                style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
+              >
+                Make A Payment
+              </button>
+
+              {/* Financing Service */}
+              <button
+                className="w-full border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                style={{
+                  height: sv(40),
+                  fontSize: sv(14),
+                  borderRadius: sv(4),
+                  gap: sv(2),
+                }}
+              >
+                <span
+                  className="flex items-center justify-center h-full"
+                  style={{ paddingLeft: sv(5), paddingRight: sv(5) }}
+                >
+                  <svg
+                    viewBox="0 0 11 14"
+                    fill="none"
+                    className="flex-shrink-0"
+                    style={{ width: sv(11), height: sv(14) }}
+                  >
+                    <rect
+                      x="0.5"
+                      y="0.5"
+                      width="10"
+                      height="13"
+                      rx="1"
+                      stroke="currentColor"
+                      strokeWidth="1"
+                    />
+                    <path
+                      d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2"
+                      stroke="currentColor"
+                      strokeWidth="0.9"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                Financing Service
+              </button>
+
+	              {/* Contact Sales + Download Contract */}
+	              <div className="flex w-full" style={{ gap: sv(12) }}>
+	                <button
+	                  className="flex-1 border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+                  style={{
+                    height: sv(40),
+                    fontSize: sv(14),
+                    borderRadius: sv(4),
+                    gap: sv(2),
+                  }}
+                >
+                  <span
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{ width: sv(24), height: sv(22) }}
+                  >
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      style={{ width: sv(16), height: sv(16) }}
+                    >
+                      <path
+                        d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z"
+                        stroke="currentColor"
+                        strokeWidth="1.1"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Contact Sales
+                </button>
+	                <button
+	                  className="flex-1 border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
+	                  style={{
+	                    height: sv(40),
+	                    fontSize: sv(14),
+	                    borderRadius: sv(4),
+	                    gap: sv(2),
+	                  }}
+	                >
+	                  <span
+	                    className="flex items-center justify-center flex-shrink-0"
+	                    style={{ width: sv(24), height: sv(24) }}
+	                  >
+	                    <svg
+	                      viewBox="0 0 17 18"
+	                      fill="none"
+	                      style={{ width: sv(17), height: sv(18) }}
+	                    >
+	                      <path
+	                        d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15"
+	                        stroke="currentColor"
+	                        strokeWidth="1.2"
+	                        strokeLinecap="round"
+	                        strokeLinejoin="round"
+	                      />
+	                    </svg>
+	                  </span>
+	                  Download Contract [PDF]
+	                </button>
+	              </div>
+	            </div>
+
+	            {/* Download links */}
+	            <div className="flex flex-col w-full">
+	              <button
+	                className="flex items-center bg-white w-full overflow-clip"
+	                style={{
+	                  gap: sv(2),
+                  height: sv(24),
+                  paddingRight: sv(16),
+                  paddingTop: sv(6),
+                  paddingBottom: sv(6),
+                  borderRadius: sv(4),
+                }}
+              >
+                <span
+                  className="flex items-center justify-center flex-shrink-0"
+                  style={{ width: sv(24), height: sv(18) }}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    style={{ width: sv(18), height: sv(18) }}
+                  >
+                    <rect
+                      x="2"
+                      y="5"
+                      width="20"
+                      height="14"
+                      rx="2"
+                      stroke="#262626"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d="M2 10h20M7 15h.01M12 15h5"
+                      stroke="#262626"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                <span
+                  className="text-[rgba(0,0,0,0.85)]"
+                  style={{ fontSize: sv(12), lineHeight: "18px" }}
+                >
+                  Payment Schedule &amp; Records
+                </span>
+              </button>
+            </div>
+
+            {/* Footnotes */}
+            <div
+              className="flex flex-col w-full"
+              style={{ gap: sv(12), paddingTop: sv(24) }}
+            >
+              <p
+                className="text-[#262626] leading-[0]"
+                style={{ fontWeight: 300, letterSpacing: "-0.22px" }}
+              >
+                <span className="leading-[1.5]" style={{ fontSize: sv(7) }}>
+                  1{" "}
+                </span>
+                <span className="leading-[1.5]" style={{ fontSize: sv(11) }}>
+                  Total project pricing is subject to change based on applicable
+                  taxes, fees, payment timing, and any final project adjustments.
+                  The final amount presented at the time of payment will control.
+                </span>
+              </p>
+              <p
+                className="text-[#262626] leading-[1.5] overflow-hidden text-ellipsis"
+                style={{
+                  fontSize: sv(11),
+                  fontWeight: 300,
+                  letterSpacing: "-0.22px",
+                }}
+              >
+                <span style={{ fontSize: sv(7) }}>2 </span>
+                Any monthly payment information shown is an estimate only and is
+                not a financing offer. Final payment amounts, interest rates, and
+                loan terms are subject to lender review and will be confirmed
+                during the formal application process.
+              </p>
+              <div
+                className="flex flex-col justify-center text-center whitespace-nowrap text-[rgba(0,0,0,0.85)]"
+                style={{ fontSize: sv(11) }}
+              >
+                <button className="underline leading-normal">Read more</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
       {approvedProductDetailModal && (
         <ProductDetailModal
