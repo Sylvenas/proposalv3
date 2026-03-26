@@ -45,6 +45,14 @@ const INSPECTION_REPORT_IMAGE_8 =
   "/assets/figma-local/5a2ab62f-2406-43f6-b3a2-8a3af77e6ce6-3123c2f005.png";
 const INSPECTION_VIDEO_ICON =
   "/assets/figma-local/7acf45ae-fdae-49ab-9554-5d71be8157fc-b9adcd46f8.svg";
+const FENCE_HERO_LOGO =
+  "/assets/figma-local/b02f8bc3-57dc-4213-9641-c04f056d81a2-4dded8ea44.jpg";
+const FENCE_NAV_LOGO =
+  "/assets/figma-local/670f5677-273c-4b14-b4f6-461a424e2a1d-01b30d815b.png";
+const FENCE_HOME_ICON =
+  "/assets/figma-local/e71d420a-1b53-4a10-baad-4d92f787ca2d-7d8bb73ca7.svg";
+const FENCE_USER_ICON =
+  "/assets/figma-local/67ec092e-9b3f-4e5e-bdf6-04af373f05f6-97149766fa.svg";
 
 function getItemPrice(item: ODAItem): number {
   if (!item.isAddon) {
@@ -1284,26 +1292,53 @@ function LandingScreen({
   onContinue: () => void;
   onHome: () => void;
 }) {
-  const { heroImage } = odaProjectInfo;
+  const HERO_DESIGN_WIDTH = 1440;
+  const HERO_DESIGN_HEIGHT = 1024;
+  const HERO_MAX_SCALE = 1;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const heroActionsRef = useRef<HTMLDivElement>(null);
   const [inspectionModal, setInspectionModal] = useState<{
     entryIndex: number;
     mediaIndex: number;
   } | null>(null);
   const [isInspectionSectionPinned, setIsInspectionSectionPinned] =
     useState(false);
+  const [heroScale, setHeroScale] = useState(1);
+
+  const hsv = (px: number) => `${px * heroScale}px`;
 
   // Track when section 2 has reached the top so the top nav can appear.
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
+
     const onScroll = () => {
-      const scrollTop = container.scrollTop;
-      const vh = container.clientHeight;
-      setIsInspectionSectionPinned(scrollTop >= vh);
+      const actionsRect = heroActionsRef.current?.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      if (!actionsRect) {
+        setIsInspectionSectionPinned(false);
+        return;
+      }
+
+      setIsInspectionSectionPinned(actionsRect.bottom <= containerRect.top);
     };
+
+    onScroll();
     container.addEventListener("scroll", onScroll, { passive: true });
     return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const updateHeroScale = () => {
+      const widthScale = window.innerWidth / HERO_DESIGN_WIDTH;
+      const heightScale = window.innerHeight / HERO_DESIGN_HEIGHT;
+      setHeroScale(Math.min(widthScale, heightScale, HERO_MAX_SCALE));
+    };
+
+    updateHeroScale();
+    window.addEventListener("resize", updateHeroScale, { passive: true });
+    return () => window.removeEventListener("resize", updateHeroScale);
   }, []);
 
   const scrollToTop = () => {
@@ -1388,43 +1423,27 @@ function LandingScreen({
         className="flex items-center justify-center text-[#262626]"
         style={{ width: sv(24), height: sv(24) }}
       >
-        <svg
-          style={{ width: sv(18), height: sv(16) }}
-          viewBox="0 0 18 16"
-          fill="none"
-        >
-          <path
-            d="M1 6L9 1L17 6V15H11.5V10.5H6.5V15H1V6Z"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <img
+          src={FENCE_HOME_ICON}
+          alt="Home"
+          style={{ width: sv(17.99), height: sv(15.98) }}
+        />
       </button>
-      <ODALogo size="sm" />
+      <img
+        src={FENCE_NAV_LOGO}
+        alt="Madison Fence Company"
+        style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+      />
       <button
+        onClick={onHome}
         className="flex items-center justify-center text-[#737373]"
         style={{ width: sv(24), height: sv(24) }}
       >
-        <svg
-          style={{ width: sv(17), height: sv(17) }}
-          viewBox="0 0 17 17"
-          fill="none"
-        >
-          <circle
-            cx="8.5"
-            cy="5.5"
-            r="3"
-            stroke="currentColor"
-            strokeWidth="1.2"
-          />
-          <path
-            d="M1.5 15.5C1.5 12.7386 4.68629 10.5 8.5 10.5C12.3137 10.5 15.5 12.7386 15.5 15.5"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-        </svg>
+        <img
+          src={FENCE_USER_ICON}
+          alt="Account"
+          style={{ width: sv(14), height: sv(15.98) }}
+        />
       </button>
     </nav>
   );
@@ -1445,116 +1464,154 @@ function LandingScreen({
         style={{
           height: "100vh",
           overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
+          position: "relative",
         }}
       >
         <div
-          className="flex flex-col flex-1 overflow-hidden"
-          style={{ width: "100%", maxWidth: sv(1440), margin: "0 auto" }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#262626",
+          }}
         >
-          {/* Logo */}
+          {/* Company Logo */}
           <div
             style={{
-              padding: `${sv(39)} 0 ${sv(24)} ${sv(95)}`,
+              width: hsv(281),
+              height: hsv(281),
               flexShrink: 0,
             }}
           >
-            <ODALogo size="sm" />
+            <img
+              src={FENCE_HERO_LOGO}
+              alt="Madison Fence Company"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           </div>
 
-          {/* Hero image — fills remaining height, dynamically cropped */}
+          {/* Spacer between logo and title block */}
+          <div style={{ height: hsv(79), flexShrink: 0 }} />
+
+          {/* Title Block: address + title + prepared for */}
           <div
-            className="relative flex-1 overflow-hidden"
-            style={{ margin: `0 ${sv(95)} ${sv(40)}` }}
+            className="flex flex-col items-center"
+            style={{
+              flexShrink: 0,
+            }}
           >
-            <Image
-              src={heroImage}
-              alt="Architecture"
-              fill
-              className="object-cover"
-              sizes="(max-width:1280px) calc(100vw - 190px), 1250px"
-              priority
-            />
-
-            {/* Gradient */}
-            <div
-              className="absolute bottom-0 left-0 right-0 pointer-events-none"
+            <p
+              className="m-0 text-center whitespace-nowrap"
               style={{
-                height: sv(216),
-                background:
-                  "linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.5))",
+                fontSize: hsv(20),
+                fontWeight: 300,
+                lineHeight: "normal",
               }}
-            />
-
-            {/* Title — bottom left */}
-            <div className="absolute" style={{ left: sv(44), bottom: sv(38) }}>
-              <p
-                className="text-white m-0 leading-tight"
-                style={{
-                  fontSize: sv(48),
-                  fontWeight: 300,
-                  letterSpacing: sv(-2.4),
-                }}
-              >
-                HOME RENOVATION
-              </p>
-              <p
-                className="text-white m-0 leading-tight"
-                style={{
-                  fontSize: sv(48),
-                  fontWeight: 300,
-                  letterSpacing: sv(-2.4),
-                }}
-              >
-                PROPOSAL
-              </p>
-            </div>
-
-            {/* Tagline + buttons — bottom right */}
-            <div
-              className="absolute flex items-center"
-              style={{ right: sv(44), bottom: sv(32), gap: sv(16) }}
             >
-              <p
-                className="text-white m-0 whitespace-nowrap"
-                style={{ fontSize: sv(14) }}
-              >
-                Where curation meets legacy, define your singular dimensions.
-              </p>
-              <button
-                onClick={scrollToInspection}
-                className="flex-shrink-0 flex items-center justify-center text-white font-semibold uppercase transition-opacity hover:opacity-80"
-                style={{
-                  height: sv(40),
-                  padding: `0 ${sv(16)}`,
-                  fontSize: sv(14),
-                  letterSpacing: sv(1),
-                  background: "rgba(116,116,116,0.7)",
-                  border: `${sv(1)} solid white`,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                INSPECTION REPORT
-              </button>
-              <button
-                onClick={onContinue}
-                className="flex-shrink-0 flex items-center justify-center font-semibold uppercase transition-opacity hover:opacity-80"
-                style={{
-                  height: sv(40),
-                  padding: `0 ${sv(16)}`,
-                  fontSize: sv(14),
-                  letterSpacing: sv(1),
-                  background: "rgba(255,255,255,0.9)",
-                  border: `${sv(1)} solid white`,
-                  color: "#333",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                EXPLORE OPTIONS
-              </button>
-            </div>
+              {"1722 Willis Ave NW, Grand Rapids, MI 49504 "}
+            </p>
+            <h1
+              className="m-0 text-center whitespace-nowrap"
+              style={{
+                fontSize: hsv(48),
+                fontWeight: 300,
+                lineHeight: "normal",
+                letterSpacing: hsv(-0.48),
+              }}
+            >
+              FENCE REPLACEMENT PROPOSAL
+            </h1>
+            <p
+              className="m-0 text-center whitespace-nowrap"
+              style={{
+                paddingTop: hsv(8),
+                fontSize: hsv(20),
+                fontWeight: 300,
+                lineHeight: "normal",
+              }}
+            >
+              {"Prepared for Michael Rozier "}
+            </p>
           </div>
+
+          {/* Spacer */}
+          <div style={{ height: hsv(96), flexShrink: 0 }} />
+
+          {/* Build Your Dream Fence */}
+          <p
+            className="m-0 text-center whitespace-nowrap"
+            style={{
+              fontSize: hsv(20),
+              fontWeight: 300,
+              lineHeight: "normal",
+              flexShrink: 0,
+            }}
+          >
+            Build Your Dream Fence
+          </p>
+
+          {/* Spacer */}
+          <div style={{ height: hsv(49), flexShrink: 0 }} />
+
+          {/* Action Buttons */}
+          <div
+            ref={heroActionsRef}
+            className="flex items-center"
+            style={{ gap: hsv(8), flexShrink: 0 }}
+          >
+            <button
+              onClick={scrollToInspection}
+              className="flex items-center justify-center transition-opacity hover:opacity-85"
+              style={{
+                width: hsv(168),
+                height: hsv(40),
+                border: `${hsv(1)} solid #262626`,
+                backgroundColor: "#ffffff",
+                color: "rgba(0,0,0,0.85)",
+                fontSize: hsv(14),
+                fontWeight: 400,
+                lineHeight: hsv(18),
+                cursor: "pointer",
+              }}
+            >
+              INSPECTION REPORT
+            </button>
+            <button
+              onClick={onContinue}
+              className="flex items-center justify-center transition-opacity hover:opacity-85"
+              style={{
+                width: hsv(168),
+                height: hsv(40),
+                backgroundColor: "#d41a32",
+                color: "#ffffff",
+                fontSize: hsv(14),
+                fontWeight: 600,
+                lineHeight: hsv(18),
+                cursor: "pointer",
+              }}
+            >
+              EXPLORE OPTIONS
+            </button>
+          </div>
+
+          {/* Spacer */}
+          <div style={{ height: hsv(14), flexShrink: 0 }} />
+
+          {/* Valid Until */}
+          <p
+            className="m-0 text-center whitespace-nowrap"
+            style={{
+              fontSize: hsv(16),
+              fontWeight: 300,
+              lineHeight: "normal",
+              flexShrink: 0,
+            }}
+          >
+            Valid Until: April 30, 2026
+          </p>
         </div>
       </section>
 
@@ -1567,7 +1624,12 @@ function LandingScreen({
             position: "sticky",
             top: 0,
             zIndex: 20,
-            borderBottom: `0.5px solid rgba(0,0,0,0.2)`,
+            borderBottom: isInspectionSectionPinned
+              ? `0.5px solid rgba(0,0,0,0.2)`
+              : "0.5px solid transparent",
+            opacity: isInspectionSectionPinned ? 1 : 0,
+            pointerEvents: isInspectionSectionPinned ? "auto" : "none",
+            transition: "opacity 0.2s ease, border-color 0.2s ease",
           }}
         >
           <div
@@ -1575,8 +1637,6 @@ function LandingScreen({
               width: "100%",
               maxWidth: sv(1440),
               margin: "0 auto",
-              opacity: isInspectionSectionPinned ? 1 : 0,
-              pointerEvents: isInspectionSectionPinned ? "auto" : "none",
               transition: "opacity 0.2s ease",
             }}
           >

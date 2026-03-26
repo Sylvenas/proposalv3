@@ -1563,23 +1563,26 @@ function LandingScreen({
         style={{
           height: "100vh",
           overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
+          position: "relative",
         }}
       >
         <div
-          className="flex flex-col flex-1 overflow-hidden items-center"
           style={{
-            width: "100%",
-            maxWidth: sv(1440),
-            margin: "0 auto",
-            paddingTop: hsv(137),
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#262626",
           }}
         >
+          {/* Company Logo */}
           <div
             style={{
               width: hsv(281),
               height: hsv(281),
+              flexShrink: 0,
             }}
           >
             <img
@@ -1588,28 +1591,28 @@ function LandingScreen({
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           </div>
+
+          {/* Spacer between logo and title block */}
+          <div style={{ height: hsv(79), flexShrink: 0 }} />
+
+          {/* Title Block: address + title + prepared for */}
           <div
             className="flex flex-col items-center"
-            style={{
-              width: hsv(703),
-              marginTop: hsv(76),
-              color: "#262626",
-            }}
+            style={{ flexShrink: 0 }}
           >
             <p
-              className="m-0 text-center"
+              className="m-0 text-center whitespace-nowrap"
               style={{
                 fontSize: hsv(20),
                 fontWeight: 300,
                 lineHeight: "normal",
               }}
             >
-              1722 Willis Ave NW, Grand Rapids, MI 49504
+              {"1722 Willis Ave NW, Grand Rapids, MI 49504 "}
             </p>
             <h1
-              className="m-0 text-center"
+              className="m-0 text-center whitespace-nowrap"
               style={{
-                marginTop: hsv(2),
                 fontSize: hsv(48),
                 fontWeight: 300,
                 lineHeight: "normal",
@@ -1619,54 +1622,93 @@ function LandingScreen({
               FENCE REPLACEMENT PROPOSAL
             </h1>
             <p
-              className="m-0 text-center"
+              className="m-0 text-center whitespace-nowrap"
               style={{
-                marginTop: hsv(68),
+                paddingTop: hsv(8),
                 fontSize: hsv(20),
                 fontWeight: 300,
                 lineHeight: "normal",
               }}
             >
-              Build Your Dream Fence
+              {"Prepared for Michael Rozier "}
             </p>
-            <div
-              ref={heroActionsRef}
-              className="flex items-center"
-              style={{ marginTop: hsv(86), gap: hsv(8) }}
-            >
-              <button
-                onClick={scrollToInspection}
-                className="flex items-center justify-center transition-opacity hover:opacity-85"
-                style={{
-                  width: hsv(168),
-                  height: hsv(40),
-                  border: `${hsv(1)} solid #262626`,
-                  backgroundColor: "#ffffff",
-                  color: "rgba(0,0,0,0.85)",
-                  fontSize: hsv(14),
-                  fontWeight: 400,
-                  lineHeight: hsv(18),
-                }}
-              >
-                INSPECTION REPORT
-              </button>
-              <button
-                onClick={onContinue}
-                className="flex items-center justify-center transition-opacity hover:opacity-85"
-                style={{
-                  width: hsv(168),
-                  height: hsv(40),
-                  backgroundColor: "#d41a32",
-                  color: "#ffffff",
-                  fontSize: hsv(14),
-                  fontWeight: 600,
-                  lineHeight: hsv(18),
-                }}
-              >
-                EXPLORE OPTIONS
-              </button>
-            </div>
           </div>
+
+          {/* Spacer */}
+          <div style={{ height: hsv(96), flexShrink: 0 }} />
+
+          {/* Build Your Dream Fence */}
+          <p
+            className="m-0 text-center whitespace-nowrap"
+            style={{
+              fontSize: hsv(20),
+              fontWeight: 300,
+              lineHeight: "normal",
+              flexShrink: 0,
+            }}
+          >
+            Build Your Dream Fence
+          </p>
+
+          {/* Spacer */}
+          <div style={{ height: hsv(49), flexShrink: 0 }} />
+
+          {/* Action Buttons */}
+          <div
+            ref={heroActionsRef}
+            className="flex items-center"
+            style={{ gap: hsv(8), flexShrink: 0 }}
+          >
+            <button
+              onClick={scrollToInspection}
+              className="flex items-center justify-center transition-opacity hover:opacity-85"
+              style={{
+                width: hsv(168),
+                height: hsv(40),
+                border: `${hsv(1)} solid #262626`,
+                backgroundColor: "#ffffff",
+                color: "rgba(0,0,0,0.85)",
+                fontSize: hsv(14),
+                fontWeight: 400,
+                lineHeight: hsv(18),
+                cursor: "pointer",
+              }}
+            >
+              INSPECTION REPORT
+            </button>
+            <button
+              onClick={onContinue}
+              className="flex items-center justify-center transition-opacity hover:opacity-85"
+              style={{
+                width: hsv(168),
+                height: hsv(40),
+                backgroundColor: "#d41a32",
+                color: "#ffffff",
+                fontSize: hsv(14),
+                fontWeight: 600,
+                lineHeight: hsv(18),
+                cursor: "pointer",
+              }}
+            >
+              EXPLORE OPTIONS
+            </button>
+          </div>
+
+          {/* Spacer */}
+          <div style={{ height: hsv(14), flexShrink: 0 }} />
+
+          {/* Valid Until */}
+          <p
+            className="m-0 text-center whitespace-nowrap"
+            style={{
+              fontSize: hsv(16),
+              fontWeight: 300,
+              lineHeight: "normal",
+              flexShrink: 0,
+            }}
+          >
+            Valid Until: April 30, 2026
+          </p>
         </div>
       </section>
 
@@ -2545,7 +2587,8 @@ function OptionsScreen({
           minHeight: 0,
           backgroundColor: "#EDEDED",
           gap: sv(24),
-          paddingBottom: sv(32),
+          paddingBottom: sv(48),
+          boxShadow: "0px 4px 16px rgba(0,0,0,0.12), 0px 1px 4px rgba(0,0,0,0.08)",
         }}
       >
         <div
@@ -2572,7 +2615,7 @@ function OptionsScreen({
         >
           <p
             style={{
-              fontSize: sv(16),
+              fontSize: sv(18),
               fontWeight: 600,
               color: "#262626",
               width: "100%",
@@ -2592,10 +2635,10 @@ function OptionsScreen({
           >
             <p
               style={{
-                fontSize: sv(14),
+                fontSize: sv(16),
                 color: "#262626",
                 width: "100%",
-                letterSpacing: sv(-0.14),
+                letterSpacing: sv(-0.16),
                 lineHeight: "normal",
               }}
             >
@@ -2603,10 +2646,10 @@ function OptionsScreen({
             </p>
             <p
               style={{
-                fontSize: sv(14),
+                fontSize: sv(16),
                 color: "#262626",
                 width: "100%",
-                letterSpacing: sv(-0.14),
+                letterSpacing: sv(-0.16),
                 lineHeight: "normal",
               }}
             >
@@ -2614,11 +2657,11 @@ function OptionsScreen({
             </p>
             <p
               style={{
-                fontSize: sv(20),
+                fontSize: sv(22),
                 fontWeight: 600,
                 color: "#262626",
                 width: "100%",
-                letterSpacing: sv(-0.2),
+                letterSpacing: sv(-0.22),
                 lineHeight: "normal",
               }}
             >
@@ -2792,6 +2835,13 @@ function OptionsScreen({
   };
 
   return (
+    <>
+    <style>{`
+      @keyframes bounceUpDown {
+        0%, 100% { transform: translateY(-4px); }
+        50% { transform: translateY(12px); }
+      }
+    `}</style>
     <div
       className="bg-white"
       style={{
@@ -2968,59 +3018,57 @@ function OptionsScreen({
             </div>
             <div
               className="flex flex-col items-center"
-              style={{ width: sv(420), gap: sv(16), paddingBottom: sv(80) }}
+              style={{ gap: sv(16), paddingBottom: sv(64), paddingTop: sv(16) }}
             >
               <div
-                className="text-center"
-                style={{ fontSize: sv(14), color: "#262626" }}
+                className="text-center whitespace-nowrap"
+                style={{ fontSize: sv(14), color: "#262626", lineHeight: 0 }}
               >
-                <p style={{ fontWeight: 600, marginBottom: sv(4) }}>
-                  Need support choosing a option?
+                <p style={{ fontWeight: 600, marginBottom: sv(4), lineHeight: "normal" }}>
+                  {"Need support choosing a option? "}
                 </p>
-                <p style={{ fontWeight: 300 }}>
+                <p style={{ fontWeight: 300, lineHeight: "normal" }}>
                   Compare different options to help you decide which one fits you
                   best.
                 </p>
               </div>
               <button
                 onClick={scrollToCompare}
-                className="flex items-center justify-center"
+                className="flex flex-col items-center justify-center"
                 style={{
-                  width: sv(141),
-                  height: sv(32),
                   padding: `${sv(6)} ${sv(4)}`,
                   gap: sv(4),
                   borderRadius: sv(4),
                   background: "transparent",
                   border: "none",
                   color: "#262626",
+                  cursor: "pointer",
                 }}
               >
-                <div
-                  className="flex items-center justify-end"
-                  style={{ width: sv(20) }}
-                >
-                  <div
-                    className="relative"
-                    style={{ width: sv(24), height: sv(24) }}
-                  >
-                    <img
-                      src={OPTION_COMPARE_ICON}
-                      alt=""
-                      style={{
-                        position: "absolute",
-                        width: sv(10.131),
-                        height: sv(10.131),
-                        left: "50%",
-                        top: "50%",
-                        transform: "translate(-50%, -50%)",
-                      }}
-                    />
-                  </div>
-                </div>
-                <span style={{ fontSize: sv(14), lineHeight: sv(18), whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: sv(20), fontWeight: 300, lineHeight: sv(18), whiteSpace: "nowrap" }}>
                   Compare Options
                 </span>
+                <div
+                  className="overflow-hidden relative"
+                  style={{
+                    width: sv(24),
+                    height: sv(24),
+                    animation: "bounceUpDown 1.5s ease-in-out infinite",
+                  }}
+                >
+                  <img
+                    src={OPTION_COMPARE_ICON}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      width: sv(10.131),
+                      height: sv(10.131),
+                      left: "50%",
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  />
+                </div>
               </button>
             </div>
           </div>
@@ -3216,6 +3264,7 @@ function OptionsScreen({
         />
       )}
     </div>
+    </>
   );
 }
 
@@ -3386,20 +3435,6 @@ function SummaryGroup({
                         {item.unit}
                       </p>
                     </div>
-                    <div
-                      className="flex items-center flex-shrink-0"
-                      style={{
-                        gap: sv(2),
-                        width: sv(124),
-                        fontWeight: 300,
-                        color: "#262626",
-                      }}
-                    >
-                      <p className="flex-shrink-0">$</p>
-                      <p className="flex-1 min-w-0">
-                        {item.price.toLocaleString()}
-                      </p>
-                    </div>
                   </div>
                   {/* Actions: w-[112px] */}
                   <div
@@ -3547,29 +3582,6 @@ function SummaryGroup({
                   >
                     {item.unit}
                   </p>
-                </div>
-                {/* Spacer: w-[64px] */}
-                <div
-                  className="flex-shrink-0 bg-white"
-                  style={{ width: sv(64), height: sv(19) }}
-                />
-                {/* Price: w-[124px], gap-[2px], semilight 14px */}
-                <div
-                  className="flex items-center flex-shrink-0"
-                  style={{ width: sv(124), gap: sv(2), fontWeight: 300 }}
-                >
-                  <span
-                    className="text-[#262626] flex-shrink-0"
-                    style={{ fontSize: sv(14) }}
-                  >
-                    $
-                  </span>
-                  <span
-                    className="flex-1 text-[#262626]"
-                    style={{ fontSize: sv(14) }}
-                  >
-                    {item.price.toLocaleString()}
-                  </span>
                 </div>
                 {/* Actions: w-[112px] */}
                 <div
@@ -4680,9 +4692,8 @@ function DetailScreen({
             }}
           >
             {[
-              { label: "Materials & Components", value: "$6,180" },
-              { label: "Installation", value: "$2,850" },
-              { label: "Discount <-5%>", value: "-$300" },
+              { label: "Materials & Installation", value: "$9,030" },
+              { label: "Discount -5%", value: "$300" },
               { label: "Sales Tax & Fees", value: "$1,269" },
             ].map(({ label, value }) => (
               <div key={label} className="flex flex-col" style={{ paddingBottom: sv(2) }}>
