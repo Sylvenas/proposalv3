@@ -14,6 +14,12 @@ const pages = [
       'An isolated copy of the proposal future blueprint page for independent edits without affecting the original prototype.',
   },
   {
+    href: '/proposal-fence',
+    title: 'Proposal Fence',
+    description:
+      'A full copy of Proposal V3 for independent iteration on the fence proposal flow.',
+  },
+  {
     href: '/proposal-html-render',
     title: 'Proposal HTML Render',
     description:
