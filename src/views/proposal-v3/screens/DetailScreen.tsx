@@ -1,20 +1,21 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import type { ODAItem, ODAOption } from "@/data/odaMockDataCopy";
-
 import { ODALogo } from "../components/ODALogo";
 import { ProductDetailModal } from "../components/ProductDetailModal";
 import { SignModal } from "../components/SignModal";
 import { SummaryGroup } from "../components/SummaryGroup";
-import { FENCE_DRAWING_MAP, FENCE_THUMB_CAP, FENCE_THUMB_GATE_1, FENCE_THUMB_GATE_3, FENCE_THUMB_PANEL, FENCE_THUMB_POST_INSERT, type SummaryLineItem, FENCE_WARRANTY_IMG, sv } from "../shared";
+import type { ODAItem, ODAOption, ProposalV3Data, SummaryLineItem } from "../schema";
+import { sv } from "../shared";
 
 export function DetailScreen({
+  data,
   option,
   onBack,
   onApprove,
   onHome,
 }: {
+  data: ProposalV3Data;
   option: ODAOption;
   onBack: () => void;
   onApprove: () => void;
@@ -29,35 +30,6 @@ export function DetailScreen({
     sectionName: string;
     onSelect: (swatchIdx: number) => void;
   } | null>(null);
-
-  // Fixed product sections for Option 2 - Vinyl Traditions Fence
-  const mkItem = (id: string, name: string, price: number, img: string): ODAItem => ({
-    id, name, spec: "", price, previewImage: img,
-  });
-  const fenceParts: SummaryLineItem[] = [
-    { name: "Vinyl | Stratford | 4' | Panel | White", qty: "17", unit: "sec.", price: 2125, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-1", "Vinyl | Stratford | 4' | Panel | White", 2125, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | End Post | White", qty: "2", unit: "pcs", price: 140, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-2", "Vinyl | Stratford | 4' | End Post | White", 140, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | Corner Post | White", qty: "8", unit: "pcs.", price: 520, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-3", "Vinyl | Stratford | 4' | Corner Post | White", 520, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | Line Post | White", qty: "32", unit: "pcs", price: 760, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-4", "Vinyl | Stratford | 4' | Line Post | White", 760, FENCE_THUMB_PANEL) },
-  ];
-  const gateItems: SummaryLineItem[] = [
-    { name: "Vinyl | Stratford | 4' | 5'W Gate | White", qty: "1", unit: "sets", price: 560, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem("g-1", "Vinyl | Stratford | 4' | 5'W Gate | White", 560, FENCE_THUMB_GATE_1) },
-    { name: "Vinyl | Stratford | 5' | 4'W Gate | White", qty: "1", unit: "sets", price: 520, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem("g-2", "Vinyl | Stratford | 5' | 4'W Gate | White", 520, FENCE_THUMB_GATE_1) },
-    { name: "Vinyl | Stratford | 5' | 5'W Gate | White", qty: "1", unit: "sets", price: 610, thumbnailSrc: FENCE_THUMB_GATE_3, showChange: false, odaItem: mkItem("g-3", "Vinyl | Stratford | 5' | 5'W Gate | White", 610, FENCE_THUMB_GATE_3) },
-  ];
-  const sectionParts: SummaryLineItem[] = [
-    { name: `7/8" x 8' CQ20 Galv Post`, qty: "2", unit: "pcs.", price: 90, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("sp-1", `7/8" x 8' CQ20 Galv Post`, 90, FENCE_THUMB_PANEL) },
-    { name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`, qty: "2", unit: "pcs.", price: 120, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("sp-2", `5" x 5" Heavy Duty Post Stiffeners`, 120, FENCE_THUMB_PANEL) },
-  ];
-  const hardwareItems: SummaryLineItem[] = [
-    { name: `Vinyl | 5" New England Cap - White`, qty: "18", unit: "pcs.", price: 85, thumbnailSrc: FENCE_THUMB_CAP, showChange: false, odaItem: mkItem("hw-1", `Vinyl | 5" New England Cap - White`, 85, FENCE_THUMB_CAP) },
-    { name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, qty: "2", unit: "pcs.", price: 140, thumbnailSrc: FENCE_THUMB_POST_INSERT, showChange: false, odaItem: mkItem("hw-2", `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, 140, FENCE_THUMB_POST_INSERT) },
-    { name: "Vinyl | Std Latch - 1 Side - External - Keyed - Black", qty: "1", unit: "sets", price: 95, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("hw-3", "Vinyl | Std Latch - 1 Side - External - Keyed - Black", 95, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Std Self Close Adj Hinge - Pair - Black", qty: "2", unit: "pairs", price: 110, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("hw-4", "Vinyl | Std Self Close Adj Hinge - Pair - Black", 110, FENCE_THUMB_PANEL) },
-  ];
-  const additionalMaterial: SummaryLineItem[] = [
-    { name: "Concrete 50 lb Bag", qty: "20", unit: "bags", price: 305, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("am-1", "Concrete 50 lb Bag", 305, FENCE_THUMB_PANEL) },
-  ];
 
   const handleProductInfoClick = (item: SummaryLineItem) => {
     if (!item.odaItem) return;
@@ -101,7 +73,7 @@ export function DetailScreen({
                 />
               </svg>
             </button>
-            <ODALogo size="sm" />
+            <ODALogo src={data.project.contractorLogoHeader} alt={data.project.contractorName} size="sm" />
             <button
               className="flex items-center justify-center text-[#262626] hover:opacity-60"
               style={{ width: sv(24), height: sv(24) }}
@@ -165,7 +137,7 @@ export function DetailScreen({
                   strokeLinejoin="round"
                 />
               </svg>
-              Change Option
+              {data.detailPage.changeOptionLabel}
             </button>
           </div>
         </div>
@@ -206,14 +178,18 @@ export function DetailScreen({
                 className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(14) }}
               >
-                All Included/Selected Products
+                {data.detailPage.productsTitle}
               </p>
             </div>
-            <SummaryGroup name="Fence Parts" items={fenceParts} onInfoClick={handleProductInfoClick} />
-            <SummaryGroup name="Gate" items={gateItems} onInfoClick={handleProductInfoClick} />
-            <SummaryGroup name="Sections" items={sectionParts} onInfoClick={handleProductInfoClick} />
-            <SummaryGroup name="Hardware" items={hardwareItems} onInfoClick={handleProductInfoClick} />
-            <SummaryGroup name="Additional Material" items={additionalMaterial} onInfoClick={handleProductInfoClick} />
+            {option.scopeGroups.map((group) => (
+              <SummaryGroup
+                key={group.name}
+                name={group.name}
+                items={group.items}
+                onInfoClick={handleProductInfoClick}
+                changeLabel={data.labels.changeLabel}
+              />
+            ))}
           </div>
 
           {/* Drawings card */}
@@ -234,7 +210,7 @@ export function DetailScreen({
                 className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(14) }}
               >
-                Drawings
+                {data.detailPage.drawingsTitle}
               </p>
             </div>
             <div
@@ -254,8 +230,8 @@ export function DetailScreen({
                   }}
                 >
                   <Image
-                    src={FENCE_DRAWING_MAP}
-                    alt="Fence Drawing"
+                    src={data.drawings.detail}
+                    alt={data.detailPage.drawingsTitle}
                     fill
                     className="object-contain"
                     sizes="792px"
@@ -322,7 +298,7 @@ export function DetailScreen({
             </div>
           </div>
 
-          {/* Reviews card */}
+          {/* Reviews card — hardcoded, not data-driven */}
           <div
             className="bg-white flex flex-col"
             style={{
@@ -336,11 +312,11 @@ export function DetailScreen({
             }}
           >
             <div style={{ height: sv(60), display: "flex", alignItems: "center" }}>
-              <ODALogo size="lg" />
+              <ODALogo src="/assets/oda-logo.png" alt="ODA Architecture" size="lg" />
             </div>
             <div className="flex flex-col" style={{ gap: sv(8) }}>
               <p className="font-semibold text-[#262626]" style={{ fontSize: sv(16) }}>
-                Madison Fence Company
+                ODA Architecture
               </p>
               <div className="flex items-center" style={{ gap: sv(16) }}>
                 <div className="flex items-center" style={{ gap: sv(4) }}>
@@ -349,32 +325,25 @@ export function DetailScreen({
                   </svg>
                   <span className="text-[#262626]" style={{ fontSize: sv(14) }}>4.6</span>
                 </div>
-                <span className="text-[#262626]" style={{ fontSize: sv(14) }}>(882 reviews)</span>
+                <span className="text-[#262626]" style={{ fontSize: sv(14) }}>(243 reviews)</span>
                 <span className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14), fontWeight: 300 }}>
-                  https://www.gomadisonfence.com/
+                  https://oda-architecture.com/
                 </span>
               </div>
             </div>
             <div className="flex flex-col" style={{ gap: sv(24), fontWeight: 300, lineHeight: 1.5 }}>
-              {[
-                {
-                  quote: `"I had such a great experience with Madison Fence Company! From start to finish, everything was handled so smoothly and professionally. Pei, the owner, is truly wonderful, knowledgeable, honest, and committed to making sure the job is done right. Junyu, who handles the scheduling, is equally fantastic, she's so organized, friendly, and always kept me updated, which made the whole process stress-free."`,
-                  author: "— Aileen, Grand Rapids Michigan",
-                },
-                {
-                  quote: `"First and foremost. I'd like to say this about Madison Fence Company. When I needed someone to come out and look at my fencing to get me a quote? Not only were they johnny on the spot with fast service the quote was extremely reasonable. Their workers were very courteous, professional and experienced. This company was and will always be my first choice for my home needs for fencing replacement and repairs. Thanks guys for being of great service."`,
-                  author: "— Joe, Grand Rapids, Michigan",
-                },
-                {
-                  quote: `"We had an outstanding experience from start to finish! The communication throughout the entire process was top notch! The team's knowledge and professionalism was excellent every step of the way. They helped guide us seamlessly through HOA and city requirements, which made the project stress free. Michael was fantastic. Mary in the office was always prompt and clear with updates. Henry, our project manager, was kind, knowledgeable, and incredibly helpful. Isaac, our installer, did an amazing job. The fence looks perfect and it was all completed in just two days. Truly a 10 out of 10 experience. Highly recommend!"`,
-                  author: "— Mary, Grand Rapids Michigan",
-                },
-              ].map((r, i) => (
-                <div key={i} className="flex flex-col" style={{ gap: sv(4) }}>
-                  <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{r.quote}</p>
-                  <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>{r.author}</p>
-                </div>
-              ))}
+              <div className="flex flex-col" style={{ gap: sv(4) }}>
+                <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{`"The result feels custom in all the right ways. ODA Architecture helped us make smart choices on materials, finishes, and layout, and the whole experience felt far more seamless than we expected."`}</p>
+                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>— Priya and Kevin S., Irvine, CA</p>
+              </div>
+              <div className="flex flex-col" style={{ gap: sv(4) }}>
+                <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{`"ODA Architecture made the entire renovation process feel clear and intentional. We never felt overwhelmed, and every decision felt easier because the options were presented so thoughtfully."`}</p>
+                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>— Emily R., Pasadena, CA</p>
+              </div>
+              <div className="flex flex-col" style={{ gap: sv(4) }}>
+                <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{`"From design through final execution, ODA Architecture brought a level of care and clarity that gave us real confidence. The space feels elevated, functional, and much more aligned with how we actually live."`}</p>
+                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>— Sophia L., Glendale, CA</p>
+              </div>
             </div>
             <button className="text-[#262626] underline text-left w-fit" style={{ fontSize: sv(14) }}>
               Read more
@@ -391,9 +360,9 @@ export function DetailScreen({
           <div className="flex flex-col" style={{ gap: sv(4) }}>
             <div className="flex flex-col text-[#262626]">
               <p className="font-semibold" style={{ fontSize: sv(20) }}>
-                SUMMARY - OPTION 2 - VINYL TRADITIONS FENCE
+                {option.detailSummary.title}
               </p>
-              <p style={{ fontSize: sv(14) }}>Henderson Backyard Fence</p>
+              <p style={{ fontSize: sv(14) }}>{option.detailSummary.subtitle}</p>
             </div>
           </div>
 
@@ -412,13 +381,13 @@ export function DetailScreen({
                 className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(14) }}
               >
-                Contact Total <sup style={{ fontSize: "7px" }}>1</sup>
+                {data.detailPage.contractTotalLabel} <sup style={{ fontSize: "7px" }}>1</sup>
               </p>
               <p
                 className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(32) }}
               >
-                $9,999.00
+                {option.detailSummary.contractTotal}
               </p>
             </div>
             <div className="flex flex-col">
@@ -426,14 +395,14 @@ export function DetailScreen({
                 className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(14) }}
               >
-                Estimated Monthly Payment{" "}
+                {data.detailPage.monthlyPaymentLabel}{" "}
                 <sup style={{ fontSize: "7px" }}>2</sup>
               </p>
               <p
                 className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
                 style={{ fontSize: sv(24), fontWeight: 300 }}
               >
-                $469.06 / mo
+                {option.detailSummary.monthlyPayment}
               </p>
             </div>
           </div>
@@ -448,11 +417,7 @@ export function DetailScreen({
               borderTop: "0.5px solid rgba(0,0,0,0.2)",
             }}
           >
-            {[
-              { label: "Materials & Installation", value: "$9,030" },
-              { label: "Discount -5%", value: "$300" },
-              { label: "Sales Tax & Fees", value: "$1,269" },
-            ].map(({ label, value }) => (
+            {option.detailSummary.breakdown.map(({ label, value }) => (
               <div key={label} className="flex flex-col" style={{ paddingBottom: sv(2) }}>
                 <p
                   className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
@@ -483,7 +448,7 @@ export function DetailScreen({
               }}
               onClick={() => setShowSignModal(true)}
             >
-              Sign &amp; Approve
+              {data.detailPage.primaryActionLabel}
             </button>
             {/* Explore Payment & Financing */}
             <button
@@ -494,7 +459,7 @@ export function DetailScreen({
                 <rect x="0.5" y="0.5" width="10" height="13" rx="1" stroke="currentColor" strokeWidth="1" />
                 <path d="M2.5 3.5h6M2.5 6.5h2M6.5 6.5h2M2.5 9.5h2M6.5 9.5h2" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
               </svg>
-              Explore Payment &amp; Financing
+              {data.detailPage.secondaryActionLabel}
             </button>
             {/* Contact Sales + Download Config */}
             <div className="flex" style={{ gap: sv(12) }}>
@@ -505,7 +470,7 @@ export function DetailScreen({
                 <svg viewBox="0 0 16 16" fill="none" className="flex-shrink-0" style={{ width: sv(16), height: sv(16) }}>
                   <path d="M3.5 2.5C3.5 2.5 2.5 3.5 2.5 5.5C2.5 9.5 6.5 13.5 10.5 13.5C12.5 13.5 13.5 12.5 13.5 12.5L11 10C11 10 10 10.5 9 10C7.5 9 7 8.5 6 7C5.5 6 6 5 6 5L3.5 2.5Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
                 </svg>
-                Contact Sales
+                {data.detailPage.contactSalesLabel}
               </button>
               <button
                 className="flex-1 border border-[#262626] bg-white text-[#262626] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
@@ -514,7 +479,7 @@ export function DetailScreen({
                 <svg viewBox="0 0 17 18" fill="none" className="flex-shrink-0" style={{ width: sv(17), height: sv(18) }}>
                   <path d="M8.5 1v11M3.5 7l5 5 5-5M1 17h15" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                Download Config [PDF]
+                {data.detailPage.downloadLabel}
               </button>
             </div>
           </div>
@@ -540,7 +505,7 @@ export function DetailScreen({
                 <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
-            <span style={{ fontSize: sv(14) }}>Inspection Report</span>
+            <span style={{ fontSize: sv(14) }}>{data.detailPage.inspectionReportLabel}</span>
           </button>
 
           {/* Footnotes */}
@@ -548,22 +513,14 @@ export function DetailScreen({
             className="flex flex-col"
             style={{ gap: sv(12), paddingTop: sv(24), fontWeight: 300, lineHeight: 1.5 }}
           >
-            <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>
-              <sup style={{ fontSize: "7px" }}>1 </sup>
-              Total project pricing is subject to change based on applicable
-              taxes, fees, payment timing, and any final project
-              adjustments. The final amount presented at the time of payment
-              will control.
-            </p>
-            <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>
-              <sup style={{ fontSize: "7px" }}>2 </sup>
-              Any monthly payment information shown is an estimate only and
-              is not a financing offer. Final payment amounts, interest
-              rates, and loan terms are subject to lender review and will be
-              confirmed during the formal application process.
-            </p>
+            {data.detailPage.breakdownFootnotes.map((footnote, index) => (
+              <p key={index} className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>
+                <sup style={{ fontSize: "7px" }}>{index + 1} </sup>
+                {footnote}
+              </p>
+            ))}
             <button className="text-[#262626] underline text-left w-fit" style={{ fontSize: sv(11) }}>
-              Read more
+              {data.detailPage.reviewsReadMoreLabel}
             </button>
           </div>
         </div>
@@ -571,6 +528,7 @@ export function DetailScreen({
 
       {showSignModal && (
         <SignModal
+          data={data}
           onClose={() => setShowSignModal(false)}
           onApprove={onApprove}
         />
@@ -582,6 +540,8 @@ export function DetailScreen({
           sectionName={productDetailModal.sectionName}
           onSelect={productDetailModal.onSelect}
           onClose={() => setProductDetailModal(null)}
+          selectLabel={data.labels.productSelectLabel}
+          selectedLabel={data.labels.productSelectedLabel}
         />
       )}
 
@@ -625,7 +585,7 @@ export function DetailScreen({
                   transition: "transform 0.15s ease",
                 }}
               >
-                <Image src={FENCE_DRAWING_MAP} alt="Fence Drawing" fill className="object-contain" sizes="1104px" />
+                <Image src={data.drawings.detail} alt={data.detailPage.drawingsTitle} fill className="object-contain" sizes="1104px" />
               </div>
               <div className="absolute flex items-center" style={{ bottom: sv(24), left: sv(32), gap: sv(12) }}>
                 <button

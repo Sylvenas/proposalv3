@@ -1,19 +1,20 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import { odaProjectInfo } from "@/data/odaMockDataCopy";
-
-import { CONTRACT_PAGES, sv } from "../shared";
+import type { ProposalV3Data } from "../schema";
+import { sv } from "../shared";
 
 export function SignModal({
+  data,
   onClose,
   onApprove,
 }: {
+  data: ProposalV3Data;
   onClose: () => void;
   onApprove: () => void;
 }) {
   const [zoom, setZoom] = useState(1);
-  const { clientName } = odaProjectInfo;
+  const { clientName } = data.project;
 
   return (
     <div
@@ -70,7 +71,7 @@ export function SignModal({
               className="flex flex-col bg-[#f5f5f5]"
               style={{ width: `${zoom * 100}%`, minWidth: "100%", gap: sv(16) }}
             >
-              {CONTRACT_PAGES.map((pageSrc, index) => (
+              {data.contractPages.map((pageSrc, index) => (
                 <Image
                   key={pageSrc}
                   src={pageSrc}
@@ -209,15 +210,13 @@ export function SignModal({
               lineHeight: "normal",
             }}
           >
-            Sign Contract as {clientName}
+            {data.labels.signModalTitle} {clientName}
           </p>
           <p
             className="text-[#262626] leading-[1.5]"
             style={{ fontSize: sv(12), fontWeight: 300 }}
           >
-            Please review your final project selections and contract details
-            before signing. By signing below, you confirm your acceptance of the
-            scope, pricing, and terms outlined in this agreement.
+            {data.labels.signModalDisclaimer}
           </p>
           <button
             className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
@@ -227,7 +226,7 @@ export function SignModal({
               onApprove();
             }}
           >
-            Sign
+            {data.labels.signModalButtonLabel}
           </button>
         </div>
       </div>

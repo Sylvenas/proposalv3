@@ -1,8 +1,7 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import type { ODAItem } from "@/data/odaMockDataCopy";
-
+import type { ODAItem } from "../schema";
 import {
   formatPrice,
   getItemPrice,
@@ -20,6 +19,8 @@ export function ProductDetailModal({
   onClose,
   hidePrice = false,
   hideSelectButton = false,
+  selectLabel = "Select Product",
+  selectedLabel = "Product Selected",
 }: {
   item: ODAItem;
   sectionName: string;
@@ -29,16 +30,15 @@ export function ProductDetailModal({
   onClose: () => void;
   hidePrice?: boolean;
   hideSelectButton?: boolean;
+  selectLabel?: string;
+  selectedLabel?: string;
 }) {
   const swatches = item.swatches ?? item.addonSwatches ?? [];
   const initialSwatch = item.selectedSwatch ?? item.selectedAddonSwatch ?? 0;
   const [activeSwatchIdx, setActiveSwatchIdx] = useState(initialSwatch);
   const [activeThumb, setActiveThumb] = useState(0);
-  const displayMeasurementLabel = measurementLabel ?? "1,240 SQF.";
-  const displayDescription =
-    description ??
-    `A timeless ${sectionName.toLowerCase()} upgrade that brings warmth and character to your home.
-                  The natural finish pairs with a considered layout to create a more elevated, custom-designed look.`;
+  const displayMeasurementLabel = measurementLabel ?? "";
+  const displayDescription = description ?? "";
 
   // Left gallery images: use per-swatch photos if available, else fall back to item's productImages
   const getImagesForSwatch = (idx: number): string[] => {
@@ -244,17 +244,19 @@ export function ProductDetailModal({
                   >
                     {sectionName}
                   </p>
-                  <p
-                    style={{
-                      fontSize: sv(16),
-                      fontWeight: 400,
-                      color: "#737373",
-                      letterSpacing: "-0.64px",
-                      width: "100%",
-                    }}
-                  >
-                    {displayMeasurementLabel}
-                  </p>
+                  {displayMeasurementLabel && (
+                    <p
+                      style={{
+                        fontSize: sv(16),
+                        fontWeight: 400,
+                        color: "#737373",
+                        letterSpacing: "-0.64px",
+                        width: "100%",
+                      }}
+                    >
+                      {displayMeasurementLabel}
+                    </p>
+                  )}
                 </div>
 
                 {/* Alternative product swatches — gap 10px, items-center, shrink-0 — Figma 330:3605 */}
@@ -316,18 +318,20 @@ export function ProductDetailModal({
                     width: "100%",
                   }}
                 >
-                  {item.spec}
+                  {item.name}
                 </p>
-                <p
-                  style={{
-                    fontSize: sv(12),
-                    fontWeight: 300,
-                    color: "#262626",
-                    width: "100%",
-                  }}
-                >
-                  {displayDescription}
-                </p>
+                {(displayDescription || item.spec) && (
+                  <p
+                    style={{
+                      fontSize: sv(12),
+                      fontWeight: 300,
+                      color: "#262626",
+                      width: "100%",
+                    }}
+                  >
+                    {displayDescription || item.spec}
+                  </p>
+                )}
               </div>
 
               {/* Price — updates per swatch — Figma 330:3592 */}
@@ -371,7 +375,7 @@ export function ProductDetailModal({
                   if (!isCurrentlySelected) onSelect(activeSwatchIdx);
                 }}
               >
-                {isCurrentlySelected ? "Product Selected" : "Select Product"}
+                {isCurrentlySelected ? selectedLabel : selectLabel}
               </button>
             )}
           </div>

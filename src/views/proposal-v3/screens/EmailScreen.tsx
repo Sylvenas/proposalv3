@@ -1,11 +1,17 @@
-import { odaProjectInfo } from "@/data/odaMockDataCopy";
+import type { ProposalV3Data } from "../schema";
 
 import { EMAIL_CONTENT_LOGO } from "../shared";
 
-export function EmailScreen({ onContinue }: { onContinue: () => void }) {
-  const {
-    clientName,
-  } = odaProjectInfo;
+export function EmailScreen({
+  data,
+  onContinue,
+}: {
+  data: ProposalV3Data;
+  onContinue: () => void;
+}) {
+  const { clientName, contractorName, contractorAddress, contractorPhone, contractorEmail, contractorLicense, salesName, proposalName } =
+    data.project;
+  const { fromLabel, subject, proposalLabel, preparedByLabel, footerNotice } = data.email;
   const firstName = clientName.split(" ")[0];
 
   // Icon helpers — matches Figma's overflow-clip 20×20 container with centered shape
@@ -617,7 +623,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                 {/* Subject */}
                 <div className="flex gap-[16px] items-center px-[13px] py-[10px]">
                   <p className="font-semibold text-[20px] text-[#424242] leading-[24px] whitespace-nowrap">
-                    Your project proposal is ready to review
+                    {subject}
                   </p>
                   <div className="flex gap-[4px] items-center">
                     <div
@@ -658,7 +664,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                       </p>
                     </div>
                     <div className="flex flex-col gap-[7px] text-[#424242] whitespace-nowrap">
-                      <p className="text-[16px] leading-[16px]">{`Madison Fence Company <service@madisonfence.com>`}</p>
+                      <p className="text-[16px] leading-[16px]">{fromLabel}</p>
                       <div className="flex gap-[6px] items-center text-[14px]">
                         <p>To:</p>
                         <p>You</p>
@@ -706,7 +712,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                         >
                           <img
                             src={EMAIL_CONTENT_LOGO}
-                            alt="Madison Fence Company"
+                            alt={contractorName}
                             className="absolute inset-0 block size-full object-cover"
                           />
                         </div>
@@ -723,14 +729,13 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           style={{ fontWeight: 300 }}
                         >
                           <p className="mb-[6px]">
-                            Your fence project proposal from Madison Fence
-                            Company is ready.
+                            {`Your project proposal from ${contractorName} is ready.`}
                           </p>
                           <p>
-                            You can now review your project online — compare
-                            fence options, review included materials and gate
-                            configurations, explore available financing, and
-                            confirm pricing before approving your agreement.
+                            You can now review your project online, compare
+                            available options, review included products and
+                            scope, explore financing, and confirm pricing
+                            before approving your agreement.
                           </p>
                         </div>
                         {/* What you can do */}
@@ -742,10 +747,9 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                             What you can do
                           </p>
                           <ul className="text-[12px] leading-[20px] list-disc pl-5">
-                            <li>Compare available fence options</li>
+                            <li>Compare available project options</li>
                             <li>
-                              Review included materials, gate details, and
-                              project scope
+                              Review included materials, products, and project scope
                             </li>
                             <li>Explore payment and financing options</li>
                             <li>{`Sign your agreement online when you're ready`}</li>
@@ -757,15 +761,15 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           style={{ fontWeight: 300 }}
                         >
                           <span style={{ fontWeight: 600 }}>Project:</span>
-                          {` Henderson Backyard Fence Replacement`}
+                          {` ${proposalLabel}`}
                           <br />
-                          <span style={{ fontWeight: 600 }}>Prepared by:</span>
-                          {` Leslie Cheung`}
+                          <span style={{ fontWeight: 600 }}>{preparedByLabel}</span>
+                          {` ${salesName}`}
                           <br />
                           <span style={{ fontWeight: 600 }}>
                             Proposal total starting from:
                           </span>
-                          {` $8,615.00`}
+                          {` ${data.options[0]?.summary.contractTotal ?? "$0.00"}`}
                         </p>
                         {/* CTA */}
                         <div
@@ -773,12 +777,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           style={{ height: 40 }}
                         >
                           <button
-                            onClick={() =>
-                              window.open(
-                                "/proposal-v3?screen=landing",
-                                "_blank",
-                              )
-                            }
+                            onClick={onContinue}
                             className="font-semibold text-[14px] text-white leading-[18px] text-center whitespace-nowrap"
                           >
                             Review My Proposal
@@ -790,7 +789,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           style={{ fontWeight: 300 }}
                         >
                           If you have any questions, you can contact your sales
-                          representative Leslie Cheung directly before making
+                          representative {salesName} directly before making
                           your final decision.
                         </p>
                         <div
@@ -798,7 +797,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           style={{ fontWeight: 300 }}
                         >
                           <p className="mb-[6px]">Thank you,</p>
-                          <p>Madison Fence Company</p>
+                          <p>{contractorName}</p>
                         </div>
                       </div>
                       {/* Email footer */}
@@ -810,14 +809,13 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           className="leading-[12px] w-full"
                           style={{ fontWeight: 400 }}
                         >
-                          Madison Fence Company
+                          {contractorName}
                           <br />
-                          1268 Wilshire Boulevard, Suite 410, Santa Monica, CA
-                          90403
+                          {contractorAddress}
                           <br />
-                          (310) 555-0126 | hello@oda-architecture.com
+                          {contractorPhone} | {contractorEmail}
                           <br />
-                          License #CSLB 1098421
+                          {contractorLicense}
                         </p>
                         <p
                           className="leading-[14px] w-full"
@@ -836,8 +834,8 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           className="leading-[12px] w-full"
                           style={{ letterSpacing: "-0.16px" }}
                         >
-                          You are receiving this email because Madison Fence
-                          Company has invited you to review your project online.
+                          {footerNotice}
+                          {" "}
                           Your digital proposal may include configurable package
                           options, upgrades, add-ons, and estimated pricing.
                           Final contract terms are defined by the signed

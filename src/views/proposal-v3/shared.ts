@@ -1,4 +1,6 @@
-import { THUMB_BASE_SCOPE, type ODAItem } from "@/data/odaMockDataCopy";
+import { THUMB_BASE_SCOPE } from "@/data/odaMockDataCopy";
+
+import type { InspectionEntry, ODAItem, SummaryLineItem } from "./schema";
 
 // Scale helper: pure CSS clamp — no JS resize listener needed, zero jitter
 export const sv = (px: number) => `calc(${px} / 1440 * clamp(1280px, 100vw, 2560px))`;
@@ -162,8 +164,15 @@ export function getItemPrice(item: ODAItem): number {
   }
 }
 
-export type Screen = "email" | "landing" | "options" | "detail" | "approved";
+export type Screen =
+  | "upload"
+  | "email"
+  | "landing"
+  | "options"
+  | "detail"
+  | "approved";
 export const VALID_SCREENS: Screen[] = [
+  "upload",
   "email",
   "landing",
   "options",
@@ -175,28 +184,4 @@ export function formatPrice(n: number) {
   return "$" + n.toLocaleString();
 }
 
-export type InspectionMedia = {
-  type: "image" | "video";
-  src: string;
-  thumbSrc?: string;
-};
-
-export type InspectionEntry = {
-  id: number;
-  title: string;
-  description: string;
-  media: InspectionMedia[];
-};
-
-export type SummaryLineItem = {
-  name: string;
-  qty: string;
-  unit: string;
-  price: number;
-  thumbnailSrc?: string;
-  showChange?: boolean;
-  description?: string;
-  odaItem?: ODAItem;
-  sectionName?: string;
-  sectionItems?: ODAItem[];
-};
+export type { InspectionEntry, ODAItem, SummaryLineItem };

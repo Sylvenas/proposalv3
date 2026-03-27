@@ -1,58 +1,24 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import type { ODAItem, ODAOption } from "@/data/odaMockDataCopy";
-
 import { ODALogo } from "../components/ODALogo";
 import { ProductDetailModal } from "../components/ProductDetailModal";
 import { SummaryGroup } from "../components/SummaryGroup";
-import { CONTRACT_PAGES, FENCE_DRAWING_MAP, FENCE_THUMB_CAP, FENCE_THUMB_GATE_1, FENCE_THUMB_GATE_3, FENCE_THUMB_PANEL, FENCE_THUMB_POST_INSERT, type SummaryLineItem, FENCE_WARRANTY_IMG, sv } from "../shared";
+import type { ODAItem, ODAOption, ProposalV3Data, SummaryLineItem } from "../schema";
+import { sv } from "../shared";
 
 export function ApprovedScreen({
+  data,
   option,
   onHome,
 }: {
+  data: ProposalV3Data;
   option: ODAOption;
   onHome: () => void;
 }) {
   const [activeTab, setActiveTab] = useState("Project Home");
   const [approvedContractZoom, setApprovedContractZoom] = useState(1);
-  const tabs = [
-    "Project Home",
-    "Contract",
-    "Documents",
-    "Products",
-    "Drawings",
-    "Invoices & Payments",
-  ];
-
-  const mkItem2 = (id: string, name: string, price: number, img: string): ODAItem => ({
-    id, name, spec: "", price, previewImage: img,
-  });
-  const fenceParts: SummaryLineItem[] = [
-    { name: "Vinyl | Stratford | 4' | Panel | White", qty: "17", unit: "sec.", price: 2125, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-1", "Vinyl | Stratford | 4' | Panel | White", 2125, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | End Post | White", qty: "2", unit: "pcs", price: 140, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-2", "Vinyl | Stratford | 4' | End Post | White", 140, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | Corner Post | White", qty: "8", unit: "pcs.", price: 520, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-3", "Vinyl | Stratford | 4' | Corner Post | White", 520, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | Line Post | White", qty: "32", unit: "pcs", price: 760, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("fp-4", "Vinyl | Stratford | 4' | Line Post | White", 760, FENCE_THUMB_PANEL) },
-  ];
-  const gateItems: SummaryLineItem[] = [
-    { name: "Vinyl | Stratford | 4' | 5'W Gate | White", qty: "1", unit: "sets", price: 560, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem2("g-1", "Vinyl | Stratford | 4' | 5'W Gate | White", 560, FENCE_THUMB_GATE_1) },
-    { name: "Vinyl | Stratford | 5' | 4'W Gate | White", qty: "1", unit: "sets", price: 520, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem2("g-2", "Vinyl | Stratford | 5' | 4'W Gate | White", 520, FENCE_THUMB_GATE_1) },
-    { name: "Vinyl | Stratford | 5' | 5'W Gate | White", qty: "1", unit: "sets", price: 610, thumbnailSrc: FENCE_THUMB_GATE_3, showChange: false, odaItem: mkItem2("g-3", "Vinyl | Stratford | 5' | 5'W Gate | White", 610, FENCE_THUMB_GATE_3) },
-  ];
-  const sectionParts: SummaryLineItem[] = [
-    { name: `7/8" x 8' CQ20 Galv Post`, qty: "2", unit: "pcs.", price: 90, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("sp-1", `7/8" x 8' CQ20 Galv Post`, 90, FENCE_THUMB_PANEL) },
-    { name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`, qty: "2", unit: "pcs.", price: 120, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("sp-2", `5" x 5" Heavy Duty Post Stiffeners`, 120, FENCE_THUMB_PANEL) },
-  ];
-  const hardwareItems: SummaryLineItem[] = [
-    { name: `Vinyl | 5" New England Cap - White`, qty: "18", unit: "pcs.", price: 85, thumbnailSrc: FENCE_THUMB_CAP, showChange: false, odaItem: mkItem2("hw-1", `Vinyl | 5" New England Cap - White`, 85, FENCE_THUMB_CAP) },
-    { name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, qty: "2", unit: "pcs.", price: 140, thumbnailSrc: FENCE_THUMB_POST_INSERT, showChange: false, odaItem: mkItem2("hw-2", `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, 140, FENCE_THUMB_POST_INSERT) },
-    { name: "Vinyl | Std Latch - 1 Side - External - Keyed - Black", qty: "1", unit: "sets", price: 95, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("hw-3", "Vinyl | Std Latch - 1 Side - External - Keyed - Black", 95, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Std Self Close Adj Hinge - Pair - Black", qty: "2", unit: "pairs", price: 110, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("hw-4", "Vinyl | Std Self Close Adj Hinge - Pair - Black", 110, FENCE_THUMB_PANEL) },
-  ];
-  const additionalMaterial: SummaryLineItem[] = [
-    { name: "Concrete 50 lb Bag", qty: "20", unit: "bags", price: 305, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem2("am-1", "Concrete 50 lb Bag", 305, FENCE_THUMB_PANEL) },
-  ];
+  const tabs = data.approvedPage.tabs;
 
   const [approvedProductDetailModal, setApprovedProductDetailModal] = useState<{
     item: ODAItem;
@@ -101,7 +67,7 @@ export function ApprovedScreen({
                 />
               </svg>
             </button>
-            <ODALogo size="sm" />
+            <ODALogo src={data.project.contractorLogoHeader} alt={data.project.contractorName} size="sm" />
             <button
               className="flex items-center justify-center text-[#262626] hover:opacity-60"
               style={{ width: sv(24), height: sv(24) }}
@@ -197,7 +163,7 @@ export function ApprovedScreen({
                   gap: sv(16),
                 }}
               >
-                {CONTRACT_PAGES.map((pageSrc, index) => (
+                {data.contractPages.map((pageSrc, index) => (
                   <div
                     key={pageSrc}
                     style={{
@@ -352,14 +318,18 @@ export function ApprovedScreen({
                     className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
                     style={{ fontSize: sv(14) }}
                   >
-                    Approved Scope
+                    {data.approvedPage.scopeTitle}
                   </p>
                 </div>
-                <SummaryGroup name="Fence Parts" items={fenceParts} onInfoClick={handleApprovedProductInfoClick} />
-                <SummaryGroup name="Gate" items={gateItems} onInfoClick={handleApprovedProductInfoClick} />
-                <SummaryGroup name="Sections" items={sectionParts} onInfoClick={handleApprovedProductInfoClick} />
-                <SummaryGroup name="Hardware" items={hardwareItems} onInfoClick={handleApprovedProductInfoClick} />
-                <SummaryGroup name="Additional Material" items={additionalMaterial} onInfoClick={handleApprovedProductInfoClick} />
+                {option.scopeGroups.map((group) => (
+                  <SummaryGroup
+                    key={group.name}
+                    name={group.name}
+                    items={group.items}
+                    onInfoClick={handleApprovedProductInfoClick}
+                    changeLabel={data.labels.changeLabel}
+                  />
+                ))}
               </div>
 
               {/* Drawings card */}
@@ -377,14 +347,14 @@ export function ApprovedScreen({
               >
                 <div className="flex items-center" style={{ paddingTop: sv(16) }}>
                   <p className="font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14) }}>
-                    Drawings
+                    {data.approvedPage.drawingsTitle}
                   </p>
                 </div>
                 <div className="relative" style={{ width: sv(792), height: sv(539) }}>
                   <div className="overflow-hidden relative" style={{ width: sv(792), height: sv(521) }}>
                     <Image
-                      src={FENCE_DRAWING_MAP}
-                      alt="Fence Drawing"
+                      src={data.drawings.approved}
+                      alt={data.approvedPage.drawingsTitle}
                       fill
                       className="object-contain"
                       sizes="792px"
@@ -393,7 +363,7 @@ export function ApprovedScreen({
                 </div>
               </div>
 
-              {/* Fence Extended Warranty — full-bleed image card */}
+              {/* Upsell card — hardcoded */}
               <div
                 className="relative overflow-hidden flex-shrink-0 w-full"
                 style={{
@@ -403,8 +373,8 @@ export function ApprovedScreen({
                 }}
               >
                 <Image
-                  src={FENCE_WARRANTY_IMG}
-                  alt="Fence Extended Warranty"
+                  src="/assets/fence-extended-warranty.jpg"
+                  alt=""
                   fill
                   className="object-cover"
                   sizes="840px"
@@ -423,10 +393,10 @@ export function ApprovedScreen({
             {/* Title */}
             <div className="flex flex-col w-full text-[#262626] leading-normal">
               <p className="font-semibold w-full" style={{ fontSize: sv(20) }}>
-                Fence Replacement - Henderson Backyard Fence
+                {option.approvedSummary.title}
               </p>
               <p className="w-full" style={{ fontSize: sv(14) }}>
-                Proposal Approved on 3/18/2026
+                {option.approvedSummary.approvedOn}
               </p>
             </div>
 
@@ -446,15 +416,15 @@ export function ApprovedScreen({
                   className="text-[#737373] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
                   style={{ fontSize: sv(14) }}
                 >
-                  Payment Progress <sup style={{ fontSize: "7px" }}>1</sup>
+                    {option.approvedSummary.paymentProgressLabel} <sup style={{ fontSize: "7px" }}>1</sup>
                 </p>
                 <div className="flex flex-col items-start w-full">
                   <p
                     className="leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
                     style={{ fontSize: sv(20) }}
                   >
-                    <span className="text-[#262626]">$4,998 / </span>
-                    <span className="text-[#737373]">$9,999</span>
+                    <span className="text-[#262626]">{option.approvedSummary.paidAmount} / </span>
+                    <span className="text-[#737373]">{option.approvedSummary.totalAmount}</span>
                   </p>
                   {/* Progress bar */}
                   <div
@@ -464,7 +434,7 @@ export function ApprovedScreen({
                     <div
                       className="flex-shrink-0"
                       style={{
-                        width: sv(102),
+                        width: `${option.approvedSummary.progressPercent}%`,
                         height: sv(2),
                         background: "#262626",
                       }}
@@ -483,20 +453,19 @@ export function ApprovedScreen({
                   className="text-[#737373] leading-normal"
                   style={{ fontSize: sv(14) }}
                 >
-                  Next Payment <sup style={{ fontSize: "7px" }}>2</sup>
+                  {option.approvedSummary.nextPaymentLabel} <sup style={{ fontSize: "7px" }}>2</sup>
                 </p>
                 <p
                   className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
                   style={{ fontSize: sv(32) }}
                 >
-                  $4,999
+                  {option.approvedSummary.nextPaymentAmount}
                 </p>
                 <p
                   className="text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap"
                   style={{ fontSize: sv(12) }}
                 >
-                  100% balance due at project completion{" "}
-                  <span style={{ fontWeight: 300 }}>&lt;5/26/2028&gt;</span>
+                  {option.approvedSummary.nextPaymentDescription}
                 </p>
               </div>
             </div>
@@ -508,7 +477,7 @@ export function ApprovedScreen({
                 className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
                 style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
               >
-                Make A Payment
+                {data.approvedPage.primaryActionLabel}
               </button>
 
               {/* Financing Service */}
@@ -548,7 +517,7 @@ export function ApprovedScreen({
                     />
                   </svg>
                 </span>
-                Financing Service
+                {data.approvedPage.secondaryActionLabel}
               </button>
 
 	              {/* Contact Sales + Download Contract */}
@@ -579,7 +548,7 @@ export function ApprovedScreen({
                       />
                     </svg>
                   </span>
-                  Contact Sales
+                  {data.approvedPage.contactSalesLabel}
                 </button>
 	                <button
 	                  className="flex-1 border border-[#262626] bg-white text-[rgba(0,0,0,0.85)] flex items-center justify-center hover:bg-[#262626] hover:text-white transition-colors"
@@ -608,7 +577,7 @@ export function ApprovedScreen({
 	                      />
 	                    </svg>
 	                  </span>
-	                  Download Contract [PDF]
+	                  {data.approvedPage.downloadLabel}
 	                </button>
 	              </div>
 	            </div>
@@ -656,7 +625,7 @@ export function ApprovedScreen({
                   className="text-[rgba(0,0,0,0.85)]"
                   style={{ fontSize: sv(12), lineHeight: "18px" }}
                 >
-                  Payment Schedule &amp; Records
+                  {data.approvedPage.recordsLabel}
                 </span>
               </button>
             </div>
@@ -666,38 +635,25 @@ export function ApprovedScreen({
               className="flex flex-col w-full"
               style={{ gap: sv(12), paddingTop: sv(24) }}
             >
-              <p
-                className="text-[#262626] leading-[0]"
-                style={{ fontWeight: 300, letterSpacing: "-0.22px" }}
-              >
-                <span className="leading-[1.5]" style={{ fontSize: sv(7) }}>
-                  1{" "}
-                </span>
-                <span className="leading-[1.5]" style={{ fontSize: sv(11) }}>
-                  Total project pricing is subject to change based on applicable
-                  taxes, fees, payment timing, and any final project adjustments.
-                  The final amount presented at the time of payment will control.
-                </span>
-              </p>
-              <p
-                className="text-[#262626] leading-[1.5] overflow-hidden text-ellipsis"
-                style={{
-                  fontSize: sv(11),
-                  fontWeight: 300,
-                  letterSpacing: "-0.22px",
-                }}
-              >
-                <span style={{ fontSize: sv(7) }}>2 </span>
-                Any monthly payment information shown is an estimate only and is
-                not a financing offer. Final payment amounts, interest rates, and
-                loan terms are subject to lender review and will be confirmed
-                during the formal application process.
-              </p>
+              {data.approvedPage.footnotes.map((footnote, index) => (
+                <p
+                  key={index}
+                  className="text-[#262626] leading-[1.5] overflow-hidden text-ellipsis"
+                  style={{
+                    fontSize: sv(11),
+                    fontWeight: 300,
+                    letterSpacing: "-0.22px",
+                  }}
+                >
+                  <span style={{ fontSize: sv(7) }}>{index + 1} </span>
+                  {footnote}
+                </p>
+              ))}
               <div
                 className="flex flex-col justify-center text-center whitespace-nowrap text-[rgba(0,0,0,0.85)]"
                 style={{ fontSize: sv(11) }}
               >
-                <button className="underline leading-normal">Read more</button>
+                <button className="underline leading-normal">{data.approvedPage.readMoreLabel}</button>
               </div>
             </div>
           </div>
@@ -709,6 +665,8 @@ export function ApprovedScreen({
           sectionName={approvedProductDetailModal.sectionName}
           onSelect={approvedProductDetailModal.onSelect}
           onClose={() => setApprovedProductDetailModal(null)}
+          selectLabel={data.labels.productSelectLabel}
+          selectedLabel={data.labels.productSelectedLabel}
         />
       )}
     </div>

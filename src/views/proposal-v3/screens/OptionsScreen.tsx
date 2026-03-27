@@ -1,37 +1,26 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { odaOptions, type ODAItem } from "@/data/odaMockDataCopy";
-
 import { ProductDetailModal } from "../components/ProductDetailModal";
+import type { ODAItem, ProposalV3Data } from "../schema";
 import {
   OPTION_BACK_TO_TOP_ICON,
-  OPTION_CARD_IMAGE_1,
-  OPTION_CARD_IMAGE_2,
   OPTION_CHAIN_PLACEHOLDER,
   OPTION_COMPARE_ICON,
-  OPTION_GATE_IMAGE_1,
-  OPTION_GATE_IMAGE_2,
-  OPTION_GATE_IMAGE_3,
-  OPTION_GATE_IMAGE_4,
-  OPTION_HARDWARE_IMAGE_1,
-  OPTION_HARDWARE_IMAGE_2,
-  OPTION_HARDWARE_IMAGE_3,
-  OPTION_HARDWARE_IMAGE_4,
-  OPTION_HARDWARE_IMAGE_5,
   OPTION_HOME_ICON,
   OPTION_INFO_ICON,
-  OPTION_LOGO_IMAGE,
   OPTION_STICKY_CHEVRON,
   OPTION_USER_ICON,
   sv,
 } from "../shared";
 
 export function OptionsScreen({
+  data,
   selectedOption,
   onSelect,
   onContinue,
   onHome,
 }: {
+  data: ProposalV3Data;
   selectedOption: number;
   onSelect: (i: number) => void;
   onContinue: () => void;
@@ -125,47 +114,18 @@ export function OptionsScreen({
 
   type CompareDash = { dash: true };
 
-  const optionSummaries: OptionSummary[] = [
-    {
-      title: "OPTION 1 - CHAIN LINK FENCE",
-      description:
-        "Durable / Low Maintenance / Cost-Effective Perimeter Security",
-      duration: "2–3 Weeks Estimated Construction Time",
-      price: "$8,615.00 USD",
-      contractTotal: "$8,615.00",
-      monthly: "$404.13 / mo",
-      image: OPTION_CARD_IMAGE_1,
-    },
-    {
-      title: "OPTION 2 - VINYL TRADITIONS FENCE",
-      description:
-        "Enhanced Privacy / Clean Appearance / Minimal Maintenance",
-      duration: "4–6 Weeks Estimated Construction Time",
-      price: "$9,999.00 USD",
-      contractTotal: "$9,999.00",
-      monthly: "$469.06 / mo",
-      image: OPTION_CARD_IMAGE_2,
-    },
-  ];
+  const optionSummaries: OptionSummary[] = data.options.map((option) => option.summary);
 
-  const scheduleData: Array<Array<{ label: string; value: string }>> = [
-    [
-      { label: "Contract Total", value: optionSummaries[0].contractTotal },
+  const scheduleData: Array<Array<{ label: string; value: string }>> = data.options.map(
+    (option) => [
+      { label: data.optionsPage.contractTotalLabel, value: option.summary.contractTotal },
       {
-        label: "Estimated Monthly Payment Starting at",
-        value: optionSummaries[0].monthly,
+        label: data.optionsPage.monthlyPaymentLabel,
+        value: option.summary.monthly,
       },
-      { label: "Estimated Construction Time", value: "2–3 Weeks" },
+      { label: data.optionsPage.constructionTimeLabel, value: option.summary.duration.replace(` ${data.optionsPage.constructionTimeLabel}`, "") },
     ],
-    [
-      { label: "Contract Total", value: optionSummaries[1].contractTotal },
-      {
-        label: "Estimated Monthly Payment Starting at",
-        value: optionSummaries[1].monthly,
-      },
-      { label: "Estimated Construction Time", value: "4–6 Weeks" },
-    ],
-  ];
+  );
 
   const normalizeCompareText = (value: string) =>
     value
@@ -178,7 +138,7 @@ export function OptionsScreen({
     sectionTitle: string,
     compareItem: CompareLineItem,
   ) => {
-    const sourceSection = odaOptions[optionIdx].sections.find(
+    const sourceSection = data.options[optionIdx]?.scopeGroups.find(
       (section) => section.name === sectionTitle,
     );
     if (!sourceSection) return null;
@@ -186,8 +146,10 @@ export function OptionsScreen({
     const normalizedCompareName = normalizeCompareText(compareItem.name);
     return (
       sourceSection.items.find((sourceItem) => {
-        const normalizedSpec = normalizeCompareText(sourceItem.spec);
-        const normalizedName = normalizeCompareText(sourceItem.name);
+        const detailItem = sourceItem.odaItem;
+        if (!detailItem) return false;
+        const normalizedSpec = normalizeCompareText(detailItem.spec);
+        const normalizedName = normalizeCompareText(detailItem.name);
         return (
           normalizedSpec === normalizedCompareName ||
           normalizedName === normalizedCompareName ||
@@ -203,7 +165,7 @@ export function OptionsScreen({
     sectionTitle: string,
     optionIdx: number,
   ) => {
-    const sourceItem = findCompareSourceItem(
+    const sourceLineItem = findCompareSourceItem(
       optionIdx,
       sectionTitle,
       compareItem,
@@ -217,311 +179,36 @@ export function OptionsScreen({
     };
 
     setCompareProductDetailModal({
-      item: sourceItem ?? fallbackItem,
+      item: sourceLineItem?.odaItem ?? fallbackItem,
       sectionName: sectionTitle,
       measurementLabel: `${compareItem.qty} ${compareItem.unit}`,
       description: `Detailed scope reference for ${compareItem.name.toLowerCase()} in ${optionNames[optionIdx].toLowerCase()}.`,
     });
   };
 
+  const compareSectionNames = Array.from(
+    new Set(data.options.flatMap((option) => option.scopeGroups.map((group) => group.name))),
+  );
   const compareSections: Array<{
     title: string;
     columns: (CompareLineItem | CompareDash)[][];
-  }> = [
-    {
-      title: "Fence Parts",
-      columns: [
-        [
-          {
-            name: "8F x 4' KK Extruded Blk",
-            qty: "2",
-            unit: "pcs",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "8F x 5' KK Extruded Blk",
-            qty: "2",
-            unit: "pcs",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: 'Btm Lock Slat 2" Mesh Dsn',
-            qty: "4",
-            unit: "pcs",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: 'Btm Lock Slat 2" Mesh Dsn',
-            qty: "5",
-            unit: "pcs",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "3/8 x 21' SE 17ga Poly Blk",
-            qty: "9",
-            unit: "rolls",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "5/8 x 8' 16ga Polyester Blk",
-            qty: "11",
-            unit: "rolls",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "8 x 9' 16ga Polyester Blk",
-            qty: "2",
-            unit: "rolls",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "3/8 x 8' 16ga Polyester Blk",
-            qty: "2",
-            unit: "rolls",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-        [
-          {
-            name: "Vinyl | Stratford | 4' | Panel | White",
-            qty: "17",
-            unit: "sec.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "Vinyl | Stratford | 4' | End Post | White",
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "Vinyl | Stratford | 4' | Corner Post | White",
-            qty: "8",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "Vinyl | Stratford | 4' | Line Post | White",
-            qty: "32",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Gate",
-      columns: [
-        [
-          {
-            name: "4 x 5 Weld SWG 17g 9F Blk",
-            qty: "1",
-            unit: "sets",
-            img: OPTION_GATE_IMAGE_1,
-          },
-          {
-            name: "5 x 4 Weld SWG 17g 9F Blk",
-            qty: "1",
-            unit: "sets",
-            img: OPTION_GATE_IMAGE_1,
-          },
-          {
-            name: "5 x 5 Weld SWG 17g 9F Blk",
-            qty: "1",
-            unit: "sets",
-            img: OPTION_GATE_IMAGE_2,
-          },
-        ],
-        [
-          {
-            name: "Vinyl | Stratford | 4' | 5'W Gate | White",
-            qty: "1",
-            unit: "sets",
-            img: OPTION_GATE_IMAGE_3,
-            imageStyle: {
-              width: "139%",
-              height: "139%",
-              left: "-19.5%",
-              top: "-19.5%",
-              maxWidth: "none",
-            },
-          },
-          {
-            name: "Vinyl | Stratford | 5' | 4'W Gate | White",
-            qty: "1",
-            unit: "sets",
-            img: OPTION_GATE_IMAGE_3,
-            imageStyle: {
-              width: "139%",
-              height: "139%",
-              left: "-19.5%",
-              top: "-19.5%",
-              maxWidth: "none",
-            },
-          },
-          {
-            name: "Vinyl | Stratford | 5' | 5'W Gate | White",
-            qty: "1",
-            unit: "sets",
-            img: OPTION_GATE_IMAGE_4,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Sections",
-      columns: [
-        [
-          {
-            name: `BCL | 5' | 58" Tension Bar`,
-            qty: "6",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: `BCL | 5' | 9' Terminal Post`,
-            qty: "6",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-        [
-          {
-            name: `7/8" x 8' CQ20 Galv Post`,
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`,
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Hardware",
-      columns: [
-        [
-          {
-            name: `3/8" DC Rail End Poly Blk`,
-            qty: "4",
-            unit: "pcs",
-            img: OPTION_HARDWARE_IMAGE_1,
-          },
-          {
-            name: `3/8" Brace Band Poly Blk`,
-            qty: "12",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-          {
-            name: `3/8" DC Cap Poly Blk`,
-            qty: "6",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-          {
-            name: `3/8" Tension Band Poly`,
-            qty: "12",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_3,
-          },
-        ],
-        [
-          {
-            name: `Vinyl | 5" New England Cap - White`,
-            qty: "18",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_4,
-          },
-          {
-            name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`,
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_5,
-          },
-          {
-            name: `Vinyl | Std Latch - 1 Side - External - Keyed - Black`,
-            qty: "1",
-            unit: "sets",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-          {
-            name: `Vinyl | Std Self Close Adj Hinge - Pair - Black`,
-            qty: "2",
-            unit: "pairs",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Additional Materials",
-      columns: [
-        [
-          {
-            name: "Concrete 50 lb Bag",
-            qty: "18",
-            unit: "bags",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-        [
-          {
-            name: "Concrete 50 lb Bag",
-            qty: "20",
-            unit: "bags",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Services",
-      columns: [
-        [
-          {
-            name: "Soil Condition Survey",
-            qty: "2",
-            unit: "svc.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-        [{ dash: true as const }],
-      ],
-    },
-  ];
+  }> = compareSectionNames.map((title) => ({
+    title,
+    columns: data.options.map((option) => {
+      const group = option.scopeGroups.find((scopeGroup) => scopeGroup.name === title);
+      if (!group || group.items.length === 0) {
+        return [{ dash: true as const }];
+      }
+      return group.items.map((item) => ({
+        name: item.name,
+        qty: item.qty,
+        unit: item.unit,
+        img: item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER,
+      }));
+    }),
+  }));
 
-  const optionNames = [
-    optionSummaries[0].title,
-    optionSummaries[1].title,
-  ];
+  const optionNames = optionSummaries.map((summary) => summary.title);
 
   const OptionCard = ({
     optIdx,
@@ -641,7 +328,7 @@ export function OptionsScreen({
                 borderRadius: sv(4),
               }}
             >
-              Select
+              {data.optionsPage.selectButtonLabel}
             </button>
           </div>
         </div>
@@ -927,11 +614,13 @@ export function OptionsScreen({
                 style={{ width: sv(17.99), height: sv(15.977) }}
               />
             </button>
-            <img
-              src={OPTION_LOGO_IMAGE}
-              alt="Madison Fence Company"
-              style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
-            />
+            {data.project.contractorLogoHeader && (
+              <img
+                src={data.project.contractorLogoHeader}
+                alt={data.project.contractorName}
+                style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+              />
+            )}
             <button
               className="flex items-center justify-center"
               style={{ width: sv(24), height: sv(24) }}
@@ -978,11 +667,10 @@ export function OptionsScreen({
                 style={{ fontSize: sv(14), color: "#262626", lineHeight: 0 }}
               >
                 <p style={{ fontWeight: 600, marginBottom: sv(4), lineHeight: "normal" }}>
-                  {"Need support choosing a option? "}
+                  {data.optionsPage.supportTitle}
                 </p>
                 <p style={{ fontWeight: 300, lineHeight: "normal" }}>
-                  Compare different options to help you decide which one fits you
-                  best.
+                  {data.optionsPage.supportBody}
                 </p>
               </div>
               <button
@@ -999,7 +687,7 @@ export function OptionsScreen({
                 }}
               >
                 <span style={{ fontSize: sv(20), fontWeight: 300, lineHeight: sv(18), whiteSpace: "nowrap" }}>
-                  Compare Options
+                  {data.optionsPage.compareButtonLabel}
                 </span>
                 <div
                   className="overflow-hidden relative"
@@ -1038,7 +726,7 @@ export function OptionsScreen({
                   width: "100%",
                 }}
               >
-                Schedule and Pricing
+                {data.optionsPage.scheduleTitle}
               </p>
               <div className="flex items-start" style={{ width: "100%", gap: sv(32) }}>
                 {scheduleData.map((column, columnIndex) => (
@@ -1144,7 +832,7 @@ export function OptionsScreen({
                   lineHeight: "normal",
                 }}
               >
-                Decision made?
+                {data.optionsPage.decisionTitle}
               </p>
               <button
                 onClick={scrollToTop}
@@ -1183,7 +871,7 @@ export function OptionsScreen({
                   </div>
                 </div>
                 <span style={{ fontSize: sv(14), lineHeight: sv(18) }}>
-                  Back to Top
+                  {data.optionsPage.backToTopLabel}
                 </span>
               </button>
             </div>
@@ -1214,6 +902,8 @@ export function OptionsScreen({
           hideSelectButton
           onSelect={() => undefined}
           onClose={() => setCompareProductDetailModal(null)}
+          selectLabel={data.labels.productSelectLabel}
+          selectedLabel={data.labels.productSelectedLabel}
         />
       )}
     </div>

@@ -12,11 +12,13 @@ export function SummaryGroup({
   items,
   layoutAlt,
   onInfoClick,
+  changeLabel = "Change",
 }: {
   name: string;
   items: SummaryLineItem[];
   layoutAlt?: boolean;
   onInfoClick?: (item: SummaryLineItem) => void;
+  changeLabel?: string;
 }) {
   return (
     <div className="flex flex-col w-full">
@@ -172,7 +174,7 @@ export function SummaryGroup({
                           className="font-semibold text-[#262626]"
                           style={{ fontSize: sv(14), letterSpacing: "-0.56px" }}
                         >
-                          Change
+                          {changeLabel}
                         </span>
                         <svg
                           viewBox="0 0 16 16"

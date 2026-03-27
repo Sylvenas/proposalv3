@@ -1,29 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
+import type { ProposalV3Data } from "../schema";
 import { InspectionDetailModal } from "../components/InspectionDetailModal";
 import {
   FENCE_FIT_ICON,
-  FENCE_HERO_LOGO,
   FENCE_HOME_ICON,
-  FENCE_NAV_LOGO,
   FENCE_PHONE_ICON,
-  FENCE_REPORT_IMAGE_1,
-  FENCE_REPORT_IMAGE_10,
-  FENCE_REPORT_IMAGE_11,
-  FENCE_REPORT_IMAGE_12,
-  FENCE_REPORT_IMAGE_2,
-  FENCE_REPORT_IMAGE_3,
-  FENCE_REPORT_IMAGE_4,
-  FENCE_REPORT_IMAGE_5,
-  FENCE_REPORT_IMAGE_6,
-  FENCE_REPORT_IMAGE_7,
-  FENCE_REPORT_IMAGE_8,
-  FENCE_REPORT_IMAGE_9,
-  FENCE_REPORT_MAP_IMAGE,
   FENCE_USER_ICON,
   FENCE_VIDEO_PLAY_ICON,
-  FENCE_VIDEO_THUMB_1,
-  FENCE_VIDEO_THUMB_2,
   FENCE_ZOOM_IN_ICON,
   FENCE_ZOOM_OUT_ICON,
   type InspectionEntry,
@@ -31,9 +15,11 @@ import {
 } from "../shared";
 
 export function LandingScreen({
+  data,
   onContinue,
   onHome,
 }: {
+  data: ProposalV3Data;
   onContinue: () => void;
   onHome: () => void;
 }) {
@@ -97,70 +83,8 @@ export function LandingScreen({
     });
   };
 
-  const inspectionItems: InspectionEntry[] = [
-    {
-      id: 1,
-      title: "Walkthrough Video Record",
-      description:
-        "Walkthrough Video Record - A brief on-site walkthrough video was recorded during the inspection visit to document existing fence conditions, slope transitions, drainage concerns, and proposed gate location. This video is intended as a visual reference for the homeowner prior to final approval.",
-      media: [
-        { type: "video", src: FENCE_VIDEO_THUMB_1, thumbSrc: FENCE_VIDEO_THUMB_1 },
-        { type: "video", src: FENCE_VIDEO_THUMB_2, thumbSrc: FENCE_VIDEO_THUMB_2 },
-      ],
-    },
-    {
-      id: 2,
-      title: "Drainage Risk Area",
-      description:
-        "Drainage Risk Area - Water staining and softened soil were observed near the back-right corner adjacent to the downspout discharge area. This section may be vulnerable to long-term post movement if drainage is not improved. Recommend minor grading correction or extension of the drainage outlet prior to installation.",
-      media: [
-        { type: "image", src: FENCE_REPORT_IMAGE_1 },
-        { type: "image", src: FENCE_REPORT_IMAGE_2 },
-        { type: "image", src: FENCE_REPORT_IMAGE_3 },
-      ],
-    },
-    {
-      id: 3,
-      title: "Soil condition Observation",
-      description:
-        "Soil condition Observation - rear and right-side yard show moderately compacted clay-heavy soil. Post-hole digging is expected to require additional effort, and concrete setting time may be slightly extended if moisture remains high near the lower section of the yard.",
-      media: [
-        { type: "image", src: FENCE_REPORT_IMAGE_4 },
-        { type: "image", src: FENCE_REPORT_IMAGE_5 },
-        { type: "image", src: FENCE_REPORT_IMAGE_6 },
-      ],
-    },
-    {
-      id: 4,
-      title: "Existing Fence Removal Requirement",
-      description:
-        "Existing Fence Removal Requirement - Existing wood fence along the rear property line shows leaning posts, warped rails, and multiple deteriorated pickets. Full demolition and disposal of the current fence system is recommended before new installation.",
-      media: [
-        { type: "image", src: FENCE_REPORT_IMAGE_7 },
-        { type: "image", src: FENCE_REPORT_IMAGE_8 },
-      ],
-    },
-    {
-      id: 5,
-      title: "Property Line Verification Note",
-      description:
-        "Property Line Verification Note - Fence alignment shown in this proposal is based on visible site conditions and client guidance during walkthrough. Final installation should follow confirmed property boundaries. Survey verification is recommended if boundary location is uncertain.",
-      media: [
-        { type: "image", src: FENCE_REPORT_IMAGE_9 },
-        { type: "image", src: FENCE_REPORT_IMAGE_10 },
-        { type: "image", src: FENCE_REPORT_IMAGE_11 },
-        { type: "image", src: FENCE_REPORT_IMAGE_12 },
-      ],
-    },
-  ];
-
-  const floorPlanMarkers = [
-    { id: 1, x: "45.5%", y: "28.6%" },
-    { id: 2, x: "66.9%", y: "29.7%" },
-    { id: 3, x: "57.3%", y: "61.9%" },
-    { id: 4, x: "76.5%", y: "23.8%" },
-    { id: 5, x: "50.6%", y: "50.5%" },
-  ];
+  const inspectionItems: InspectionEntry[] = data.landing.inspectionItems;
+  const floorPlanMarkers = data.landing.floorPlanMarkers;
 
   const openInspectionModal = (entryIndex: number, mediaIndex = 0) => {
     setInspectionModal({ entryIndex, mediaIndex });
@@ -182,11 +106,13 @@ export function LandingScreen({
           style={{ width: sv(17.99), height: sv(15.98) }}
         />
       </button>
-      <img
-        src={FENCE_NAV_LOGO}
-        alt="Madison Fence Company"
-        style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
-      />
+      {data.project.contractorLogoHeader && (
+        <img
+          src={data.project.contractorLogoHeader}
+          alt={data.project.contractorName}
+          style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+        />
+      )}
       <button
         onClick={onHome}
         className="flex items-center justify-center text-[#737373]"
@@ -239,11 +165,13 @@ export function LandingScreen({
               flexShrink: 0,
             }}
           >
-            <img
-              src={FENCE_HERO_LOGO}
-              alt="Madison Fence Company"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
+            {data.project.contractorLogo && (
+              <img
+                src={data.project.contractorLogo}
+                alt={data.project.contractorName}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            )}
           </div>
 
           {/* Spacer between logo and title block */}
@@ -262,7 +190,7 @@ export function LandingScreen({
                 lineHeight: "normal",
               }}
             >
-              {"1722 Willis Ave NW, Grand Rapids, MI 49504 "}
+              {data.project.projectAddress}
             </p>
             <h1
               className="m-0 text-center whitespace-nowrap"
@@ -273,7 +201,7 @@ export function LandingScreen({
                 letterSpacing: hsv(-0.48),
               }}
             >
-              FENCE REPLACEMENT PROPOSAL
+              {data.project.displayTitle}
             </h1>
             <p
               className="m-0 text-center whitespace-nowrap"
@@ -284,7 +212,7 @@ export function LandingScreen({
                 lineHeight: "normal",
               }}
             >
-              {"Prepared for Michael Rozier "}
+              {`${data.landing.preparedForPrefix} ${data.project.clientName}`}
             </p>
           </div>
 
@@ -301,7 +229,7 @@ export function LandingScreen({
               flexShrink: 0,
             }}
           >
-            Build Your Dream Fence
+            {data.landing.heroEyebrow}
           </p>
 
           {/* Spacer */}
@@ -328,7 +256,7 @@ export function LandingScreen({
                 cursor: "pointer",
               }}
             >
-              INSPECTION REPORT
+              {data.landing.primaryButtonLabel}
             </button>
             <button
               onClick={onContinue}
@@ -344,7 +272,7 @@ export function LandingScreen({
                 cursor: "pointer",
               }}
             >
-              EXPLORE OPTIONS
+              {data.landing.secondaryButtonLabel}
             </button>
           </div>
 
@@ -361,7 +289,7 @@ export function LandingScreen({
               flexShrink: 0,
             }}
           >
-            Valid Until: April 30, 2026
+            {data.landing.validUntil}
           </p>
         </div>
       </section>
@@ -410,7 +338,7 @@ export function LandingScreen({
                   lineHeight: "normal",
                 }}
               >
-                Henderson Backyard Fence
+                {data.landing.stickyTitle}
               </p>
               <p
                 style={{
@@ -420,7 +348,7 @@ export function LandingScreen({
                   lineHeight: "normal",
                 }}
               >
-                1722 Willis Ave NW, Grand Rapids, MI 49504
+                {data.landing.stickyAddress}
               </p>
             </div>
             <div className="flex items-center" style={{ gap: sv(8) }}>
@@ -443,7 +371,7 @@ export function LandingScreen({
                   alt=""
                   style={{ width: sv(24), height: sv(22) }}
                 />
-                <span>Contact Sales</span>
+                <span>{data.landing.stickyPrimaryButtonLabel}</span>
               </button>
               <button
                 className="flex items-center justify-center"
@@ -460,7 +388,7 @@ export function LandingScreen({
                 }}
                 onClick={onContinue}
               >
-                Explore Options
+                {data.landing.stickySecondaryButtonLabel}
               </button>
             </div>
           </div>
@@ -499,7 +427,7 @@ export function LandingScreen({
                     lineHeight: "normal",
                   }}
                 >
-                  INSPECTION REPORT
+                  {data.landing.inspectionSectionTitle}
                 </p>
               </div>
               <div
@@ -519,8 +447,8 @@ export function LandingScreen({
                     style={{ borderRadius: sv(4) }}
                   >
                     <img
-                      src={FENCE_REPORT_MAP_IMAGE}
-                      alt="Fence inspection drawing"
+                      src={data.landing.inspectionDrawing}
+                      alt={data.landing.inspectionSectionTitle}
                       style={{
                         position: "absolute",
                         width: "197.75%",
@@ -720,6 +648,8 @@ export function LandingScreen({
               prev ? { ...prev, mediaIndex } : prev,
             )
           }
+          title={data.labels.inspectionModalTitle}
+          contactSalesLabel={data.labels.inspectionModalContactLabel}
         />
       )}
     </div>

@@ -18,6 +18,8 @@ export function InspectionDetailModal({
   onClose,
   onChangeEntry,
   onChangeMedia,
+  title = "INSPECTION DETAILS",
+  contactSalesLabel = "Contact Sales",
 }: {
   entries: InspectionEntry[];
   activeEntryIndex: number;
@@ -25,6 +27,8 @@ export function InspectionDetailModal({
   onClose: () => void;
   onChangeEntry: (index: number) => void;
   onChangeMedia: (index: number) => void;
+  title?: string;
+  contactSalesLabel?: string;
 }) {
   const entry = entries[activeEntryIndex];
   if (!entry) return null;
@@ -185,7 +189,7 @@ export function InspectionDetailModal({
                     lineHeight: "normal",
                   }}
                 >
-                  INSPECTION DETAILS
+                  {title}
                 </p>
                 <div
                   className="bg-[#262626] flex items-center justify-center"
@@ -230,7 +234,7 @@ export function InspectionDetailModal({
                   alt=""
                   style={{ width: sv(24), height: sv(22) }}
                 />
-                <span>Contact Sales</span>
+                <span>{contactSalesLabel}</span>
               </button>
             </div>
             <div
