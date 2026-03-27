@@ -775,7 +775,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           <button
                             onClick={() =>
                               window.open(
-                                "/proposal-v3?screen=landing",
+                                "/proposal-fence?screen=landing",
                                 "_blank",
                               )
                             }
