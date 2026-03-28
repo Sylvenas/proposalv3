@@ -43,6 +43,12 @@ const pages = [
     description:
       'The first draft version of the proposal experience, preserved as the earliest prototype.',
   },
+  {
+    href: '/blocknote-multi-column',
+    title: 'BlockNote Multi-Column',
+    description:
+      'A BlockNote rich-text editor demo showcasing multi-column block layouts using @blocknote/xl-multi-column.',
+  },
 ];
 
 export default function HomePage() {
