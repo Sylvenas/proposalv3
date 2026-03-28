@@ -195,6 +195,7 @@ const buildOption = (option: Omit<ODAOption, "summary" | "scopeGroups" | "detail
       monthly,
       image: index === 0 ? option.images[0] : index === 1 ? option.images[1] ?? option.images[0] : option.images[0],
     },
+    contractPages: [],
     scopeGroups,
     detailSummary: {
       title: `SUMMARY - ${summaryTitle}`,
@@ -355,6 +356,7 @@ export const defaultProposalV3Data: ProposalV3Data = {
     productSelectedLabel: "Product Selected",
     changeLabel: "Change",
   },
+  extraServices: [],
   contractPages: CONTRACT_PAGES,
   drawings: {
     detail: FENCE_DRAWING_MAP,

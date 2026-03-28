@@ -2,10 +2,13 @@ import Image from "next/image";
 
 import { InfoIcon } from "./InfoIcon";
 import {
+  OPTION_CHAIN_PLACEHOLDER,
   isPlaceholderProductImage,
   type SummaryLineItem,
   sv,
 } from "../shared";
+
+const PLACEHOLDER_IMAGE_OPACITY = 0.15;
 
 export function SummaryGroup({
   name,
@@ -81,22 +84,20 @@ export function SummaryGroup({
                     border: "0.5px solid #d9d9d9",
                   }}
                 >
-                  {item.thumbnailSrc ? (
-                    <Image
-                      src={item.thumbnailSrc}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="300px"
-                      style={{
-                        opacity: isPlaceholderProductImage(item.thumbnailSrc)
-                          ? 0.1
-                          : 1,
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-[#f0f0f0]" />
-                  )}
+                  <Image
+                    src={item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="300px"
+                    style={{
+                      opacity: isPlaceholderProductImage(
+                        item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER,
+                      )
+                        ? PLACEHOLDER_IMAGE_OPACITY
+                        : 1,
+                    }}
+                  />
                 </div>
               </button>
               {/* Right content */}
@@ -231,30 +232,25 @@ export function SummaryGroup({
                 }}
                 onClick={() => item.odaItem && onInfoClick?.(item)}
               >
-                {item.thumbnailSrc ? (
-                  <div
-                    className="relative w-full h-full overflow-hidden"
-                    style={{ borderRadius: sv(2) }}
-                  >
-                    <Image
-                      src={item.thumbnailSrc}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="44px"
-                      style={{
-                        opacity: isPlaceholderProductImage(item.thumbnailSrc)
-                          ? 0.1
-                          : 1,
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="w-full h-full bg-[#f0f0f0]"
-                    style={{ borderRadius: sv(2) }}
+                <div
+                  className="relative w-full h-full overflow-hidden"
+                  style={{ borderRadius: sv(2) }}
+                >
+                  <Image
+                    src={item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="44px"
+                    style={{
+                      opacity: isPlaceholderProductImage(
+                        item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER,
+                      )
+                        ? PLACEHOLDER_IMAGE_OPACITY
+                        : 1,
+                    }}
                   />
-                )}
+                </div>
               </button>
               {/* Content */}
               <div className="flex flex-1 items-center min-w-0">

@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import * as XLSX from "xlsx";
 
 import type {
+  ExtraService,
   InspectionEntry,
   InspectionMedia,
   ODAItem,
@@ -16,7 +17,6 @@ import type {
 
 const REQUIRED_PROPOSAL_FIELDS = [
   "Contractor Name",
-  "Contractor Address",
   "Contractor Phone",
   "Contractor Email",
   "Project Name",
@@ -51,6 +51,15 @@ const asNumber = (value: unknown) => {
   const text = asText(value).replace(/[$,\s]/g, "");
   if (!text) return 0;
   const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+/** Extract numeric part from a monthly payment string like "$500 / mo" or "500" */
+const parseMonthlyAmount = (value: string): number => {
+  if (!value) return 0;
+  const match = value.replace(/[$,]/g, "").match(/[\d]+(?:\.\d+)?/);
+  if (!match) return 0;
+  const parsed = Number(match[0]);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
@@ -90,20 +99,52 @@ function buildFieldMapDual(rows: unknown[][]) {
 
 function extractImageRefs(value: string | undefined | null) {
   if (!value) return [];
-  return value.split(",").map((part) => part.trim()).filter(Boolean);
+  // Split by commas or whitespace — XLSX converts Alt+Enter cell line breaks to spaces,
+  // so we must handle both. File names must not contain spaces.
+  return value.split(/[,\s]+/).map((part) => part.trim()).filter(Boolean);
 }
 
 function buildImageLookup(zip: JSZip) {
   const map = new Map<string, JSZip.JSZipObject>();
   for (const [path, entry] of Object.entries(zip.files)) {
     if (entry.dir) continue;
-    if (!path.toLowerCase().includes("images/")) continue;
+    // Accept both "image/" and "images/" folder conventions
+    const lp = path.toLowerCase();
+    if (!lp.includes("image/") && !lp.includes("images/")) continue;
     const base = path.split("/").pop();
     if (!base) continue;
     map.set(normalize(base), entry);
     map.set(normalize(path), entry);
   }
   return map;
+}
+
+/** Lookup that covers ALL files in the ZIP (used for PDFs, contracts, etc.) */
+function buildFileLookup(zip: JSZip) {
+  const map = new Map<string, JSZip.JSZipObject>();
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (entry.dir) continue;
+    const base = path.split("/").pop();
+    if (!base) continue;
+    map.set(normalize(base), entry);
+    map.set(normalize(path), entry);
+  }
+  return map;
+}
+
+async function resolveOneFile(
+  ref: string | undefined,
+  fileLookup: Map<string, JSZip.JSZipObject>,
+  errors: string[],
+): Promise<string | undefined> {
+  if (!ref) return undefined;
+  const entry = fileLookup.get(normalize(ref));
+  if (!entry) {
+    errors.push(`Missing file: ${ref}`);
+    return undefined;
+  }
+  const blob = await entry.async("blob");
+  return URL.createObjectURL(blob);
 }
 
 async function resolveImageUrls(
@@ -286,6 +327,7 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
     }
 
     const imageLookup = buildImageLookup(zip);
+    const fileLookup = buildFileLookup(zip);
     const errors: string[] = [];
 
     // ── Resolve logo/cover images ──
@@ -296,25 +338,27 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
       imageLookup, errors,
     );
     const proposalCover = await resolveOneImage(field(fieldMap, "Proposal Cover (Optional)"), imageLookup, errors);
+    // Email cover is optional — missing is not an error, falls back to contractor logo
+    const emailCoverErrors: string[] = [];
+    const emailCover = await resolveOneImage(field(fieldMap, "Email Cover (Optional)"), imageLookup, emailCoverErrors);
 
     // ── Inspection Drawing ──
-    const inspectionDrawingRef = field(fieldMap, "Inspection Drawing");
-    const inspectionDrawing = await resolveOneImage(inspectionDrawingRef, imageLookup, errors);
+    const inspectionDrawing = await resolveOneImage(field(fieldMap, "Inspection Drawing"), imageLookup, errors);
 
     // ── Project ──
     const contractorName = field(fieldMap, "Contractor Name");
     const contractorEmail = field(fieldMap, "Contractor Email");
     const projectName = field(fieldMap, "Project Name");
-    const projectAddress = field(fieldMap, "Project Address");
     const displayTitle = field(fieldMap, "Display Title (on PDF/COVER)");
     const proposalName = field(fieldMap, "Proposal Name");
     const proposalSlogan = field(fieldMap, "Proposal Featuring/Slogan");
     const contractorUrl = field(fieldMap, "Contractor URL");
+    // Note: Excel uses "Contractor Starts" (typo for Stars) — kept consistent with the template
     const contractorStars = field(fieldMap, "Contractor Starts");
     const contractorReviews = field(fieldMap, "Contractor Reviews");
 
-    // ── Testimonial Quotes ──
-    const testimonialQuotes = collectNumberedFields(fieldMap, "Testimonial Quotes", 5);
+    // ── Testimonial Quotes (up to 3 in standard template) ──
+    const testimonialQuotes = collectNumberedFields(fieldMap, "Testimonial Quotes", 3);
 
     // ── Expiration Date ──
     const expirationDateRaw = field(fieldMap, "Expiration Date");
@@ -335,6 +379,18 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
     // ── Disclaimers ──
     const summaryDisclaimers = collectNumberedFields(fieldMap, "Summary Disclaimer", 5);
     const paymentDisclaimers = collectNumberedFields(fieldMap, "Payment Disclaimer", 5);
+
+    // ── Extra Services (up to 3 in standard template) ──
+    const extraServices: ExtraService[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const name = field(fieldMap, `Extra Service ${i}`);
+      if (!name) continue;
+      const description = field(fieldMap, `Extra Service ${i} Description`);
+      const cta = field(fieldMap, `Extra Service ${i} CTA`);
+      const imageRef = field(fieldMap, `Extra Service ${i} Image`);
+      const image = await resolveOneImage(imageRef, imageLookup, errors);
+      extraServices.push({ name, description, cta, image });
+    }
 
     // ── Detect how many options are defined in Excel ──
     const maxOptionIndex = detectMaxOptionIndex(fieldMap, workbook);
@@ -364,20 +420,26 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         const imageRefs = extractImageRefs(record["Image "] ?? record["Image"]);
         const productImages = await resolveImageUrls(imageRefs, imageLookup, errors);
         const price = asNumber(record["Price"]);
-        const category = record["Category"] || "";
+        // Category is the primary section grouping; Product Group is the fallback
+        const category = record["Category"] || record["Product Group"] || "";
+        // "Optional" column marks add-on items (accepts: yes/1/true, case-insensitive)
+        const optionalVal = normalize(record["Optional"] ?? "");
+        const isAddon = optionalVal === "yes" || optionalVal === "1" || optionalVal === "true";
+        const qty = record["Quantity "] ?? record["Quantity"] ?? "";
         const item: ODAItem = {
           id: `option-${optionIndex}-${rowIndex + 1}`,
           name: record["Product Name"],
           spec: record["Description (Optional)"] || "",
           price,
-          quantity: record["Quantity "] ?? record["Quantity"] ?? "",
+          quantity: qty,
           unit: record["Unit"] ?? "",
           previewImage: productImages[0],
           productImages,
+          isAddon,
         };
         items.push({
           name: record["Product Name"],
-          qty: record["Quantity "] || record["Quantity"] || "",
+          qty,
           unit: record["Unit"] || "",
           price,
           thumbnailSrc: productImages[0],
@@ -393,6 +455,8 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
 
     // ── Build options purely from Excel ──
     const options: ODAOption[] = [];
+    let globalDrawingImage: string | undefined = inspectionDrawing;
+
     for (let optIdx = 1; optIdx <= maxOptionIndex; optIdx++) {
       const title = field(fieldMap, `Option ${optIdx} Title`);
       const subtitle = field(fieldMap, `Option ${optIdx} Sub Title`);
@@ -400,9 +464,17 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
       const completionTime = field(fieldMap, `Option ${optIdx} Completion Time`);
       const coverImageRef = field(fieldMap, `Option ${optIdx} Cover Image`);
       const drawingRef = field(fieldMap, `Option ${optIdx} Drawing`);
+      const contractPdfRef = field(fieldMap, `Option ${optIdx} Contract PDF`);
 
       const coverImage = await resolveOneImage(coverImageRef, imageLookup, errors);
       const drawingImage = await resolveOneImage(drawingRef, imageLookup, errors);
+      const contractPageRefs = extractImageRefs(contractPdfRef);
+      const contractPages = await resolveImageUrls(contractPageRefs, fileLookup, errors);
+
+      // Use first option's drawing as global drawing fallback when no inspection drawing
+      if (drawingImage && optIdx === 1 && !globalDrawingImage) {
+        globalDrawingImage = drawingImage;
+      }
 
       const sheetData = productSheetData.get(optIdx);
       const items = sheetData?.items ?? [];
@@ -447,10 +519,11 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         materials,
         deliveryDays,
         priceFrom: total,
-        monthlyPayment: asNumber(globalMonthly),
+        monthlyPayment: parseMonthlyAmount(globalMonthly),
         images,
         sections,
         scopeGroups,
+        contractPages,
         summary,
         detailSummary: {
           title: title ? `SUMMARY - ${title}` : "",
@@ -472,11 +545,6 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         },
       };
 
-      // Use first option's drawing for global drawings if no inspection drawing
-      if (drawingImage && optIdx === 1 && !inspectionDrawing) {
-        // will be set below
-      }
-
       options.push(option);
     }
 
@@ -496,7 +564,7 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         contractorReviews,
         testimonialQuotes,
         projectName,
-        projectAddress,
+        projectAddress: "",
         salesName: field(fieldMap, "Sales Name"),
         salesTitle: field(fieldMap, "Sales Tile") || field(fieldMap, "Sales Title"),
         salesPhone: field(fieldMap, "Sales Phone"),
@@ -506,7 +574,7 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         proposalName,
         proposalSlogan,
         proposalCover,
-        emailImage: "",
+        emailImage: emailCover ?? contractorLogo ?? "",
         heroImage: "",
       },
       email: {
@@ -525,9 +593,9 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         stickySecondaryButtonLabel: "Explore Options",
         inspectionSectionTitle: "INSPECTION REPORT",
         stickyTitle: projectName,
-        stickyAddress: projectAddress,
+        stickyAddress: "",
         preparedForPrefix: "Prepared for",
-        inspectionDrawing: inspectionDrawing ?? "",
+        inspectionDrawing: globalDrawingImage ?? "",
         inspectionItems,
         floorPlanMarkers: [],
       },
@@ -584,10 +652,11 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         productSelectedLabel: "Product Selected",
         changeLabel: "Change",
       },
+      extraServices,
       contractPages: [],
       drawings: {
-        detail: inspectionDrawing ?? "",
-        approved: inspectionDrawing ?? "",
+        detail: globalDrawingImage ?? "",
+        approved: globalDrawingImage ?? "",
       },
       upsell: {
         warrantyImage: "",

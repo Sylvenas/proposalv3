@@ -5,7 +5,7 @@ import { ODALogo } from "../components/ODALogo";
 import { ProductDetailModal } from "../components/ProductDetailModal";
 import { SummaryGroup } from "../components/SummaryGroup";
 import type { ODAItem, ODAOption, ProposalV3Data, SummaryLineItem } from "../schema";
-import { sv } from "../shared";
+import { CONTRACT_PAGES, sv } from "../shared";
 
 export function ApprovedScreen({
   data,
@@ -16,9 +16,10 @@ export function ApprovedScreen({
   option: ODAOption;
   onHome: () => void;
 }) {
+  const HIDDEN_APPROVED_TABS = new Set(["Documents", "Products", "Drawings"]);
   const [activeTab, setActiveTab] = useState("Project Home");
   const [approvedContractZoom, setApprovedContractZoom] = useState(1);
-  const tabs = data.approvedPage.tabs;
+  const tabs = data.approvedPage.tabs.filter((tab) => !HIDDEN_APPROVED_TABS.has(tab));
 
   const [approvedProductDetailModal, setApprovedProductDetailModal] = useState<{
     item: ODAItem;
@@ -163,7 +164,7 @@ export function ApprovedScreen({
                   gap: sv(16),
                 }}
               >
-                {data.contractPages.map((pageSrc, index) => (
+                {CONTRACT_PAGES.map((pageSrc, index) => (
                   <div
                     key={pageSrc}
                     style={{

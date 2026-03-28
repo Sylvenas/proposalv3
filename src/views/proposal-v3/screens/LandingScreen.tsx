@@ -451,10 +451,6 @@ export function LandingScreen({
                       alt={data.landing.inspectionSectionTitle}
                       style={{
                         position: "absolute",
-                        width: "197.75%",
-                        height: "381.45%",
-                        left: "-56.4%",
-                        top: "-140.73%",
                         maxWidth: "none",
                       }}
                     />

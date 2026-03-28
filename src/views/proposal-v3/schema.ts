@@ -62,6 +62,13 @@ export type ProposalReview = {
   author: string;
 };
 
+export type ExtraService = {
+  name: string;
+  description: string;
+  cta: string;
+  image?: string;
+};
+
 export type ODAOption = {
   id: number;
   title: string;
@@ -74,6 +81,7 @@ export type ODAOption = {
   sections: ODASection[];
   summary: ProposalOptionSummary;
   scopeGroups: ProposalScopeGroup[];
+  contractPages: string[];
   detailSummary: {
     title: string;
     subtitle: string;
@@ -210,6 +218,7 @@ export type ProposalV3Data = {
     productSelectedLabel: string;
     changeLabel: string;
   };
+  extraServices: ExtraService[];
   contractPages: string[];
   drawings: {
     detail: string;

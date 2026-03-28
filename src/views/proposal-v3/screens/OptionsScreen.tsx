@@ -38,7 +38,7 @@ export function OptionsScreen({
     sectionName: string;
     measurementLabel: string;
     description: string;
-    } | null>(null);
+  } | null>(null);
 
   const scrollToCompare = () =>
     compareRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -199,12 +199,17 @@ export function OptionsScreen({
       if (!group || group.items.length === 0) {
         return [{ dash: true as const }];
       }
-      return group.items.map((item) => ({
-        name: item.name,
-        qty: item.qty,
-        unit: item.unit,
-        img: item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER,
-      }));
+      return group.items.map((item) => {
+        const resolvedImage = item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER;
+        const isPlaceholderImage = resolvedImage === OPTION_CHAIN_PLACEHOLDER;
+        return {
+          name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          img: resolvedImage,
+          faded: isPlaceholderImage,
+        };
+      });
     }),
   }));
 
@@ -285,6 +290,7 @@ export function OptionsScreen({
               {opt.description}
             </p>
             <p
+              className="truncate"
               style={{
                 fontSize: sv(16),
                 color: "#262626",
@@ -388,6 +394,7 @@ export function OptionsScreen({
           gap: sv(12),
           backgroundColor: "white",
           cursor: "pointer",
+          overflow: "hidden",
         }}
       >
         <div
@@ -413,7 +420,7 @@ export function OptionsScreen({
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  opacity: item.faded ? 0.1 : 1,
+                  opacity: item.faded ? 0.15 : 1,
                 }
               }
             />
@@ -425,7 +432,7 @@ export function OptionsScreen({
         >
           <p
             style={{
-              flex: "1 0 0",
+              flex: "1 1 auto",
               fontSize: sv(14),
               color: "#262626",
               overflow: "hidden",
@@ -476,307 +483,246 @@ export function OptionsScreen({
 
   return (
     <>
-    <style>{`
+      <style>{`
       @keyframes bounceUpDown {
         0%, 100% { transform: translateY(-4px); }
         50% { transform: translateY(12px); }
       }
     `}</style>
-    <div
-      className="bg-white"
-      style={{
-        fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
-      }}
-    >
-      {/* Fixed sticky comparison header */}
       <div
+        className="bg-white"
         style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 20,
-          backgroundColor: "white",
-          borderBottom: "0.5px solid rgba(0,0,0,0.2)",
-          boxShadow: "0px 4px 3px 0px rgba(123,123,123,0.1)",
-          display: hideComparisonHeader ? "none" : undefined,
+          fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
+        {/* Fixed sticky comparison header */}
         <div
-          className="relative flex items-center"
           style={{
-            width: sv(1440),
-            margin: "0 auto",
-            gap: sv(24),
-            padding: `0 ${sv(80)}`,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            backgroundColor: "white",
+            borderBottom: "0.5px solid rgba(0,0,0,0.2)",
+            boxShadow: "0px 4px 3px 0px rgba(123,123,123,0.1)",
+            display: hideComparisonHeader ? "none" : undefined,
           }}
         >
-          {optionNames.map((name, i) => (
-            <button
-              key={i}
-              className="flex items-center"
-              style={{
-                flex: "1 0 0",
-                height: sv(48),
-                padding: `0 ${sv(8)}`,
-                gap: sv(4),
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-              }}
-              onClick={() =>
-                setExpandedCompareOptionIdx((prev) => (prev === i ? null : i))
-              }
-            >
-              <p
+          <div
+            className="relative flex items-center"
+            style={{
+              width: sv(1440),
+              margin: "0 auto",
+              gap: sv(24),
+              padding: `0 ${sv(80)}`,
+            }}
+          >
+            {optionNames.map((name, i) => (
+              <button
+                key={i}
+                className="flex items-center"
                 style={{
-                  fontSize: sv(14),
-                  fontWeight: 600,
-                  color: "#262626",
-                  lineHeight: "normal",
-                  whiteSpace: "nowrap",
+                  flex: "1 0 0",
+                  height: sv(48),
+                  padding: `0 ${sv(8)}`,
+                  gap: sv(4),
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
                 }}
+                onClick={() =>
+                  setExpandedCompareOptionIdx((prev) => (prev === i ? null : i))
+                }
               >
-                {name}
-              </p>
-              <div
-                className="flex items-center justify-center"
-                style={{ width: sv(16), height: sv(16) }}
-              >
-                <div
+                <p
                   style={{
-                    width: sv(16),
-                    height: sv(16),
-                    transform: "rotate(90deg)",
+                    fontSize: sv(14),
+                    fontWeight: 600,
+                    color: "#262626",
+                    lineHeight: "normal",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <img
-                    src={OPTION_STICKY_CHEVRON}
-                    alt=""
-                    style={{ width: "100%", height: "100%" }}
-                  />
+                  {name}
+                </p>
+                <div
+                  className="flex items-center justify-center"
+                  style={{ width: sv(16), height: sv(16) }}
+                >
+                  <div
+                    style={{
+                      width: sv(16),
+                      height: sv(16),
+                      transform: "rotate(90deg)",
+                    }}
+                  >
+                    <img
+                      src={OPTION_STICKY_CHEVRON}
+                      alt=""
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </div>
+                </div>
+              </button>
+            ))}
+            {expandedCompareOptionIdx !== null && !hideComparisonHeader && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  top: "100%",
+                  width: sv(1280),
+                  zIndex: 21,
+                  pointerEvents: "none",
+                }}
+              >
+                <div className="flex" style={{ gap: sv(32) }}>
+                  {optionSummaries.map((_, i) => (
+                    <div key={i} style={{ flex: "1 0 0", minWidth: 0 }}>
+                      {i === expandedCompareOptionIdx ? (
+                        <div
+                          ref={expandedCompareCardRef}
+                          style={{
+                            pointerEvents: "auto",
+                            boxShadow:
+                              "0px 24px 56px rgba(15,23,42,0.18), 0px 8px 20px rgba(15,23,42,0.10)",
+                          }}
+                        >
+                          <OptionCard optIdx={i} />
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </button>
-          ))}
-          {expandedCompareOptionIdx !== null && !hideComparisonHeader && (
-            <div
-              style={{
-                position: "absolute",
-                left: "50%",
-                transform: "translateX(-50%)",
-                top: "100%",
-                width: sv(1280),
-                zIndex: 21,
-                pointerEvents: "none",
-              }}
-            >
-              <div className="flex" style={{ gap: sv(32) }}>
-                {optionSummaries.map((_, i) => (
-                  <div key={i} style={{ flex: "1 0 0", minWidth: 0 }}>
-                    {i === expandedCompareOptionIdx ? (
-                      <div
-                        ref={expandedCompareCardRef}
-                        style={{
-                          pointerEvents: "auto",
-                          boxShadow:
-                            "0px 24px 56px rgba(15,23,42,0.18), 0px 8px 20px rgba(15,23,42,0.10)",
-                        }}
-                      >
-                        <OptionCard optIdx={i} />
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div style={{ width: sv(1440), minHeight: "100vh", margin: "0 auto" }}>
-        <div
-          className="flex items-center justify-center"
-          style={{ paddingTop: sv(28) }}
-        >
-          <div
-            className="flex items-center justify-between"
-            style={{ width: sv(991), height: sv(30) }}
-          >
-            <button
-              onClick={onHome}
-              className="flex items-center justify-center"
-              style={{ width: sv(24), height: sv(24) }}
-            >
-              <img
-                src={OPTION_HOME_ICON}
-                alt="Home"
-                style={{ width: sv(17.99), height: sv(15.977) }}
-              />
-            </button>
-            {data.project.contractorLogoHeader && (
-              <img
-                src={data.project.contractorLogoHeader}
-                alt={data.project.contractorName}
-                style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
-              />
             )}
-            <button
-              className="flex items-center justify-center"
-              style={{ width: sv(24), height: sv(24) }}
-            >
-              <img
-                src={OPTION_USER_ICON}
-                alt="Account"
-                style={{ width: sv(14), height: sv(15.977) }}
-              />
-            </button>
           </div>
         </div>
 
-        <div
-          className="flex flex-col items-center"
-          style={{
-            width: sv(1440),
-            padding: `${sv(41)} ${sv(80)} ${sv(80)}`,
-            gap: sv(96),
-          }}
-        >
+        <div style={{ width: sv(1440), minHeight: "100vh", margin: "0 auto" }}>
           <div
-            className="flex flex-col items-center"
-            style={{ width: "100%", gap: sv(24) }}
+            className="flex items-center justify-center"
+            style={{ paddingTop: sv(28) }}
           >
             <div
-              className="flex items-start"
-              style={{ width: "100%", gap: sv(32) }}
+              className="flex items-center justify-between"
+              style={{ width: sv(991), height: sv(30) }}
             >
-              {optionSummaries.map((_, i) => (
-                <OptionCard
-                  key={i}
-                  optIdx={i}
-                  selectButtonRef={setSelectButtonRef(i)}
-                />
-              ))}
-            </div>
-            <div
-              className="flex flex-col items-center"
-              style={{ gap: sv(16), paddingBottom: sv(64), paddingTop: sv(16) }}
-            >
-              <div
-                className="text-center whitespace-nowrap"
-                style={{ fontSize: sv(14), color: "#262626", lineHeight: 0 }}
-              >
-                <p style={{ fontWeight: 600, marginBottom: sv(4), lineHeight: "normal" }}>
-                  {data.optionsPage.supportTitle}
-                </p>
-                <p style={{ fontWeight: 300, lineHeight: "normal" }}>
-                  {data.optionsPage.supportBody}
-                </p>
-              </div>
               <button
-                onClick={scrollToCompare}
-                className="flex flex-col items-center justify-center"
-                style={{
-                  padding: `${sv(6)} ${sv(4)}`,
-                  gap: sv(4),
-                  borderRadius: sv(4),
-                  background: "transparent",
-                  border: "none",
-                  color: "#262626",
-                  cursor: "pointer",
-                }}
+                onClick={onHome}
+                className="flex items-center justify-center"
+                style={{ width: sv(24), height: sv(24) }}
               >
-                <span style={{ fontSize: sv(20), fontWeight: 300, lineHeight: sv(18), whiteSpace: "nowrap" }}>
-                  {data.optionsPage.compareButtonLabel}
-                </span>
-                <div
-                  className="overflow-hidden relative"
-                  style={{
-                    width: sv(24),
-                    height: sv(24),
-                    animation: "bounceUpDown 1.5s ease-in-out infinite",
-                  }}
-                >
-                  <img
-                    src={OPTION_COMPARE_ICON}
-                    alt=""
-                    style={{
-                      position: "absolute",
-                      width: sv(10.131),
-                      height: sv(10.131),
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                    }}
-                  />
-                </div>
+                <img
+                  src={OPTION_HOME_ICON}
+                  alt="Home"
+                  style={{ width: sv(17.99), height: sv(15.977) }}
+                />
+              </button>
+              {data.project.contractorLogoHeader && (
+                <img
+                  src={data.project.contractorLogoHeader}
+                  alt={data.project.contractorName}
+                  style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+                />
+              )}
+              <button
+                className="flex items-center justify-center"
+                style={{ width: sv(24), height: sv(24) }}
+              >
+                <img
+                  src={OPTION_USER_ICON}
+                  alt="Account"
+                  style={{ width: sv(14), height: sv(15.977) }}
+                />
               </button>
             </div>
           </div>
 
-          <div ref={compareRef} className="flex flex-col items-center" style={{ width: "100%", gap: sv(64) }}>
-            <div className="flex flex-col items-center" style={{ width: "100%", gap: sv(32) }}>
-              <p
-                style={{
-                  fontSize: sv(28),
-                  fontWeight: 600,
-                  color: "#262626",
-                  textAlign: "center",
-                  lineHeight: "normal",
-                  width: "100%",
-                }}
+          <div
+            className="flex flex-col items-center"
+            style={{
+              width: sv(1440),
+              padding: `${sv(41)} ${sv(80)} ${sv(80)}`,
+              gap: sv(96),
+            }}
+          >
+            <div
+              className="flex flex-col items-center"
+              style={{ width: "100%", gap: sv(24) }}
+            >
+              <div
+                className="flex items-start"
+                style={{ width: "100%", gap: sv(32) }}
               >
-                {data.optionsPage.scheduleTitle}
-              </p>
-              <div className="flex items-start" style={{ width: "100%", gap: sv(32) }}>
-                {scheduleData.map((column, columnIndex) => (
-                  <div key={columnIndex} className="flex flex-col" style={{ flex: "1 0 0" }}>
-                    {column.map((item, itemIndex) => (
-                      <div
-                        key={itemIndex}
-                        className="flex flex-col items-start"
-                        style={{
-                          borderTop: "0.5px solid rgba(0,0,0,0.1)",
-                          padding: `${sv(16)} 0`,
-                          width: "100%",
-                          textAlign: "center",
-                        }}
-                      >
-                        <p
-                          style={{
-                            width: "100%",
-                            fontSize: sv(14),
-                            color: "#737373",
-                            letterSpacing: sv(-0.14),
-                            lineHeight: "normal",
-                          }}
-                        >
-                          {item.label}
-                        </p>
-                        <p
-                          style={{
-                            width: "100%",
-                            fontSize: sv(24),
-                            fontWeight: 600,
-                            color: "#262626",
-                            lineHeight: "normal",
-                          }}
-                        >
-                          {item.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                {optionSummaries.map((_, i) => (
+                  <OptionCard
+                    key={i}
+                    optIdx={i}
+                    selectButtonRef={setSelectButtonRef(i)}
+                  />
                 ))}
+              </div>
+              <div
+                className="flex flex-col items-center"
+                style={{ gap: sv(16), paddingBottom: sv(64), paddingTop: sv(16) }}
+              >
+                <div
+                  className="text-center whitespace-nowrap"
+                  style={{ fontSize: sv(14), color: "#262626", lineHeight: 0 }}
+                >
+                  <p style={{ fontWeight: 600, marginBottom: sv(4), lineHeight: "normal" }}>
+                    {data.optionsPage.supportTitle}
+                  </p>
+                  <p style={{ fontWeight: 300, lineHeight: "normal" }}>
+                    {data.optionsPage.supportBody}
+                  </p>
+                </div>
+                <button
+                  onClick={scrollToCompare}
+                  className="flex flex-col items-center justify-center"
+                  style={{
+                    padding: `${sv(6)} ${sv(4)}`,
+                    gap: sv(4),
+                    borderRadius: sv(4),
+                    background: "transparent",
+                    border: "none",
+                    color: "#262626",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontSize: sv(20), fontWeight: 300, lineHeight: sv(18), whiteSpace: "nowrap" }}>
+                    {data.optionsPage.compareButtonLabel}
+                  </span>
+                  <div
+                    className="overflow-hidden relative"
+                    style={{
+                      width: sv(24),
+                      height: sv(24),
+                      animation: "bounceUpDown 1.5s ease-in-out infinite",
+                    }}
+                  >
+                    <img
+                      src={OPTION_COMPARE_ICON}
+                      alt=""
+                      style={{
+                        position: "absolute",
+                        width: sv(10.131),
+                        height: sv(10.131),
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                  </div>
+                </button>
               </div>
             </div>
 
-            {compareSections.map((section) => (
-              <div
-                key={section.title}
-                className="flex flex-col items-center"
-                style={{ width: "100%", gap: sv(32) }}
-              >
+            <div ref={compareRef} className="flex flex-col items-center" style={{ width: "100%", gap: sv(64) }}>
+              <div className="flex flex-col items-center" style={{ width: "100%", gap: sv(32) }}>
                 <p
                   style={{
                     fontSize: sv(28),
@@ -787,126 +733,191 @@ export function OptionsScreen({
                     width: "100%",
                   }}
                 >
-                  {section.title}
+                  {data.optionsPage.scheduleTitle}
                 </p>
-                <div
-                  className="flex items-start"
-                  style={{ width: "100%", gap: sv(32) }}
-                >
-                  {section.columns.map((items, columnIndex) => (
+                <div className="flex items-start" style={{ width: "100%", gap: sv(32) }}>
+                  {scheduleData.map((column, columnIndex) => (
                     <div
                       key={columnIndex}
-                      className="flex flex-col items-start"
-                      style={{ flex: "1 0 0" }}
+                      className="flex flex-col"
+                      style={{ flex: "1 0 0", minWidth: 0 }}
                     >
-                      {items.map((item, itemIndex) => (
-                        <LineItem
+                      {column.map((item, itemIndex) => (
+                        <div
                           key={itemIndex}
-                          item={item}
-                          sectionTitle={section.title}
-                          optionIdx={columnIndex}
-                        />
+                          className="flex flex-col items-start"
+                          style={{
+                            borderTop: "0.5px solid rgba(0,0,0,0.1)",
+                            padding: `${sv(16)} 0`,
+                            width: "100%",
+                            textAlign: "center",
+                          }}
+                        >
+                          <p
+                            style={{
+                              width: "100%",
+                              fontSize: sv(14),
+                              color: "#737373",
+                              letterSpacing: sv(-0.14),
+                              lineHeight: "normal",
+                            }}
+                          >
+                            {item.label}
+                          </p>
+                          <p
+                            style={{
+                              width: "100%",
+                              fontSize: sv(24),
+                              fontWeight: 600,
+                              color: "#262626",
+                              lineHeight: "normal",
+                            }}
+                          >
+                            {item.value}
+                          </p>
+                        </div>
                       ))}
                     </div>
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
 
-          <div
-            className="flex flex-col items-start"
-            style={{ width: "100%", gap: sv(40) }}
-          >
-            <div
-              className="flex flex-col items-center"
-              style={{ width: "100%", gap: sv(2) }}
-            >
-              <p
-                style={{
-                  width: "100%",
-                  fontSize: sv(36),
-                  fontWeight: 600,
-                  color: "#262626",
-                  textAlign: "center",
-                  lineHeight: "normal",
-                }}
-              >
-                {data.optionsPage.decisionTitle}
-              </p>
-              <button
-                onClick={scrollToTop}
-                className="flex items-center justify-center"
-                style={{
-                  width: sv(276),
-                  height: sv(40),
-                  padding: `${sv(6)} ${sv(12)}`,
-                  gap: sv(4),
-                  borderRadius: sv(4),
-                  border: "none",
-                  backgroundColor: "#ffffff",
-                  color: "rgba(0,0,0,0.85)",
-                }}
-              >
+              {compareSections.map((section) => (
                 <div
-                  className="flex items-center justify-end"
-                  style={{ width: sv(20) }}
+                  key={section.title}
+                  className="flex flex-col items-center"
+                  style={{ width: "100%", gap: sv(32) }}
                 >
-                  <div
-                    className="relative"
-                    style={{ width: sv(24), height: sv(24) }}
+                  <p
+                    style={{
+                      fontSize: sv(28),
+                      fontWeight: 600,
+                      color: "#262626",
+                      textAlign: "center",
+                      lineHeight: "normal",
+                      width: "100%",
+                    }}
                   >
-                    <img
-                      src={OPTION_BACK_TO_TOP_ICON}
-                      alt=""
-                      style={{
-                        position: "absolute",
-                        width: sv(12.008),
-                        height: sv(14),
-                        left: "50%",
-                        top: "50%",
-                        transform: "translate(-50%, -50%)",
-                      }}
-                    />
+                    {section.title}
+                  </p>
+                  <div
+                    className="flex items-start"
+                    style={{ width: "100%", gap: sv(32) }}
+                  >
+                    {section.columns.map((items, columnIndex) => (
+                      <div
+                        key={columnIndex}
+                        className="flex flex-col items-start"
+                        style={{ flex: "1 0 0", minWidth: 0 }}
+                      >
+                        {items.map((item, itemIndex) => (
+                          <LineItem
+                            key={itemIndex}
+                            item={item}
+                            sectionTitle={section.title}
+                            optionIdx={columnIndex}
+                          />
+                        ))}
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <span style={{ fontSize: sv(14), lineHeight: sv(18) }}>
-                  {data.optionsPage.backToTopLabel}
-                </span>
-              </button>
-            </div>
-            <div
-              className="flex items-start"
-              style={{ width: "100%", gap: sv(32) }}
-            >
-              {optionSummaries.map((_, i) => (
-                <OptionCard
-                  key={i}
-                  optIdx={i}
-                  selectButtonRef={setSelectButtonRef(i + optionSummaries.length)}
-                />
               ))}
             </div>
+
+            <div
+              className="flex flex-col items-start"
+              style={{ width: "100%", gap: sv(40) }}
+            >
+              <div
+                className="flex flex-col items-center"
+                style={{ width: "100%", gap: sv(2) }}
+              >
+                <p
+                  style={{
+                    width: "100%",
+                    fontSize: sv(36),
+                    fontWeight: 600,
+                    color: "#262626",
+                    textAlign: "center",
+                    lineHeight: "normal",
+                  }}
+                >
+                  {data.optionsPage.decisionTitle}
+                </p>
+                <button
+                  onClick={scrollToTop}
+                  className="flex items-center justify-center"
+                  style={{
+                    width: sv(276),
+                    height: sv(40),
+                    padding: `${sv(6)} ${sv(12)}`,
+                    gap: sv(4),
+                    borderRadius: sv(4),
+                    border: "none",
+                    backgroundColor: "#ffffff",
+                    color: "rgba(0,0,0,0.85)",
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-end"
+                    style={{ width: sv(20) }}
+                  >
+                    <div
+                      className="relative"
+                      style={{ width: sv(24), height: sv(24) }}
+                    >
+                      <img
+                        src={OPTION_BACK_TO_TOP_ICON}
+                        alt=""
+                        style={{
+                          position: "absolute",
+                          width: sv(12.008),
+                          height: sv(14),
+                          left: "50%",
+                          top: "50%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <span style={{ fontSize: sv(14), lineHeight: sv(18) }}>
+                    {data.optionsPage.backToTopLabel}
+                  </span>
+                </button>
+              </div>
+              <div
+                className="flex items-start"
+                style={{ width: "100%", gap: sv(32) }}
+              >
+                {optionSummaries.map((_, i) => (
+                  <OptionCard
+                    key={i}
+                    optIdx={i}
+                    selectButtonRef={setSelectButtonRef(i + optionSummaries.length)}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
+
         </div>
 
+        {compareProductDetailModal && (
+          <ProductDetailModal
+            item={compareProductDetailModal.item}
+            sectionName={compareProductDetailModal.sectionName}
+            measurementLabel={compareProductDetailModal.measurementLabel}
+            description={compareProductDetailModal.description}
+            hidePrice={compareProductDetailModal.item.price === 0}
+            hideSelectButton
+            onSelect={() => undefined}
+            onClose={() => setCompareProductDetailModal(null)}
+            selectLabel={data.labels.productSelectLabel}
+            selectedLabel={data.labels.productSelectedLabel}
+          />
+        )}
       </div>
-
-      {compareProductDetailModal && (
-        <ProductDetailModal
-          item={compareProductDetailModal.item}
-          sectionName={compareProductDetailModal.sectionName}
-          measurementLabel={compareProductDetailModal.measurementLabel}
-          description={compareProductDetailModal.description}
-          hidePrice={compareProductDetailModal.item.price === 0}
-          hideSelectButton
-          onSelect={() => undefined}
-          onClose={() => setCompareProductDetailModal(null)}
-          selectLabel={data.labels.productSelectLabel}
-          selectedLabel={data.labels.productSelectedLabel}
-        />
-      )}
-    </div>
     </>
   );
 }

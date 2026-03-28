@@ -2,7 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 
 import type { ProposalV3Data } from "../schema";
-import { sv } from "../shared";
+import { CONTRACT_PAGES, sv } from "../shared";
 
 export function SignModal({
   data,
@@ -71,7 +71,7 @@ export function SignModal({
               className="flex flex-col bg-[#f5f5f5]"
               style={{ width: `${zoom * 100}%`, minWidth: "100%", gap: sv(16) }}
             >
-              {data.contractPages.map((pageSrc, index) => (
+              {CONTRACT_PAGES.map((pageSrc, index) => (
                 <Image
                   key={pageSrc}
                   src={pageSrc}
