@@ -12,10 +12,7 @@ export const PlaceholderInput = createReactInlineContentSpec(
   } as const,
   {
     render: (props) => (
-      <input
-        readOnly
-        tabIndex={-1}
-        value={props.inlineContent.props.label}
+      <span
         style={{
           display: "inline-block",
           padding: "1px 8px",
@@ -27,11 +24,10 @@ export const PlaceholderInput = createReactInlineContentSpec(
           backgroundColor: "#fafafa",
           cursor: "default",
           verticalAlign: "baseline",
-          outline: "none",
-          width: `${props.inlineContent.props.label.length + 2}ch`,
-          pointerEvents: "none",
         }}
-      />
+      >
+        {props.inlineContent.props.label}
+      </span>
     ),
   },
 );
