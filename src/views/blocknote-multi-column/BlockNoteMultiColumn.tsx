@@ -21,11 +21,74 @@ import {
   locales as multiColumnLocales,
   withMultiColumn,
 } from "@blocknote/xl-multi-column";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { createProductList } from "./ProductListBlock";
 import { PlaceholderInput } from "./PlaceholderInput";
+import { ExportModal, type ExportFormData } from "./ExportModal";
 import "./product-list.css";
+
+const PDF_STYLES = `
+  @page { size: A4; margin: 20mm; }
+  body {
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    color: #1a1a1a;
+    line-height: 1.6;
+  }
+  h1 { font-size: 24px; font-weight: 700; margin: 16px 0 8px; }
+  h2 { font-size: 20px; font-weight: 700; margin: 14px 0 6px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 12px 0 4px; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 4px 0; padding-left: 24px; }
+  li { margin: 2px 0; }
+
+  .product-list-block { width: 100%; font-family: "Segoe UI", Roboto, sans-serif; font-size: 11px; color: #1a1a1a; }
+  .product-list-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .product-list-table { border-top: 1px solid #e0e0e0; }
+  .product-list-header { display: grid; grid-template-columns: 1fr 80px 80px; padding: 4px 6px; background: #f5f5f5; font-weight: 700; font-size: 11px; border-bottom: 1px solid #e0e0e0; }
+  .product-list-row { display: grid; grid-template-columns: 1fr 80px 80px; padding: 6px; border-bottom: 1px solid #eee; align-items: center; }
+  .product-list-desc { display: flex; align-items: center; gap: 6px; }
+  .product-list-name { font-weight: 600; font-size: 11px; }
+  .product-list-qty { text-align: left; }
+  .product-list-amt { text-align: right; font-weight: 500; }
+  .product-list-summary { padding: 6px; border-top: 1px solid #e0e0e0; }
+  .product-list-summary-row { display: flex; justify-content: flex-end; gap: 20px; padding: 1px 0; font-size: 10px; color: #555; }
+  .product-list-summary-row span:first-child { min-width: 60px; text-align: right; }
+  .product-list-summary-row span:last-child { min-width: 70px; text-align: right; }
+  .product-list-total { font-weight: 700; font-size: 11px; color: #1a1a1a; padding-top: 2px; }
+
+  .bn-block-column-list { display: flex; gap: 16px; }
+  .bn-block-column { flex-basis: 0; min-width: 0; overflow: hidden; }
+
+  [data-inline-content-type="placeholderInput"] { display: inline-block; }
+`;
+
+const PREVIEW_EXTRA_STYLES = `
+  html { background: #f0f0f0; }
+  body { max-width: 750px; margin: 24px auto; padding: 40px; background: white; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 4px; min-height: 90vh; }
+`;
+
+const DEFAULT_PREVIEW_DATA: ExportFormData = {
+  customerName: "Emily Richardson",
+  projectAddress: "742 Evergreen Terrace, Springfield, IL 62704",
+  completionDate: "09/20/2026",
+  totalBudget: "$87,350.00",
+  products: [
+    { name: "6ft Cedar Privacy Fence", quantity: "320 ft", amount: "$25,600.00" },
+    { name: "Aluminum Gate (Double Swing)", quantity: "2", amount: "$4,200.00" },
+    { name: "Concrete Post Footings", quantity: "48", amount: "$7,680.00" },
+    { name: "Stain & Sealant Treatment", quantity: "1", amount: "$3,200.00" },
+    { name: "Permit & Inspection Fee", quantity: "1", amount: "$450.00" },
+  ],
+  summary: {
+    subtotal: "$41,130.00",
+    discount: "-$1,500.00",
+    salesTaxRate: "6.25%",
+    salesTax: "$2,476.88",
+    total: "$42,106.88",
+  },
+};
 
 const schema = withMultiColumn(
   BlockNoteSchema.create().extend({
@@ -212,153 +275,283 @@ export default function BlockNoteMultiColumn() {
       );
   }, [editor]);
 
+  // --- Preview state (auto-populate with default data on mount) ---
+  const [previewData, setPreviewData] = useState<ExportFormData | null>(
+    DEFAULT_PREVIEW_DATA,
+  );
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [editorVersion, setEditorVersion] = useState(0);
+
+  // --- Export state ---
   const [isExporting, setIsExporting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleExportPDF = useCallback(async () => {
-    if (isExporting) return;
-    setIsExporting(true);
-
-    try {
+  const buildFullHtml = useCallback(
+    async () => {
       const blocks = editor.document;
       const htmlContent = await editor.blocksToHTMLLossy(blocks);
-
-      const fullHtml = `<!DOCTYPE html>
+      return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<style>
-  @page { size: A4; margin: 20mm; }
-  body {
-    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 14px;
-    color: #1a1a1a;
-    line-height: 1.6;
-  }
-  h1 { font-size: 24px; font-weight: 700; margin: 16px 0 8px; }
-  h2 { font-size: 20px; font-weight: 700; margin: 14px 0 6px; }
-  h3 { font-size: 16px; font-weight: 600; margin: 12px 0 4px; }
-  p { margin: 6px 0; }
-  ul, ol { margin: 4px 0; padding-left: 24px; }
-  li { margin: 2px 0; }
-
-  .product-list-block { width: 100%; font-family: "Segoe UI", Roboto, sans-serif; font-size: 11px; color: #1a1a1a; }
-  .product-list-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
-  .product-list-table { border-top: 1px solid #e0e0e0; }
-  .product-list-header { display: grid; grid-template-columns: 1fr 80px 80px; padding: 4px 6px; background: #f5f5f5; font-weight: 700; font-size: 11px; border-bottom: 1px solid #e0e0e0; }
-  .product-list-row { display: grid; grid-template-columns: 1fr 80px 80px; padding: 6px; border-bottom: 1px solid #eee; align-items: center; }
-  .product-list-subrow { display: grid; grid-template-columns: 1fr 80px 80px; padding: 2px 6px; color: #555; font-size: 10px; }
-  .product-list-subrow:last-child { padding-bottom: 6px; border-bottom: 1px solid #eee; }
-  .product-list-desc { display: flex; align-items: center; gap: 6px; }
-  .product-list-name { font-weight: 600; font-size: 11px; }
-  .product-list-subtitle { color: #888; font-size: 10px; margin-top: 1px; }
-  .product-list-qty { text-align: left; }
-  .product-list-amt { text-align: right; font-weight: 500; }
-  .product-list-discount { font-size: 9px; color: #888; font-weight: 400; margin-top: 1px; }
-  .product-list-after-discount { font-size: 9px; font-weight: 700; margin-top: 1px; }
-  .product-list-summary { padding: 6px; border-top: 1px solid #e0e0e0; }
-  .product-list-summary-row { display: flex; justify-content: flex-end; gap: 20px; padding: 1px 0; font-size: 10px; color: #555; }
-  .product-list-summary-row span:first-child { min-width: 60px; text-align: right; }
-  .product-list-summary-row span:last-child { min-width: 70px; text-align: right; }
-  .product-list-total { font-weight: 700; font-size: 11px; color: #1a1a1a; padding-top: 2px; }
-
-  .bn-block-column-list {
-    display: flex;
-    gap: 16px;
-  }
-  .bn-block-column {
-    flex-basis: 0;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  [data-inline-content-type="placeholderInput"] {
-    display: inline-block;
-  }
-</style>
+<style>${PDF_STYLES}</style>
 </head>
 <body>
 ${htmlContent}
 </body>
 </html>`;
+    },
+    [editor],
+  );
 
-      const response = await fetch("http://localhost:5001/api/html-to-pdf", {
+  // Fetch preview from server (data replacement happens server-side)
+  const previewDataRef = useRef(previewData);
+  previewDataRef.current = previewData;
+
+  const updatePreview = useCallback(async () => {
+    const currentData = previewDataRef.current;
+    if (!currentData) return;
+    setIsPreviewLoading(true);
+    try {
+      const fullHtml = await buildFullHtml();
+      const response = await fetch("http://localhost:5001/api/html-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html: fullHtml }),
+        body: JSON.stringify({ html: fullHtml, formData: currentData }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "blocknote-export.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      let html = await response.text();
+      html = html.replace(
+        "</head>",
+        `<style>${PREVIEW_EXTRA_STYLES}</style></head>`,
+      );
+      setPreviewHtml(html);
     } catch (error) {
-      console.error("Export failed:", error);
-      alert("Export failed. Make sure the Python server is running on port 5001.");
+      console.error("Preview update failed:", error);
     } finally {
-      setIsExporting(false);
+      setIsPreviewLoading(false);
     }
-  }, [editor, isExporting]);
+  }, [buildFullHtml]);
+
+  // Debounced preview: re-run when editor content or preview data changes
+  useEffect(() => {
+    if (!previewData) return;
+    const timer = setTimeout(updatePreview, 400);
+    return () => clearTimeout(timer);
+  }, [previewData, editorVersion, updatePreview]);
+
+  const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
+
+  const handleUpdatePreviewData = useCallback((data: ExportFormData) => {
+    setPreviewData(data);
+    setIsDataEditorOpen(false);
+  }, []);
+
+  const handleEditorChange = useCallback(() => {
+    setEditorVersion((v) => v + 1);
+  }, []);
+
+  // --- Export ---
+  const handleExportWithData = useCallback(
+    async (data: ExportFormData) => {
+      if (isExporting) return;
+      setIsExporting(true);
+      try {
+        const fullHtml = await buildFullHtml();
+        const response = await fetch("http://localhost:5001/api/html-to-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ html: fullHtml, formData: data }),
+        });
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "blocknote-export.pdf";
+        a.click();
+        URL.revokeObjectURL(url);
+        setIsModalOpen(false);
+      } catch (error) {
+        console.error("Export failed:", error);
+        alert("Export failed. Make sure the Python server is running on port 5001.");
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [isExporting, buildFullHtml],
+  );
 
   return (
-    <div style={{ backgroundColor: "#f0f0f0", minHeight: "100vh" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        backgroundColor: "#f0f0f0",
+      }}
+    >
+      {/* Toolbar */}
       <div
         style={{
-          maxWidth: 794,
-          margin: "0 auto",
-          padding: "16px 0 0",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 20px",
+          backgroundColor: "#fff",
+          borderBottom: "1px solid #e0e0e0",
+          flexShrink: 0,
         }}
       >
-        <div
+        <button
+          onClick={() => setIsDataEditorOpen(true)}
           style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            padding: "0 0 12px",
+            padding: "8px 20px",
+            backgroundColor: "#fff",
+            color: "#333",
+            border: "1px solid #ccc",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
           }}
         >
-          <button
-            onClick={handleExportPDF}
-            disabled={isExporting}
+          Edit Preview Data
+        </button>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          style={{
+            padding: "8px 20px",
+            backgroundColor: "#228be6",
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Export to PDF
+        </button>
+      </div>
+
+      {/* Split content */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Left panel – Editor */}
+        <div
+          style={{
+            flex: 1,
+            overflow: "auto",
+            padding: 16,
+            borderRight: "1px solid #ddd",
+          }}
+        >
+          <div
             style={{
-              padding: "8px 20px",
-              backgroundColor: isExporting ? "#ccc" : "#228be6",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: isExporting ? "not-allowed" : "pointer",
+              backgroundColor: "#fff",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+              borderRadius: 4,
+              minHeight: "calc(100vh - 80px)",
             }}
           >
-            {isExporting ? "Exporting..." : "Export to PDF"}
-          </button>
+            <BlockNoteView
+              editor={editor}
+              theme="light"
+              onChange={handleEditorChange}
+            >
+              <SuggestionMenuController
+                triggerCharacter="/"
+                getItems={getSlashMenuItems}
+              />
+              <SuggestionMenuController
+                triggerCharacter="#"
+                getItems={getPlaceholderMenuItems}
+              />
+            </BlockNoteView>
+          </div>
         </div>
+
+        {/* Right panel – Live Preview */}
         <div
           style={{
-            backgroundColor: "#fff",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
-            borderRadius: 4,
-            minHeight: "calc(100vh - 80px)",
+            flex: 1,
+            overflow: "hidden",
+            backgroundColor: "#e8e8e8",
+            position: "relative",
           }}
         >
-          <BlockNoteView editor={editor} theme="light">
-            <SuggestionMenuController
-              triggerCharacter="/"
-              getItems={getSlashMenuItems}
-            />
-            <SuggestionMenuController
-              triggerCharacter="#"
-              getItems={getPlaceholderMenuItems}
-            />
-          </BlockNoteView>
+          {!previewData ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "#999",
+                gap: 12,
+              }}
+            >
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="9" y1="21" x2="9" y2="9" />
+              </svg>
+              <span style={{ fontSize: 14 }}>
+                Click &quot;Present Default Data&quot; to see live preview
+              </span>
+            </div>
+          ) : (
+            <>
+              {isPreviewLoading && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 12,
+                    right: 12,
+                    padding: "4px 12px",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    color: "#fff",
+                    borderRadius: 4,
+                    fontSize: 12,
+                    zIndex: 10,
+                  }}
+                >
+                  Updating...
+                </div>
+              )}
+              <iframe
+                srcDoc={previewHtml}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  backgroundColor: "transparent",
+                }}
+                title="PDF Preview"
+              />
+            </>
+          )}
         </div>
       </div>
+
+      <ExportModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onExport={handleExportWithData}
+        isExporting={isExporting}
+        initialData={previewData}
+      />
+      <ExportModal
+        isOpen={isDataEditorOpen}
+        onClose={() => setIsDataEditorOpen(false)}
+        onExport={handleUpdatePreviewData}
+        isExporting={false}
+        initialData={previewData}
+        submitLabel="Apply to Preview"
+      />
     </div>
   );
 }
