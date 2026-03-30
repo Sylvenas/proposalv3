@@ -23,10 +23,56 @@ import {
 } from "@blocknote/xl-multi-column";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+// ── Conditional section: mark wrappers so the server can remove them ──────────
+//
+// blocksToHTMLLossy serializes nested blocks as FLAT SIBLINGS with a
+// data-nesting-level attribute — there is no common wrapping ancestor.
+// We collect the header div + all immediately-following siblings that carry
+// data-nesting-level, then wrap them in a new div stamped with
+// data-conditional-wrapper. The server removes that wrapper (and its children)
+// when the condition is not met.
+
+function markConditionalSections(htmlContent: string): string {
+  if (typeof document === "undefined") return htmlContent;
+
+  const container = document.createElement("div");
+  container.innerHTML = htmlContent;
+
+  container.querySelectorAll<HTMLElement>(".conditional-section-block").forEach((header) => {
+    const field    = header.dataset.conditionField    ?? "";
+    const operator = header.dataset.conditionOperator ?? "eq";
+    const value    = header.dataset.conditionValue    ?? "";
+
+    // Collect the header + all immediately-following siblings with data-nesting-level
+    const toWrap: HTMLElement[] = [header];
+    let sibling = header.nextElementSibling as HTMLElement | null;
+    while (sibling && sibling.hasAttribute("data-nesting-level")) {
+      toWrap.push(sibling);
+      sibling = sibling.nextElementSibling as HTMLElement | null;
+    }
+
+    // Create wrapper, stamp attributes, move elements into it
+    const wrapper = document.createElement("div");
+    wrapper.dataset.conditionalWrapper = "true";
+    wrapper.dataset.conditionField     = field;
+    wrapper.dataset.conditionOperator  = operator;
+    wrapper.dataset.conditionValue     = value;
+
+    header.parentElement!.insertBefore(wrapper, header);
+    toWrap.forEach((el) => wrapper.appendChild(el));
+  });
+
+  return container.innerHTML;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { createProductList } from "./ProductListBlock";
+import { createConditionalSection } from "./ConditionalSectionBlock";
 import { PlaceholderInput } from "./PlaceholderInput";
 import { ExportModal, type ExportFormData } from "./ExportModal";
 import "./product-list.css";
+import "./conditional-section.css";
 
 const PDF_STYLES = `
   @page { size: A4; margin: 20mm; }
@@ -62,6 +108,9 @@ const PDF_STYLES = `
   .bn-block-column { flex-basis: 0; min-width: 0; overflow: hidden; }
 
   [data-inline-content-type="placeholderInput"] { display: inline-block; }
+
+  .conditional-section-block { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
+  .conditional-section-header { display: none !important; }
 `;
 
 const PREVIEW_EXTRA_STYLES = `
@@ -94,6 +143,7 @@ const schema = withMultiColumn(
   BlockNoteSchema.create().extend({
     blockSpecs: {
       productList: createProductList(),
+      conditionalSection: createConditionalSection(),
     },
     inlineContentSpecs: {
       placeholderInput: PlaceholderInput,
@@ -240,6 +290,20 @@ export default function BlockNoteMultiColumn() {
             aliases: ["products", "table", "invoice"],
             badge: "New",
           },
+          {
+            title: "Conditional Section",
+            subtext: "Show or hide content based on a field value",
+            group: "Other",
+            onItemClick: () => {
+              editor.insertBlocks(
+                [{ type: "conditionalSection" as const, children: [{ type: "paragraph" as const }] }],
+                editor.getTextCursorPosition().block,
+                "after",
+              );
+            },
+            aliases: ["condition", "if", "show", "hide", "conditional"],
+            badge: "New",
+          },
         ],
         query,
       );
@@ -290,7 +354,10 @@ export default function BlockNoteMultiColumn() {
   const buildFullHtml = useCallback(
     async () => {
       const blocks = editor.document;
-      const htmlContent = await editor.blocksToHTMLLossy(blocks);
+      const rawHtml = await editor.blocksToHTMLLossy(blocks);
+      // Stamp data-conditional-wrapper on the correct ancestor so the server
+      // can remove the entire section (header + children) in one query.
+      const markedHtml = markConditionalSections(rawHtml);
       return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -298,7 +365,7 @@ export default function BlockNoteMultiColumn() {
 <style>${PDF_STYLES}</style>
 </head>
 <body>
-${htmlContent}
+${markedHtml}
 </body>
 </html>`;
     },

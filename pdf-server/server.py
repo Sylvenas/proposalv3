@@ -21,6 +21,49 @@ PLACEHOLDER_FIELD_MAP = {
 }
 
 
+def evaluate_condition(actual_value, operator, compare_value):
+    a = actual_value.strip().lower()
+    c = compare_value.strip().lower()
+    if operator == "eq":
+        return a == c
+    if operator == "neq":
+        return a != c
+    if operator == "contains":
+        return c in a
+    if operator == "notContains":
+        return c not in a
+    print(f"  [warn] Unknown operator '{operator}', defaulting to show")
+    return True
+
+
+def process_conditional_sections(soup, form_data):
+    # The frontend stamps data-conditional-wrapper="true" on the exact ancestor
+    # that contains both the header and the nested children, so we can remove it
+    # in one shot without any DOM-depth guessing.
+    wrappers = soup.find_all(attrs={"data-conditional-wrapper": "true"})
+    print(f"  Found {len(wrappers)} conditional section wrapper(s)")
+    removed = 0
+    for wrapper in wrappers:
+        field    = wrapper.get("data-condition-field", "")
+        operator = wrapper.get("data-condition-operator", "eq")
+        compare  = wrapper.get("data-condition-value", "")
+
+        if not compare.strip():
+            print(f"  [skip] Empty conditionValue — always shown")
+            continue
+
+        actual = str(form_data.get(field, "") or "")
+        met = evaluate_condition(actual, operator, compare)
+        print(f"  [condition] field='{field}' op='{operator}' compare='{compare}' actual='{actual}' met={met}")
+
+        if not met:
+            wrapper.decompose()
+            removed += 1
+            print(f"  [ok] Removed conditional section")
+
+    print(f"  Conditional sections removed: {removed}")
+
+
 def build_product_list_html(products, summary=None):
     rows = ""
     for p in products:
@@ -129,6 +172,9 @@ def replace_placeholders(html, form_data):
         print(f"  [ok] '{label}' -> '{value}'")
 
     print(f"  Total placeholder replacements: {replaced_count}")
+
+    print("[process_conditional_sections] Starting...")
+    process_conditional_sections(soup, form_data)
 
     products = form_data.get("products")
     if products:
