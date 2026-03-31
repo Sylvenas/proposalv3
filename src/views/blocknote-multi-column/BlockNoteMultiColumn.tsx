@@ -74,6 +74,7 @@ import { PlaceholderInput } from "./PlaceholderInput";
 import { ExportModal, type ExportFormData } from "./ExportModal";
 import "./product-list.css";
 import "./conditional-section.css";
+import "./page-break.css";
 
 const PDF_STYLES = `
   @page { size: A4; margin: 20mm; }
@@ -329,7 +330,7 @@ export default function BlockNoteMultiColumn() {
       filterSuggestionItems(
         [
           ...combineByGroup(
-            getDefaultReactSlashMenuItems(editor),
+            getDefaultReactSlashMenuItems(editor).filter((item) => item.title !== "Emoji"),
             getMultiColumnSlashMenuItems(editor),
           ),
           {

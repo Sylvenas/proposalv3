@@ -15,42 +15,26 @@ export const createPageBreak = createReactBlockSpec(
           width: "100%",
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: 12,
           padding: "10px 0",
           userSelect: "none",
           cursor: "default",
         }}
       >
-        <div style={{ flex: 1, borderTop: "1.5px dashed #c0c0c0" }} />
+        <div style={{ flex: 1, borderTop: "1px dashed #c8c8c8" }} />
         <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
             fontSize: 11,
-            fontWeight: 500,
-            color: "#b0b0b0",
-            letterSpacing: "0.07em",
+            fontWeight: 700,
+            color: "#a0a0a0",
+            letterSpacing: "0.12em",
             textTransform: "uppercase",
             whiteSpace: "nowrap",
           }}
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#c0c0c0"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
           Page Break
         </span>
-        <div style={{ flex: 1, borderTop: "1.5px dashed #c0c0c0" }} />
+        <div style={{ flex: 1, borderTop: "1px dashed #c8c8c8" }} />
       </div>
     ),
   },
