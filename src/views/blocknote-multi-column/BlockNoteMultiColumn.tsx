@@ -69,6 +69,7 @@ function markConditionalSections(htmlContent: string): string {
 
 import { createProductList } from "./ProductListBlock";
 import { createConditionalSection } from "./ConditionalSectionBlock";
+import { createPageBreak } from "./PageBreakBlock";
 import { PlaceholderInput } from "./PlaceholderInput";
 import { ExportModal, type ExportFormData } from "./ExportModal";
 import "./product-list.css";
@@ -111,11 +112,65 @@ const PDF_STYLES = `
 
   .conditional-section-block { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
   .conditional-section-header { display: none !important; }
+
+  [data-page-break="true"] { display: block; height: 0; overflow: hidden; visibility: hidden; break-after: page; page-break-after: always; }
 `;
 
 const PREVIEW_EXTRA_STYLES = `
-  html { background: #f0f0f0; }
-  body { max-width: 750px; margin: 24px auto; padding: 40px; background: white; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 4px; min-height: 90vh; }
+  html { background: #e8e8e8; }
+  body { margin: 0; padding: 24px 0; background: transparent; }
+  .preview-page {
+    max-width: 750px;
+    margin: 0 auto 20px;
+    padding: 40px;
+    background: white;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    border-radius: 4px;
+    min-height: 120px;
+    box-sizing: border-box;
+  }
+  .preview-page:last-child { margin-bottom: 0; }
+`;
+
+// Script injected at the end of <body> to split content into visual pages.
+// It finds the top-level body child that contains [data-page-break] and uses
+// it as a split point, wrapping the surrounding content into .preview-page divs.
+const PREVIEW_PAGE_SPLIT_SCRIPT = `
+<script>
+(function () {
+  var body = document.body;
+  var breaks = body.querySelectorAll('[data-page-break="true"]');
+
+  // Mark the top-level body child that is (or contains) each page break
+  breaks.forEach(function (el) {
+    var node = el;
+    while (node.parentElement && node.parentElement !== body) {
+      node = node.parentElement;
+    }
+    node.setAttribute('data-page-break-wrapper', 'true');
+  });
+
+  // Split body children into page buckets at break wrappers
+  var children = Array.from(body.children);
+  var pages = [[]];
+  children.forEach(function (child) {
+    if (child.getAttribute('data-page-break-wrapper') === 'true') {
+      pages.push([]);
+    } else {
+      pages[pages.length - 1].push(child);
+    }
+  });
+
+  // Rebuild body with .preview-page wrappers
+  body.innerHTML = '';
+  pages.forEach(function (nodes) {
+    var page = document.createElement('div');
+    page.className = 'preview-page';
+    nodes.forEach(function (n) { page.appendChild(n); });
+    body.appendChild(page);
+  });
+})();
+</script>
 `;
 
 const DEFAULT_PREVIEW_DATA: ExportFormData = {
@@ -144,6 +199,7 @@ const schema = withMultiColumn(
     blockSpecs: {
       productList: createProductList(),
       conditionalSection: createConditionalSection(),
+      pageBreak: createPageBreak(),
     },
     inlineContentSpecs: {
       placeholderInput: PlaceholderInput,
@@ -304,6 +360,20 @@ export default function BlockNoteMultiColumn() {
             aliases: ["condition", "if", "show", "hide", "conditional"],
             badge: "New",
           },
+          {
+            title: "Page Break",
+            subtext: "Insert a page break for PDF export",
+            group: "Other",
+            onItemClick: () => {
+              editor.insertBlocks(
+                [{ type: "pageBreak" as const }],
+                editor.getTextCursorPosition().block,
+                "after",
+              );
+            },
+            aliases: ["page", "break", "newpage", "pagebreak"],
+            badge: "New",
+          },
         ],
         query,
       );
@@ -389,10 +459,8 @@ ${markedHtml}
       });
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
       let html = await response.text();
-      html = html.replace(
-        "</head>",
-        `<style>${PREVIEW_EXTRA_STYLES}</style></head>`,
-      );
+      html = html.replace("</head>", `<style>${PREVIEW_EXTRA_STYLES}</style></head>`);
+      html = html.replace("</body>", `${PREVIEW_PAGE_SPLIT_SCRIPT}</body>`);
       setPreviewHtml(html);
     } catch (error) {
       console.error("Preview update failed:", error);
