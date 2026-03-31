@@ -21,6 +21,12 @@ interface ExportFormData {
   totalBudget: string;
   products: ProductItemData[];
   summary: ProductSummaryData;
+  companyName?: string;
+  companyWebsite?: string;
+  companyEmail?: string;
+  companyPhone?: string;
+  companyAddress?: string;
+  companyCityStateZip?: string;
 }
 
 const INITIAL_SUMMARY: ProductSummaryData = {

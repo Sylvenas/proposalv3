@@ -67,11 +67,103 @@ function markConditionalSections(htmlContent: string): string {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Evaluate inline conditionals client-side before sending to the server ────
+//
+// BlockNote serializes `[data-inline-content-type="conditionalInline"]` spans
+// containing both non-editable UI (gear icon, IF badge) and the user's text
+// in a `[data-editable]` child span. We need to:
+//   - Remove the whole element when the condition is not met
+//   - Replace with plain text when the condition IS met
+
+function getFieldValue(formData: ExportFormData, field: string): string {
+  switch (field) {
+    case "customerName":   return formData.customerName   ?? "";
+    case "projectAddress": return formData.projectAddress ?? "";
+    case "completionDate": return formData.completionDate ?? "";
+    case "totalBudget":    return formData.totalBudget    ?? "";
+    default:               return "";
+  }
+}
+
+function evaluateCondition(fieldValue: string, operator: string, conditionValue: string): boolean {
+  if (!conditionValue) return true; // No condition set → always show
+  const a = fieldValue.toLowerCase();
+  const b = conditionValue.toLowerCase();
+  switch (operator) {
+    case "eq":          return a === b;
+    case "neq":         return a !== b;
+    case "contains":    return a.includes(b);
+    case "notContains": return !a.includes(b);
+    default:            return true;
+  }
+}
+
+function processInlineConditionals(fullHtml: string, formData: ExportFormData): string {
+  if (typeof document === "undefined") return fullHtml;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(fullHtml, "text/html");
+
+  doc.querySelectorAll<HTMLElement>('[data-inline-content-type="conditionalInline"]').forEach((el) => {
+    // BlockNote only serialises non-default props, so fall back to schema defaults
+    const field    = el.dataset.conditionField    ?? "customerName";
+    const operator = el.dataset.conditionOperator ?? "eq";
+    const value    = el.dataset.conditionValue    ?? "";
+
+    // The user-typed text lives in the [data-editable] child span
+    const editableSpan = el.querySelector<HTMLElement>("[data-editable]");
+    const text = editableSpan?.textContent ?? "";
+
+    const conditionMet = evaluateCondition(getFieldValue(formData, field), operator, value);
+
+    if (conditionMet) {
+      el.replaceWith(document.createTextNode(text));
+    } else {
+      el.remove();
+    }
+  });
+
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
+function processCompanyInfo(fullHtml: string, formData: ExportFormData): string {
+  if (typeof document === "undefined") return fullHtml;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(fullHtml, "text/html");
+  const fieldMap: Record<string, string> = {
+    name:           formData.companyName        ?? "",
+    website:        formData.companyWebsite      ?? "",
+    email:          formData.companyEmail        ?? "",
+    phone:          formData.companyPhone        ?? "",
+    address:        formData.companyAddress      ?? "",
+    cityStateZip:   formData.companyCityStateZip ?? "",
+  };
+  doc.querySelectorAll<HTMLElement>("[data-company-field]").forEach((el) => {
+    const field = el.dataset.companyField ?? "";
+    const value = fieldMap[field];
+    if (!value) return;
+    el.textContent = value;
+    if (el.tagName === "A") {
+      if (field === "website") el.setAttribute("href", `https://${value}`);
+      if (field === "email")   el.setAttribute("href", `mailto:${value}`);
+      if (field === "phone")   el.setAttribute("href", `tel:${value}`);
+    }
+  });
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { createProductList } from "./ProductListBlock";
 import { createConditionalSection } from "./ConditionalSectionBlock";
 import { createPageBreak } from "./PageBreakBlock";
+import { createCompanyInfo } from "./CompanyInfoBlock";
+import { createDrawing } from "./DrawingBlock";
 import { PlaceholderInput } from "./PlaceholderInput";
+import { ConditionalInline } from "./ConditionalInlineContent";
 import { ExportModal, type ExportFormData } from "./ExportModal";
+import { ConditionalSectionModal, type ConditionalSectionConfig } from "./ConditionalSectionModal";
+import { ConditionalInlineModal } from "./ConditionalInlineModal";
 import "./product-list.css";
 import "./conditional-section.css";
 import "./page-break.css";
@@ -106,10 +198,13 @@ const PDF_STYLES = `
   .product-list-summary-row span:last-child { min-width: 70px; text-align: right; }
   .product-list-total { font-weight: 700; font-size: 11px; color: #1a1a1a; padding-top: 2px; }
 
+  .drawing-block { width: 100%; font-family: "Segoe UI", Roboto, sans-serif; }
+
   .bn-block-column-list { display: flex; gap: 16px; }
   .bn-block-column { flex-basis: 0; min-width: 0; overflow: hidden; }
 
   [data-inline-content-type="placeholderInput"] { display: inline-block; }
+  [data-inline-content-type="conditionalInline"] { display: inline; }
 
   .conditional-section-block { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
   .conditional-section-header { display: none !important; }
@@ -179,6 +274,12 @@ const DEFAULT_PREVIEW_DATA: ExportFormData = {
   projectAddress: "742 Evergreen Terrace, Springfield, IL 62704",
   completionDate: "09/20/2026",
   totalBudget: "$87,350.00",
+  companyName: "Apex Construction LLC",
+  companyWebsite: "www.apexconstruction.com",
+  companyEmail: "contact@apexconstruction.com",
+  companyPhone: "(616) 847-2200",
+  companyAddress: "4820 Cascade Rd SE",
+  companyCityStateZip: "Grand Rapids, MI, 49503",
   products: [
     { name: "6ft Cedar Privacy Fence", quantity: "320 ft", amount: "$25,600.00" },
     { name: "Aluminum Gate (Double Swing)", quantity: "2", amount: "$4,200.00" },
@@ -201,9 +302,12 @@ const schema = withMultiColumn(
       productList: createProductList(),
       conditionalSection: createConditionalSection(),
       pageBreak: createPageBreak(),
+      companyInfo: createCompanyInfo(),
+      drawing: createDrawing(),
     },
     inlineContentSpecs: {
-      placeholderInput: PlaceholderInput,
+      placeholderInput:  PlaceholderInput,
+      conditionalInline: ConditionalInline,
     },
   }),
 );
@@ -221,6 +325,9 @@ export default function BlockNoteMultiColumn() {
         type: "heading",
         props: { level: 2 },
         content: "Custom Block in Multi-Column Layout Test",
+      },
+      {
+        type: "companyInfo" as const,
       },
       {
         type: "paragraph",
@@ -320,6 +427,14 @@ export default function BlockNoteMultiColumn() {
         type: "productList" as const,
       },
       {
+        type: "heading",
+        props: { level: 3 },
+        content: "Drawing / Floor Plan",
+      },
+      {
+        type: "drawing" as const,
+      },
+      {
         type: "paragraph",
       },
     ],
@@ -352,11 +467,8 @@ export default function BlockNoteMultiColumn() {
             subtext: "Show or hide content based on a field value",
             group: "Other",
             onItemClick: () => {
-              editor.insertBlocks(
-                [{ type: "conditionalSection" as const, children: [{ type: "paragraph" as const }] }],
-                editor.getTextCursorPosition().block,
-                "after",
-              );
+              conditionalInsertBlockRef.current = editor.getTextCursorPosition().block;
+              setIsConditionalModalOpen(true);
             },
             aliases: ["condition", "if", "show", "hide", "conditional"],
             badge: "New",
@@ -375,9 +487,71 @@ export default function BlockNoteMultiColumn() {
             aliases: ["page", "break", "newpage", "pagebreak"],
             badge: "New",
           },
+          {
+            title: "Company Info",
+            subtext: "Insert company logo and contact details",
+            group: "Other",
+            onItemClick: () => {
+              editor.insertBlocks(
+                [{ type: "companyInfo" as const }],
+                editor.getTextCursorPosition().block,
+                "after",
+              );
+            },
+            aliases: ["company", "logo", "contact", "header"],
+            badge: "New",
+          },
+          {
+            title: "Drawing",
+            subtext: "Insert a floor plan drawing with legend",
+            group: "Other",
+            onItemClick: () => {
+              editor.insertBlocks(
+                [{ type: "drawing" as const }],
+                editor.getTextCursorPosition().block,
+                "after",
+              );
+            },
+            aliases: ["drawing", "floorplan", "plan", "legend", "arcsite"],
+            badge: "New",
+          },
         ],
         query,
       );
+  }, [editor]);
+
+  // --- Conditional inline insert modal ---
+  const [isConditionalInlineModalOpen, setIsConditionalInlineModalOpen] = useState(false);
+
+  const handleInsertConditionalInline = useCallback((cfg: { conditionField: string; conditionOperator: string; conditionValue: string }) => {
+    setIsConditionalInlineModalOpen(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tiptap = (editor as any)._tiptapEditor;
+
+    // Step 1: insert the (empty) node via BlockNote — this reliably places it
+    editor.insertInlineContent([{
+      type: "conditionalInline" as const,
+      props: cfg,
+    }]);
+
+    // Step 2: in the next tick the node is in the doc; find the nearest empty
+    // conditionalInline and fill it with the default text
+    setTimeout(() => {
+      const { state } = tiptap;
+      const { from } = state.selection;
+      let filled = false;
+      state.doc.nodesBetween(
+        Math.max(0, from - 5),
+        Math.min(state.doc.content.size, from + 5),
+        (node: { type: { name: string }; content: { size: number } }, pos: number) => {
+          if (!filled && node.type.name === "conditionalInline" && node.content.size === 0) {
+            tiptap.view.dispatch(state.tr.insertText("Conditional Text", pos + 1));
+            filled = true;
+            return false;
+          }
+        },
+      );
+    }, 0);
   }, [editor]);
 
   const getPlaceholderMenuItems = useMemo(() => {
@@ -393,21 +567,44 @@ export default function BlockNoteMultiColumn() {
 
     return async (query: string) =>
       filterSuggestionItems(
-        items.map((item) => ({
-          title: item.title,
-          onItemClick: () => {
-            editor.insertInlineContent([
-              {
-                type: "placeholderInput",
-                props: { label: item.label },
-              } as const,
-              " ",
-            ]);
+        [
+          ...items.map((item) => ({
+            title: item.title,
+            onItemClick: () => {
+              editor.insertInlineContent([
+                { type: "placeholderInput" as const, props: { label: item.label } },
+                " ",
+              ]);
+            },
+            aliases: [item.label.toLowerCase()],
+          })),
+          {
+            title: "Conditional Text",
+            subtext: "Show text only when a condition is met",
+            onItemClick: () => {
+              setIsConditionalInlineModalOpen(true);
+            },
+            aliases: ["if", "condition", "conditional", "when"],
+            badge: "New",
           },
-          aliases: [item.label.toLowerCase()],
-        })),
+        ],
         query,
       );
+  }, [editor]);
+
+  // --- Conditional section insert modal ---
+  const [isConditionalModalOpen, setIsConditionalModalOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const conditionalInsertBlockRef = useRef<any>(null);
+
+  const handleInsertConditionalSection = useCallback((config: ConditionalSectionConfig) => {
+    setIsConditionalModalOpen(false);
+    const targetBlock = conditionalInsertBlockRef.current ?? editor.getTextCursorPosition().block;
+    editor.insertBlocks(
+      [{ type: "conditionalSection" as const, props: config, children: [{ type: "paragraph" as const }] }],
+      targetBlock,
+      "after",
+    );
   }, [editor]);
 
   // --- Preview state (auto-populate with default data on mount) ---
@@ -453,10 +650,11 @@ ${markedHtml}
     setIsPreviewLoading(true);
     try {
       const fullHtml = await buildFullHtml();
+      const processedHtml = processCompanyInfo(processInlineConditionals(fullHtml, currentData), currentData);
       const response = await fetch("http://localhost:5001/api/html-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html: fullHtml, formData: currentData }),
+        body: JSON.stringify({ html: processedHtml, formData: currentData }),
       });
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
       let html = await response.text();
@@ -495,10 +693,11 @@ ${markedHtml}
       setIsExporting(true);
       try {
         const fullHtml = await buildFullHtml();
+        const processedHtml = processCompanyInfo(processInlineConditionals(fullHtml, data), data);
         const response = await fetch("http://localhost:5001/api/html-to-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ html: fullHtml, formData: data }),
+          body: JSON.stringify({ html: processedHtml, formData: data }),
         });
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
         const blob = await response.blob();
@@ -595,6 +794,7 @@ ${markedHtml}
             <BlockNoteView
               editor={editor}
               theme="light"
+              slashMenu={false}
               onChange={handleEditorChange}
             >
               <SuggestionMenuController
@@ -687,6 +887,16 @@ ${markedHtml}
         isExporting={false}
         initialData={previewData}
         submitLabel="Apply to Preview"
+      />
+      <ConditionalSectionModal
+        isOpen={isConditionalModalOpen}
+        onClose={() => setIsConditionalModalOpen(false)}
+        onInsert={handleInsertConditionalSection}
+      />
+      <ConditionalInlineModal
+        isOpen={isConditionalInlineModalOpen}
+        onClose={() => setIsConditionalInlineModalOpen(false)}
+        onConfirm={handleInsertConditionalInline}
       />
     </div>
   );
