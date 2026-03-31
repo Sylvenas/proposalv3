@@ -16,12 +16,14 @@ export function SummaryGroup({
   layoutAlt,
   onInfoClick,
   changeLabel = "Change",
+  fallbackImage,
 }: {
   name: string;
   items: SummaryLineItem[];
   layoutAlt?: boolean;
   onInfoClick?: (item: SummaryLineItem) => void;
   changeLabel?: string;
+  fallbackImage?: string;
 }) {
   return (
     <div className="flex flex-col w-full">
@@ -84,20 +86,24 @@ export function SummaryGroup({
                     border: "0.5px solid #d9d9d9",
                   }}
                 >
-                  <Image
-                    src={item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    sizes="300px"
-                    style={{
-                      opacity: isPlaceholderProductImage(
-                        item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER,
-                      )
-                        ? PLACEHOLDER_IMAGE_OPACITY
-                        : 1,
-                    }}
-                  />
+                  {(() => {
+                    const resolvedSrc = item.thumbnailSrc ?? fallbackImage ?? OPTION_CHAIN_PLACEHOLDER;
+                    const isFallback = !item.thumbnailSrc && !!fallbackImage && resolvedSrc === fallbackImage;
+                    return (
+                      <Image
+                        src={resolvedSrc}
+                        alt=""
+                        fill
+                        className={isFallback ? "object-contain" : "object-cover"}
+                        sizes="300px"
+                        style={{
+                          opacity: isPlaceholderProductImage(resolvedSrc)
+                            ? PLACEHOLDER_IMAGE_OPACITY
+                            : 1,
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
               </button>
               {/* Right content */}
@@ -236,20 +242,24 @@ export function SummaryGroup({
                   className="relative w-full h-full overflow-hidden"
                   style={{ borderRadius: sv(2) }}
                 >
-                  <Image
-                    src={item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    sizes="44px"
-                    style={{
-                      opacity: isPlaceholderProductImage(
-                        item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER,
-                      )
-                        ? PLACEHOLDER_IMAGE_OPACITY
-                        : 1,
-                    }}
-                  />
+                  {(() => {
+                    const resolvedSrc = item.thumbnailSrc ?? fallbackImage ?? OPTION_CHAIN_PLACEHOLDER;
+                    const isFallback = !item.thumbnailSrc && !!fallbackImage && resolvedSrc === fallbackImage;
+                    return (
+                      <Image
+                        src={resolvedSrc}
+                        alt=""
+                        fill
+                        className={isFallback ? "object-contain" : "object-cover"}
+                        sizes="44px"
+                        style={{
+                          opacity: isPlaceholderProductImage(resolvedSrc)
+                            ? PLACEHOLDER_IMAGE_OPACITY
+                            : 1,
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
               </button>
               {/* Content */}

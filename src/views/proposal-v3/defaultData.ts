@@ -245,6 +245,7 @@ export const defaultProposalV3Data: ProposalV3Data = {
     proposalSlogan: "Build Your Dream Fence",
     emailImage: legacyProjectInfo.emailImage,
     heroImage: legacyProjectInfo.heroImage,
+    themeColor: "#000000",
   },
   email: {
     fromLabel: "Madison Fence Company <service@madisonfence.com>",

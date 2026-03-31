@@ -99,6 +99,7 @@ export default function ODAProposalPageCopy({
       style={{
         opacity: visible ? 1 : 0,
         transition: "opacity 0.15s ease",
+        ["--proposal-accent" as string]: data?.project.themeColor ?? "#000000",
       }}
     >
       {screen === "upload" && (

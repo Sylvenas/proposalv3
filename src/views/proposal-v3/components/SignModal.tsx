@@ -2,14 +2,16 @@ import { useState } from "react";
 import Image from "next/image";
 
 import type { ProposalV3Data } from "../schema";
-import { CONTRACT_PAGES, sv } from "../shared";
+import { sv } from "../shared";
 
 export function SignModal({
   data,
+  contractPages,
   onClose,
   onApprove,
 }: {
   data: ProposalV3Data;
+  contractPages: string[];
   onClose: () => void;
   onApprove: () => void;
 }) {
@@ -71,7 +73,7 @@ export function SignModal({
               className="flex flex-col bg-[#f5f5f5]"
               style={{ width: `${zoom * 100}%`, minWidth: "100%", gap: sv(16) }}
             >
-              {CONTRACT_PAGES.map((pageSrc, index) => (
+              {contractPages.map((pageSrc, index) => (
                 <Image
                   key={pageSrc}
                   src={pageSrc}
@@ -219,8 +221,8 @@ export function SignModal({
             {data.labels.signModalDisclaimer}
           </p>
           <button
-            className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
-            style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(2) }}
+            className="w-full text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+            style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(2), backgroundColor: "var(--proposal-accent)" }}
             onClick={() => {
               onClose();
               onApprove();

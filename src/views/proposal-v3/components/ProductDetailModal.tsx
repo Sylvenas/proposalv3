@@ -21,6 +21,7 @@ export function ProductDetailModal({
   hideSelectButton = false,
   selectLabel = "Select Product",
   selectedLabel = "Product Selected",
+  fallbackImage,
 }: {
   item: ODAItem;
   sectionName: string;
@@ -32,6 +33,7 @@ export function ProductDetailModal({
   hideSelectButton?: boolean;
   selectLabel?: string;
   selectedLabel?: string;
+  fallbackImage?: string;
 }) {
   const swatches = item.swatches ?? item.addonSwatches ?? [];
   const initialSwatch = item.selectedSwatch ?? item.selectedAddonSwatch ?? 0;
@@ -46,6 +48,7 @@ export function ProductDetailModal({
       return item.swatchProductImages[idx];
     if (item.productImages?.length) return item.productImages;
     if (item.previewImage) return [item.previewImage];
+    if (fallbackImage) return [fallbackImage];
     return [];
   };
   const currentImages = getImagesForSwatch(activeSwatchIdx);
@@ -55,6 +58,13 @@ export function ProductDetailModal({
     currentImages.every((src) => isPlaceholderProductImage(src));
   // Only dim placeholder assets; real product photos should render normally.
   const imgOpacity = hasOnlyPlaceholderImages ? 0.1 : 1;
+  // Check if the displayed image is the fallback logo (no real product image exists)
+  const isFallbackOnly =
+    currentImages.length === 1 &&
+    currentImages[0] === fallbackImage &&
+    !item.swatchProductImages?.[activeSwatchIdx]?.length &&
+    !item.productImages?.length &&
+    !item.previewImage;
 
   // Price for the currently displayed swatch variant
   const swatchPrices = item.swatchPrices ?? item.addonSwatchPrices;
@@ -158,7 +168,7 @@ export function ProductDetailModal({
                     src={mainImage}
                     alt=""
                     fill
-                    className="object-cover"
+                    className={isFallbackOnly ? "object-contain" : "object-cover"}
                     sizes="840px"
                     style={{ opacity: imgOpacity }}
                   />

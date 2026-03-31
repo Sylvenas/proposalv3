@@ -188,6 +188,7 @@ export function DetailScreen({
                 items={group.items}
                 onInfoClick={handleProductInfoClick}
                 changeLabel={data.labels.changeLabel}
+                fallbackImage={data.project.contractorLogoProductFallback}
               />
             ))}
           </div>
@@ -230,7 +231,7 @@ export function DetailScreen({
                   }}
                 >
                   <Image
-                    src={data.drawings.detail}
+                    src={option.drawing ?? data.drawings.detail}
                     alt={data.detailPage.drawingsTitle}
                     fill
                     className="object-contain"
@@ -312,38 +313,37 @@ export function DetailScreen({
             }}
           >
             <div style={{ height: sv(60), display: "flex", alignItems: "center" }}>
-              <ODALogo src="/assets/oda-logo.png" alt="ODA Architecture" size="lg" />
+              <ODALogo src={data.project.contractorLogoHeader} alt={data.project.contractorName} size="lg" />
             </div>
             <div className="flex flex-col" style={{ gap: sv(8) }}>
               <p className="font-semibold text-[#262626]" style={{ fontSize: sv(16) }}>
-                ODA Architecture
+                {data.detailPage.reviewsCompanyName}
               </p>
               <div className="flex items-center" style={{ gap: sv(16) }}>
                 <div className="flex items-center" style={{ gap: sv(4) }}>
                   <svg viewBox="0 0 24 24" fill="#262626" style={{ width: sv(16), height: sv(16) }}>
                     <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
                   </svg>
-                  <span className="text-[#262626]" style={{ fontSize: sv(14) }}>4.6</span>
+                  <span className="text-[#262626]" style={{ fontSize: sv(14) }}>{data.detailPage.reviewsScore}</span>
                 </div>
-                <span className="text-[#262626]" style={{ fontSize: sv(14) }}>(243 reviews)</span>
+                <span className="text-[#262626]" style={{ fontSize: sv(14) }}>{data.detailPage.reviewsCount}</span>
                 <span className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14), fontWeight: 300 }}>
-                  https://oda-architecture.com/
+                  {data.detailPage.reviewsUrl}
                 </span>
               </div>
             </div>
             <div className="flex flex-col" style={{ gap: sv(24), fontWeight: 300, lineHeight: 1.5 }}>
-              <div className="flex flex-col" style={{ gap: sv(4) }}>
-                <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{`"The result feels custom in all the right ways. ODA Architecture helped us make smart choices on materials, finishes, and layout, and the whole experience felt far more seamless than we expected."`}</p>
-                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>— Priya and Kevin S., Irvine, CA</p>
-              </div>
-              <div className="flex flex-col" style={{ gap: sv(4) }}>
-                <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{`"ODA Architecture made the entire renovation process feel clear and intentional. We never felt overwhelmed, and every decision felt easier because the options were presented so thoughtfully."`}</p>
-                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>— Emily R., Pasadena, CA</p>
-              </div>
-              <div className="flex flex-col" style={{ gap: sv(4) }}>
-                <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{`"From design through final execution, ODA Architecture brought a level of care and clarity that gave us real confidence. The space feels elevated, functional, and much more aligned with how we actually live."`}</p>
-                <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>— Sophia L., Glendale, CA</p>
-              </div>
+              {data.project.testimonialQuotes.map((quote, i) => {
+                const [body, attribution] = quote.split("\n\n");
+                return (
+                  <div key={i} className="flex flex-col" style={{ gap: sv(4) }}>
+                    <p className="text-[#262626]" style={{ fontSize: sv(12), letterSpacing: "-0.24px" }}>{body}</p>
+                    {attribution && (
+                      <p className="text-[#262626]" style={{ fontSize: sv(11), letterSpacing: "-0.22px" }}>{attribution}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <button className="text-[#262626] underline text-left w-fit" style={{ fontSize: sv(14) }}>
               Read more
@@ -444,7 +444,7 @@ export function DetailScreen({
                 height: sv(40),
                 fontSize: sv(14),
                 borderRadius: sv(4),
-                backgroundColor: "#d41a32",
+                backgroundColor: "var(--proposal-accent)",
               }}
               onClick={() => setShowSignModal(true)}
             >
@@ -529,6 +529,7 @@ export function DetailScreen({
       {showSignModal && (
         <SignModal
           data={data}
+          contractPages={option.contractPages}
           onClose={() => setShowSignModal(false)}
           onApprove={onApprove}
         />
@@ -542,6 +543,7 @@ export function DetailScreen({
           onClose={() => setProductDetailModal(null)}
           selectLabel={data.labels.productSelectLabel}
           selectedLabel={data.labels.productSelectedLabel}
+          fallbackImage={data.project.contractorLogoProductFallback}
         />
       )}
 
@@ -585,7 +587,7 @@ export function DetailScreen({
                   transition: "transform 0.15s ease",
                 }}
               >
-                <Image src={data.drawings.detail} alt={data.detailPage.drawingsTitle} fill className="object-contain" sizes="1104px" />
+                <Image src={option.drawing ?? data.drawings.detail} alt={data.detailPage.drawingsTitle} fill className="object-contain" sizes="1104px" />
               </div>
               <div className="absolute flex items-center" style={{ bottom: sv(24), left: sv(32), gap: sv(12) }}>
                 <button

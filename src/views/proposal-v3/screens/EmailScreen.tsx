@@ -1,6 +1,5 @@
 import type { ProposalV3Data } from "../schema";
 
-import { EMAIL_CONTENT_LOGO } from "../shared";
 
 export function EmailScreen({
   data,
@@ -711,7 +710,7 @@ export function EmailScreen({
                           style={{ width: 240, height: 240 }}
                         >
                           <img
-                            src={EMAIL_CONTENT_LOGO}
+                            src={data.project.emailImage}
                             alt={contractorName}
                             className="absolute inset-0 block size-full object-cover"
                           />
@@ -765,6 +764,7 @@ export function EmailScreen({
                           <br />
                           <span style={{ fontWeight: 600 }}>{preparedByLabel}</span>
                           {` ${salesName}`}
+                          {data.project.salesTitle && <>{` · ${data.project.salesTitle}`}</>}
                           <br />
                           <span style={{ fontWeight: 600 }}>
                             Proposal total starting from:
@@ -773,8 +773,8 @@ export function EmailScreen({
                         </p>
                         {/* CTA */}
                         <div
-                          className="bg-[#d41a32] flex items-center justify-center px-[16px] py-[6px] rounded-[2px] flex-shrink-0"
-                          style={{ height: 40 }}
+                          className="flex items-center justify-center px-[16px] py-[6px] rounded-[2px] flex-shrink-0"
+                          style={{ height: 40, backgroundColor: "var(--proposal-accent)" }}
                         >
                           <button
                             onClick={onContinue}

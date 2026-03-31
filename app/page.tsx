@@ -73,6 +73,7 @@ export default function HomePage() {
             <Link
               key={page.href}
               href={page.href}
+              target="_blank"
               className="group rounded-lg border border-[color:var(--arc-border)] bg-white px-4 py-4 transition hover:border-[color:var(--arc-orange)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
             >
               <div className="flex items-start justify-between gap-3">

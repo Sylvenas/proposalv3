@@ -200,14 +200,19 @@ export function OptionsScreen({
         return [{ dash: true as const }];
       }
       return group.items.map((item) => {
-        const resolvedImage = item.thumbnailSrc ?? OPTION_CHAIN_PLACEHOLDER;
+        const contractorFallback = data.project.contractorLogoProductFallback;
+        const resolvedImage = item.thumbnailSrc ?? contractorFallback ?? OPTION_CHAIN_PLACEHOLDER;
         const isPlaceholderImage = resolvedImage === OPTION_CHAIN_PLACEHOLDER;
+        const isFallbackLogo = !item.thumbnailSrc && !!contractorFallback && resolvedImage === contractorFallback;
         return {
           name: item.name,
           qty: item.qty,
           unit: item.unit,
           img: resolvedImage,
           faded: isPlaceholderImage,
+          imageStyle: isFallbackLogo
+            ? { inset: 0, width: "100%", height: "100%", objectFit: "contain" as const }
+            : undefined,
         };
       });
     }),
@@ -326,7 +331,7 @@ export function OptionsScreen({
                 flex: "1 0 0",
                 height: sv(40),
                 padding: `${sv(6)} ${sv(16)}`,
-                backgroundColor: "#d41a32",
+                backgroundColor: "var(--proposal-accent)",
                 color: "white",
                 fontSize: sv(14),
                 fontWeight: 600,
@@ -518,54 +523,59 @@ export function OptionsScreen({
               padding: `0 ${sv(80)}`,
             }}
           >
-            {optionNames.map((name, i) => (
-              <button
-                key={i}
-                className="flex items-center"
-                style={{
-                  flex: "1 0 0",
-                  height: sv(48),
-                  padding: `0 ${sv(8)}`,
-                  gap: sv(4),
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                }}
-                onClick={() =>
-                  setExpandedCompareOptionIdx((prev) => (prev === i ? null : i))
-                }
-              >
-                <p
+            {optionNames.map((name, i) => {
+              const isActive = expandedCompareOptionIdx === i;
+              return (
+                <button
+                  key={i}
+                  className="flex items-center"
                   style={{
-                    fontSize: sv(14),
-                    fontWeight: 600,
-                    color: "#262626",
-                    lineHeight: "normal",
-                    whiteSpace: "nowrap",
+                    flex: "1 0 0",
+                    height: sv(48),
+                    padding: `0 ${sv(8)}`,
+                    gap: sv(4),
+                    border: "none",
+                    background: isActive ? "rgba(0,0,0,0.1)" : "transparent",
+                    cursor: "pointer",
+                    transition: "background 0.15s ease",
                   }}
+                  onClick={() =>
+                    setExpandedCompareOptionIdx((prev) => (prev === i ? null : i))
+                  }
                 >
-                  {name}
-                </p>
-                <div
-                  className="flex items-center justify-center"
-                  style={{ width: sv(16), height: sv(16) }}
-                >
-                  <div
+                  <p
                     style={{
-                      width: sv(16),
-                      height: sv(16),
-                      transform: "rotate(90deg)",
+                      fontSize: sv(14),
+                      fontWeight: isActive ? 700 : 600,
+                      color: "#262626",
+                      lineHeight: "normal",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <img
-                      src={OPTION_STICKY_CHEVRON}
-                      alt=""
-                      style={{ width: "100%", height: "100%" }}
-                    />
+                    {name}
+                  </p>
+                  <div
+                    className="flex items-center justify-center"
+                    style={{ width: sv(16), height: sv(16) }}
+                  >
+                    <div
+                      style={{
+                        width: sv(16),
+                        height: sv(16),
+                        transform: isActive ? "rotate(270deg)" : "rotate(90deg)",
+                        transition: "transform 0.15s ease",
+                      }}
+                    >
+                      <img
+                        src={OPTION_STICKY_CHEVRON}
+                        alt=""
+                        style={{ width: "100%", height: "100%" }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
             {expandedCompareOptionIdx !== null && !hideComparisonHeader && (
               <div
                 style={{
@@ -625,7 +635,7 @@ export function OptionsScreen({
                 <img
                   src={data.project.contractorLogoHeader}
                   alt={data.project.contractorName}
-                  style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+                  style={{ width: "auto", height: sv(30), objectFit: "contain" }}
                 />
               )}
               <button
@@ -915,6 +925,7 @@ export function OptionsScreen({
             onClose={() => setCompareProductDetailModal(null)}
             selectLabel={data.labels.productSelectLabel}
             selectedLabel={data.labels.productSelectedLabel}
+            fallbackImage={data.project.contractorLogoProductFallback}
           />
         )}
       </div>

@@ -110,7 +110,7 @@ export function LandingScreen({
         <img
           src={data.project.contractorLogoHeader}
           alt={data.project.contractorName}
-          style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+          style={{ width: "auto", height: sv(30), objectFit: "contain" }}
         />
       )}
       <button
@@ -264,7 +264,7 @@ export function LandingScreen({
               style={{
                 width: hsv(168),
                 height: hsv(40),
-                backgroundColor: "#d41a32",
+                backgroundColor: "var(--proposal-accent)",
                 color: "#ffffff",
                 fontSize: hsv(14),
                 fontWeight: 600,
@@ -378,7 +378,7 @@ export function LandingScreen({
                 style={{
                   height: sv(40),
                   padding: `0 ${sv(16)}`,
-                  backgroundColor: "rgb(212, 26, 50)",
+                  backgroundColor: "var(--proposal-accent)",
                   color: "white",
                   border: "none",
                   borderRadius: sv(4),
