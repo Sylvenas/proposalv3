@@ -79,7 +79,6 @@ function PlaceholderInputInner({ label }: { label: string }) {
           backgroundColor: open ? "#e7f3ff" : "#fafafa",
           cursor: "pointer",
           verticalAlign: "baseline",
-          userSelect: "none",
         }}
       >
         {label}
