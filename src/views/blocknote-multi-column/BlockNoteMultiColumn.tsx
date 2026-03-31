@@ -167,12 +167,20 @@ function replacePlaceholderInputs(html: string, formData: ExportFormData): strin
   const doc = parser.parseFromString(html, "text/html");
 
   doc.querySelectorAll<HTMLElement>('[data-inline-content-type="placeholderInput"]').forEach((el) => {
-    const label = el.dataset.label ?? el.textContent?.trim() ?? "";
+    const label    = el.dataset.label ?? el.textContent?.trim() ?? "";
     const fieldKey = PLACEHOLDER_FIELD_MAP[label];
-    const value = fieldKey ? (formData[fieldKey] as string) || "\u2014" : "\u2014";
+    const value    = fieldKey ? (formData[fieldKey] as string) || "\u2014" : "\u2014";
+
+    // All formatting is stored as JSON in the stylesJson prop → data-styles-json attribute
+    const css = stylesToReactCSS(parseStyles(el.dataset.stylesJson ?? ""));
+
     el.innerHTML = "";
     const span = document.createElement("span");
-    span.style.fontWeight = "500";
+    if (css.fontWeight)      span.style.fontWeight      = String(css.fontWeight);
+    if (css.fontStyle)       span.style.fontStyle       = String(css.fontStyle);
+    if (css.textDecoration)  span.style.textDecoration  = String(css.textDecoration);
+    if (css.fontFamily)      span.style.fontFamily      = String(css.fontFamily);
+    if (css.color)           span.style.color           = String(css.color);
     span.textContent = value;
     el.appendChild(span);
   });
@@ -256,7 +264,7 @@ import { createConditionalSection } from "./ConditionalSectionBlock";
 import { createPageBreak } from "./PageBreakBlock";
 import { createCompanyInfo } from "./CompanyInfoBlock";
 import { createDrawing } from "./DrawingBlock";
-import { PlaceholderInput } from "./PlaceholderInput";
+import { PlaceholderInput, placeholderColorSyncExtension, parseStyles, stylesToReactCSS } from "./PlaceholderInput";
 import { ConditionalInline } from "./ConditionalInlineContent";
 import { ExportModal, type ExportFormData } from "./ExportModal";
 import { ConditionalSectionModal, type ConditionalSectionConfig } from "./ConditionalSectionModal";
@@ -300,7 +308,7 @@ const PDF_STYLES = `
   .bn-block-column-list { display: flex; gap: 16px; }
   .bn-block-column { flex-basis: 0; min-width: 0; overflow: hidden; }
 
-  [data-inline-content-type="placeholderInput"] { display: inline-block; }
+  [data-inline-content-type="placeholderInput"] { display: inline; }
   [data-inline-content-type="conditionalInline"] { display: inline; }
 
   .conditional-section-block { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
@@ -412,6 +420,7 @@ const schema = withMultiColumn(
 export default function BlockNoteMultiColumn() {
   const editor = useCreateBlockNote({
     schema,
+    extensions: [placeholderColorSyncExtension],
     dropCursor: multiColumnDropCursor,
     dictionary: {
       ...locales.en,
