@@ -5,7 +5,7 @@ import { ODALogo } from "../components/ODALogo";
 import { ProductDetailModal } from "../components/ProductDetailModal";
 import { SummaryGroup } from "../components/SummaryGroup";
 import type { ODAItem, ODAOption, ProposalV3Data, SummaryLineItem } from "../schema";
-import { CONTRACT_PAGES, sv } from "../shared";
+import { sv } from "../shared";
 
 export function ApprovedScreen({
   data,
@@ -164,7 +164,7 @@ export function ApprovedScreen({
                   gap: sv(16),
                 }}
               >
-                {CONTRACT_PAGES.map((pageSrc, index) => (
+                {option.contractPages.map((pageSrc, index) => (
                   <div
                     key={pageSrc}
                     style={{
@@ -475,8 +475,8 @@ export function ApprovedScreen({
             <div className="flex flex-col w-full" style={{ gap: sv(12) }}>
               {/* Make A Payment */}
               <button
-                className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
-                style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4) }}
+                className="w-full text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+                style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(4), backgroundColor: "var(--proposal-accent)" }}
               >
                 {data.approvedPage.primaryActionLabel}
               </button>

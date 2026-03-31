@@ -24,7 +24,7 @@ export function ODALogo({
       width={width}
       height={height}
       priority={size !== "lg"}
-      style={{ width: sv(width), height: sv(height) }}
+      style={{ width: "auto", height: sv(height), objectFit: "contain" }}
     />
   );
 }

@@ -82,6 +82,7 @@ export type ODAOption = {
   summary: ProposalOptionSummary;
   scopeGroups: ProposalScopeGroup[];
   contractPages: string[];
+  drawing?: string;
   detailSummary: {
     title: string;
     subtitle: string;
@@ -142,6 +143,7 @@ export type ProposalV3Data = {
     proposalCover?: string;
     emailImage: string;
     heroImage: string;
+    themeColor: string;
   };
   email: {
     fromLabel: string;

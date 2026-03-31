@@ -524,6 +524,7 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         sections,
         scopeGroups,
         contractPages,
+        drawing: drawingImage,
         summary,
         detailSummary: {
           title: title ? `SUMMARY - ${title}` : "",
@@ -576,6 +577,7 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         proposalCover,
         emailImage: emailCover ?? contractorLogo ?? "",
         heroImage: "",
+        themeColor: field(fieldMap, "Contractor Theme Color Override") || "#000000",
       },
       email: {
         fromLabel: `${contractorName} <${contractorEmail}>`,
@@ -597,7 +599,7 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         preparedForPrefix: "Prepared for",
         inspectionDrawing: globalDrawingImage ?? "",
         inspectionItems,
-        floorPlanMarkers: [],
+        floorPlanMarkers: generateFloorPlanMarkers(inspectionItems.length),
       },
       optionsPage: {
         supportTitle: "Need support choosing a option?",
@@ -689,6 +691,21 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
     }
     throw err;
   }
+}
+
+/** Spread N markers across the floor plan image at pre-defined positions */
+function generateFloorPlanMarkers(count: number) {
+  const positions = [
+    { x: "18%", y: "22%" }, { x: "55%", y: "14%" }, { x: "80%", y: "30%" },
+    { x: "28%", y: "52%" }, { x: "65%", y: "45%" }, { x: "42%", y: "72%" },
+    { x: "15%", y: "78%" }, { x: "75%", y: "68%" }, { x: "50%", y: "85%" },
+    { x: "88%", y: "55%" }, { x: "33%", y: "35%" }, { x: "70%", y: "88%" },
+  ];
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    x: positions[i % positions.length].x,
+    y: positions[i % positions.length].y,
+  }));
 }
 
 /** Detect the max option index defined in Proposal Data or product sheets */
