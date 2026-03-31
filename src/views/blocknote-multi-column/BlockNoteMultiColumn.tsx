@@ -152,6 +152,103 @@ function processCompanyInfo(fullHtml: string, formData: ExportFormData): string 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
 
+// ── Client-side HTML post-processing (mirrors pdf-server replace_placeholders) ─
+
+const PLACEHOLDER_FIELD_MAP: Record<string, keyof ExportFormData> = {
+  "Customer Name": "customerName",
+  "Project Address": "projectAddress",
+  "MM/DD/YYYY": "completionDate",
+  "$0.00": "totalBudget",
+};
+
+function replacePlaceholderInputs(html: string, formData: ExportFormData): string {
+  if (typeof document === "undefined") return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc.querySelectorAll<HTMLElement>('[data-inline-content-type="placeholderInput"]').forEach((el) => {
+    const label = el.dataset.label ?? el.textContent?.trim() ?? "";
+    const fieldKey = PLACEHOLDER_FIELD_MAP[label];
+    const value = fieldKey ? (formData[fieldKey] as string) || "\u2014" : "\u2014";
+    el.innerHTML = "";
+    const span = document.createElement("span");
+    span.style.fontWeight = "500";
+    span.textContent = value;
+    el.appendChild(span);
+  });
+
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
+function processConditionalSectionBlocks(html: string, formData: ExportFormData): string {
+  if (typeof document === "undefined") return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc.querySelectorAll<HTMLElement>('[data-conditional-wrapper="true"]').forEach((el) => {
+    const field = el.dataset.conditionField ?? "";
+    const operator = el.dataset.conditionOperator ?? "eq";
+    const compare = el.dataset.conditionValue ?? "";
+    if (!compare.trim()) return;
+    const met = evaluateCondition(getFieldValue(formData, field), operator, compare);
+    if (!met) el.remove();
+  });
+
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
+function buildProductListHtml(products: { name: string; quantity: string; amount: string }[], summary?: { subtotal: string; discount: string; salesTaxRate: string; salesTax: string; total: string }): string {
+  const rows = products.map(p =>
+    `<div class="product-list-row">` +
+    `<div class="product-list-desc"><div class="product-list-name">${p.name}</div></div>` +
+    `<div class="product-list-qty">${p.quantity}</div>` +
+    `<div class="product-list-amt">${p.amount}</div>` +
+    `</div>`
+  ).join("");
+
+  let summaryRows = "";
+  if (summary && (summary.subtotal || summary.discount || summary.salesTax || summary.total)) {
+    if (summary.subtotal) summaryRows += `<div class="product-list-summary-row"><span>Subtotal</span><span>${summary.subtotal}</span></div>`;
+    if (summary.discount) summaryRows += `<div class="product-list-summary-row"><span>Discount</span><span>${summary.discount}</span></div>`;
+    if (summary.salesTax) {
+      const ratePrefix = summary.salesTaxRate ? `(${summary.salesTaxRate}) ` : "";
+      summaryRows += `<div class="product-list-summary-row"><span>Sales Tax</span><span>${ratePrefix}${summary.salesTax}</span></div>`;
+    }
+    if (summary.total) summaryRows += `<div class="product-list-summary-row product-list-total"><span>Total</span><span>${summary.total}</span></div>`;
+  } else {
+    const total = products.reduce((sum, p) => {
+      const cleaned = p.amount.replace(/[^0-9.\-]/g, "");
+      return sum + (parseFloat(cleaned) || 0);
+    }, 0);
+    summaryRows = `<div class="product-list-summary-row product-list-total"><span>Total</span><span>$${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+  }
+
+  return (
+    `<div class="product-list-block">` +
+    `<div class="product-list-title">Product List</div>` +
+    `<div class="product-list-table">` +
+    `<div class="product-list-header"><div class="product-list-desc">Description</div><div class="product-list-qty">Quantity</div><div class="product-list-amt">Amount</div></div>` +
+    rows +
+    `<div class="product-list-summary">${summaryRows}</div>` +
+    `</div></div>`
+  );
+}
+
+function replaceProductListBlocks(html: string, formData: ExportFormData): string {
+  if (typeof document === "undefined") return html;
+  if (!formData.products?.length) return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc.querySelectorAll(".product-list-block").forEach((block) => {
+    const temp = doc.createElement("div");
+    temp.innerHTML = buildProductListHtml(formData.products, formData.summary);
+    block.replaceWith(temp.firstElementChild!);
+  });
+
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createProductList } from "./ProductListBlock";
@@ -650,15 +747,11 @@ ${markedHtml}
     setIsPreviewLoading(true);
     try {
       const fullHtml = await buildFullHtml();
-      const processedHtml = processCompanyInfo(processInlineConditionals(fullHtml, currentData), currentData);
-      const response = await fetch("http://localhost:5001/api/html-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html: processedHtml, formData: currentData }),
-      });
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      let html = await response.text();
-      html = html.replace("</head>", `<style>${PREVIEW_EXTRA_STYLES}</style></head>`);
+      let processedHtml = processCompanyInfo(processInlineConditionals(fullHtml, currentData), currentData);
+      processedHtml = replacePlaceholderInputs(processedHtml, currentData);
+      processedHtml = processConditionalSectionBlocks(processedHtml, currentData);
+      processedHtml = replaceProductListBlocks(processedHtml, currentData);
+      let html = processedHtml.replace("</head>", `<style>${PREVIEW_EXTRA_STYLES}</style></head>`);
       html = html.replace("</body>", `${PREVIEW_PAGE_SPLIT_SCRIPT}</body>`);
       setPreviewHtml(html);
     } catch (error) {
@@ -694,7 +787,8 @@ ${markedHtml}
       try {
         const fullHtml = await buildFullHtml();
         const processedHtml = processCompanyInfo(processInlineConditionals(fullHtml, data), data);
-        const response = await fetch("http://localhost:5001/api/html-to-pdf", {
+        const pdfServerUrl = process.env.NEXT_PUBLIC_PDF_SERVER_URL ?? "http://localhost:5001";
+        const response = await fetch(`${pdfServerUrl}/api/html-to-pdf`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ html: processedHtml, formData: data }),
