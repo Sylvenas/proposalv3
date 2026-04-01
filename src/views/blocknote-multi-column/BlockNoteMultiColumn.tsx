@@ -320,7 +320,15 @@ const PDF_STYLES = `
 
 const PREVIEW_EXTRA_STYLES = `
   html { background: #e8e8e8; }
-  body { margin: 0; padding: 24px 0; background: transparent; }
+  body {
+    margin: 0; padding: 24px 0; background: transparent;
+    font-size: 16px;
+    font-family: Inter, SF Pro Display, -apple-system, BlinkMacSystemFont, "Open Sans", "Segoe UI", Roboto, sans-serif;
+    color: #000;
+  }
+  h1 { font-size: 3em; }
+  h2 { font-size: 2em; }
+  h3 { font-size: 1.3em; }
   .preview-page {
     max-width: 750px;
     margin: 0 auto 20px;
