@@ -331,7 +331,7 @@ const PREVIEW_EXTRA_STYLES = `
   .preview-page {
     max-width: 750px;
     margin: 0 auto 20px;
-    padding: 40px;
+    padding: 0 40px;
     background: white;
     box-shadow: 0 2px 12px rgba(0,0,0,0.10);
     border-radius: 4px;
