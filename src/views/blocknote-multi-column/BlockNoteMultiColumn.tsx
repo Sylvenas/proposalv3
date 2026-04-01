@@ -126,32 +126,6 @@ function processInlineConditionals(fullHtml: string, formData: ExportFormData): 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
 
-function processCompanyInfo(fullHtml: string, formData: ExportFormData): string {
-  if (typeof document === "undefined") return fullHtml;
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(fullHtml, "text/html");
-  const fieldMap: Record<string, string> = {
-    name:           formData.companyName        ?? "",
-    website:        formData.companyWebsite      ?? "",
-    email:          formData.companyEmail        ?? "",
-    phone:          formData.companyPhone        ?? "",
-    address:        formData.companyAddress      ?? "",
-    cityStateZip:   formData.companyCityStateZip ?? "",
-  };
-  doc.querySelectorAll<HTMLElement>("[data-company-field]").forEach((el) => {
-    const field = el.dataset.companyField ?? "";
-    const value = fieldMap[field];
-    if (!value) return;
-    el.textContent = value;
-    if (el.tagName === "A") {
-      if (field === "website") el.setAttribute("href", `https://${value}`);
-      if (field === "email")   el.setAttribute("href", `mailto:${value}`);
-      if (field === "phone")   el.setAttribute("href", `tel:${value}`);
-    }
-  });
-  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
-}
-
 // ── Client-side HTML post-processing (mirrors pdf-server replace_placeholders) ─
 
 const PLACEHOLDER_FIELD_MAP: Record<string, keyof ExportFormData> = {
@@ -262,7 +236,7 @@ function replaceProductListBlocks(html: string, formData: ExportFormData): strin
 import { createProductList } from "./ProductListBlock";
 import { createConditionalSection } from "./ConditionalSectionBlock";
 import { createPageBreak } from "./PageBreakBlock";
-import { createCompanyInfo } from "./CompanyInfoBlock";
+import { createCompanyLogo, createCompanyField, COMPANY_INFO_INITIAL_BLOCKS } from "./CompanyInfoBlock";
 import { createDrawing } from "./DrawingBlock";
 import { PlaceholderInput, placeholderColorSyncExtension, parseStyles, stylesToReactCSS } from "./PlaceholderInput";
 import { ConditionalInline } from "./ConditionalInlineContent";
@@ -415,7 +389,8 @@ const schema = withMultiColumn(
       productList: createProductList(),
       conditionalSection: createConditionalSection(),
       pageBreak: createPageBreak(),
-      companyInfo: createCompanyInfo(),
+      companyLogo: createCompanyLogo(),
+      companyField: createCompanyField(),
       drawing: createDrawing(),
     },
     inlineContentSpecs: {
@@ -440,9 +415,8 @@ export default function BlockNoteMultiColumn() {
         props: { level: 2 },
         content: "Custom Block in Multi-Column Layout Test",
       },
-      {
-        type: "companyInfo" as const,
-      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(COMPANY_INFO_INITIAL_BLOCKS as unknown as any[]),
       {
         type: "paragraph",
         content:
@@ -607,7 +581,8 @@ export default function BlockNoteMultiColumn() {
             group: "Other",
             onItemClick: () => {
               editor.insertBlocks(
-                [{ type: "companyInfo" as const }],
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                COMPANY_INFO_INITIAL_BLOCKS as any,
                 editor.getTextCursorPosition().block,
                 "after",
               );
@@ -768,7 +743,7 @@ ${markedHtml}
     setIsPreviewLoading(true);
     try {
       const fullHtml = await buildFullHtml();
-      let processedHtml = processCompanyInfo(processInlineConditionals(fullHtml, currentData), currentData);
+      let processedHtml = processInlineConditionals(fullHtml, currentData);
       processedHtml = replacePlaceholderInputs(processedHtml, currentData);
       processedHtml = processConditionalSectionBlocks(processedHtml, currentData);
       processedHtml = replaceProductListBlocks(processedHtml, currentData);
@@ -807,7 +782,7 @@ ${markedHtml}
       setIsExporting(true);
       try {
         const fullHtml = await buildFullHtml();
-        const processedHtml = processCompanyInfo(processInlineConditionals(fullHtml, data), data);
+        const processedHtml = processInlineConditionals(fullHtml, data);
         const pdfServerUrl = process.env.NEXT_PUBLIC_PDF_SERVER_URL ?? "http://localhost:5001";
         const response = await fetch(`${pdfServerUrl}/api/html-to-pdf`, {
           method: "POST",
