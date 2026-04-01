@@ -278,7 +278,7 @@ const PDF_STYLES = `
   body {
     font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 14px;
-    color: #1a1a1a;
+    color: #3f3f3f;
     line-height: 1.6;
   }
   h1 { font-size: 24px; font-weight: 700; margin: 16px 0 8px; }
