@@ -533,7 +533,9 @@ export default function BlockNoteMultiColumn() {
       filterSuggestionItems(
         [
           ...combineByGroup(
-            getDefaultReactSlashMenuItems(editor).filter((item) => item.title !== "Emoji"),
+            getDefaultReactSlashMenuItems(editor).filter((item) =>
+              !["Emoji", "Video", "Audio", "File", "Quote", "Code Block", "Toggle List", "Check List"].includes(item.title)
+            ),
             getMultiColumnSlashMenuItems(editor),
           ),
           {
