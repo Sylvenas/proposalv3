@@ -285,6 +285,7 @@ const PDF_STYLES = `
   h2 { font-size: 20px; font-weight: 700; margin: 14px 0 6px; }
   h3 { font-size: 16px; font-weight: 600; margin: 12px 0 4px; }
   p { margin: 6px 0; }
+  p:empty { min-height: 1.6em; }
   ul, ol { margin: 4px 0; padding-left: 24px; }
   li { margin: 2px 0; }
 
@@ -729,9 +730,13 @@ export default function BlockNoteMultiColumn() {
     async () => {
       const blocks = editor.document;
       const rawHtml = await editor.blocksToHTMLLossy(blocks);
+      // Preserve empty paragraphs: blocksToHTMLLossy outputs <p></p> with no
+      // content, so browsers and WeasyPrint collapse them. Adding a <br>
+      // gives each empty paragraph the height of one line — matching the editor.
+      const withEmptyParas = rawHtml.replace(/<p><\/p>/g, '<p><br></p>');
       // Stamp data-conditional-wrapper on the correct ancestor so the server
       // can remove the entire section (header + children) in one query.
-      const markedHtml = markConditionalSections(rawHtml);
+      const markedHtml = markConditionalSections(withEmptyParas);
       return `<!DOCTYPE html>
 <html lang="en">
 <head>
