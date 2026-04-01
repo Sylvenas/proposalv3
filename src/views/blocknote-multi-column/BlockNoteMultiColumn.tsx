@@ -324,7 +324,6 @@ const PREVIEW_EXTRA_STYLES = `
     margin: 0; padding: 24px 0; background: transparent;
     font-size: 16px;
     font-family: Inter, SF Pro Display, -apple-system, BlinkMacSystemFont, "Open Sans", "Segoe UI", Roboto, sans-serif;
-    color: #000;
   }
   h1 { font-size: 3em; }
   h2 { font-size: 2em; }
