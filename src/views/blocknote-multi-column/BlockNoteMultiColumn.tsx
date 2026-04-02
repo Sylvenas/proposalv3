@@ -246,8 +246,14 @@ import { ConditionalInlineModal } from "./ConditionalInlineModal";
 import "./product-list.css";
 import "./conditional-section.css";
 import "./page-break.css";
+// Auto-generated from @blocknote/core dist/style.css by scripts/generate-bn-css.mjs
+// Injected into the preview iframe and PDF export HTML so styles stay in sync with the editor.
+import blocknoteCoreCSS from "./bn-core-css.generated";
 
 const PDF_STYLES = `
+  ${blocknoteCoreCSS}
+
+  /* ── PDF page setup ──────────────────────────────────────────────────────── */
   @page { size: A4; margin: 20mm; }
   body {
     font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -255,6 +261,8 @@ const PDF_STYLES = `
     color: #3f3f3f;
     line-height: 1.6;
   }
+
+  /* ── Typography (blocksToHTMLLossy outputs semantic tags) ────────────────── */
   h1 { font-size: 24px; font-weight: 700; margin: 16px 0 8px; }
   h2 { font-size: 20px; font-weight: 700; margin: 14px 0 6px; }
   h3 { font-size: 16px; font-weight: 600; margin: 12px 0 4px; }
@@ -263,6 +271,7 @@ const PDF_STYLES = `
   ul, ol { margin: 4px 0; padding-left: 24px; }
   li { margin: 2px 0; }
 
+  /* ── Custom block styles ─────────────────────────────────────────────────── */
   .product-list-block { width: 100%; font-family: "Segoe UI", Roboto, sans-serif; font-size: 11px; color: #1a1a1a; }
   .product-list-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
   .product-list-table { border-top: 1px solid #e0e0e0; }
@@ -280,15 +289,15 @@ const PDF_STYLES = `
 
   .drawing-block { width: 100%; font-family: "Segoe UI", Roboto, sans-serif; }
 
-  .bn-block-column-list { display: flex; gap: 16px; }
-  .bn-block-column { flex-basis: 0; min-width: 0; overflow: hidden; }
-
+  /* ── Inline content ──────────────────────────────────────────────────────── */
   [data-inline-content-type="placeholderInput"] { display: inline; }
   [data-inline-content-type="conditionalInline"] { display: inline; }
 
+  /* ── Suppress editor-only chrome ────────────────────────────────────────── */
   .conditional-section-block { border: none !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
   .conditional-section-header { display: none !important; }
 
+  /* ── Page break ──────────────────────────────────────────────────────────── */
   [data-page-break="true"] { display: block; height: 0; overflow: hidden; visibility: hidden; break-after: page; page-break-after: always; }
 `;
 
