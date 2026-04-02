@@ -459,6 +459,96 @@ const schema = withMultiColumn(
   }),
 );
 
+// ── Full initial document content ─────────────────────────────────────────────
+// Edit this single constant to change what appears in the editor on first load.
+// All values here are placeholders — replace with real data before shipping.
+const INITIAL_EDITOR_CONTENT = [
+  {
+    type: "heading" as const,
+    props: { level: 2 },
+    content: "Custom Block in Multi-Column Layout Test",
+  },
+  {
+    type: "columnList" as const,
+    children: [
+      {
+        type: "column" as const,
+        props: { width: 0.6 },
+        children: [{ type: "companyLogo" as const }],
+      },
+      {
+        type: "column" as const,
+        props: { width: 1.0 },
+        children: [
+          { type: "companyField" as const, props: { fieldType: "name" },         content: "Sample Company" },
+          { type: "companyField" as const, props: { fieldType: "website" },      content: "www.sample.com" },
+          { type: "companyField" as const, props: { fieldType: "email" },        content: "sample@sample.com" },
+          { type: "companyField" as const, props: { fieldType: "phone" },        content: "(888) 266-1843" },
+          { type: "companyField" as const, props: { fieldType: "address" },      content: "Company Street Address" },
+          { type: "companyField" as const, props: { fieldType: "cityStateZip" }, content: "Company City, MI, 49546" },
+        ],
+      },
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    content:
+      "Below is a Product List custom block placed inside a multi-column layout to verify custom blocks work with columns.",
+  },
+  {
+    type: "columnList" as const,
+    children: [
+      {
+        type: "column" as const,
+        props: { width: 1.6 },
+        children: [{ type: "productList" as const }],
+      },
+      {
+        type: "column" as const,
+        props: { width: 1.0 },
+        children: [
+          { type: "heading" as const, props: { level: 3 }, content: "Project Notes" },
+          {
+            type: "paragraph" as const,
+            content:
+              "This column sits next to the Product List to verify that custom blocks participate in multi-column layouts correctly.",
+          },
+          { type: "bulletListItem" as const, content: "Custom blocks render properly in columns" },
+          { type: "bulletListItem" as const, content: "Drag & drop works across columns" },
+          { type: "bulletListItem" as const, content: "Slash menu includes product list insert" },
+        ],
+      },
+    ],
+  },
+  { type: "heading" as const, props: { level: 3 }, content: "Custom Inline Content Demo" },
+  {
+    type: "paragraph" as const,
+    content: [
+      "The customer name is ",
+      { type: "placeholderInput" as const, props: { label: "Customer Name" } },
+      " and the project address is ",
+      { type: "placeholderInput" as const, props: { label: "Project Address" } },
+      ".",
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    content: [
+      "Estimated completion date: ",
+      { type: "placeholderInput" as const, props: { label: "MM/DD/YYYY" } },
+      ", total budget: ",
+      { type: "placeholderInput" as const, props: { label: "$0.00" } },
+      ".",
+    ],
+  },
+  { type: "paragraph" as const, content: 'Type "#" to insert a placeholder input field anywhere.' },
+  { type: "heading" as const, props: { level: 3 }, content: "Standalone Product List (outside columns)" },
+  { type: "productList" as const },
+  { type: "heading" as const, props: { level: 3 }, content: "Drawing / Floor Plan" },
+  { type: "drawing" as const },
+  { type: "paragraph" as const },
+] as const;
+
 export default function BlockNoteMultiColumn() {
   const editor = useCreateBlockNote({
     schema,
@@ -468,123 +558,8 @@ export default function BlockNoteMultiColumn() {
       ...locales.en,
       multi_column: multiColumnLocales.en,
     },
-    initialContent: [
-      {
-        type: "heading",
-        props: { level: 2 },
-        content: "Custom Block in Multi-Column Layout Test",
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(COMPANY_INFO_INITIAL_BLOCKS as unknown as any[]),
-      {
-        type: "paragraph",
-        content:
-          "Below is a Product List custom block placed inside a multi-column layout to verify custom blocks work with columns.",
-      },
-      {
-        type: "columnList",
-        children: [
-          {
-            type: "column",
-            props: { width: 1.6 },
-            children: [
-              {
-                type: "productList" as const,
-              },
-            ],
-          },
-          {
-            type: "column",
-            props: { width: 1.0 },
-            children: [
-              {
-                type: "heading",
-                props: { level: 3 },
-                content: "Project Notes",
-              },
-              {
-                type: "paragraph",
-                content:
-                  "This column sits next to the Product List to verify that custom blocks participate in multi-column layouts correctly.",
-              },
-              {
-                type: "bulletListItem",
-                content: "Custom blocks render properly in columns",
-              },
-              {
-                type: "bulletListItem",
-                content: "Drag & drop works across columns",
-              },
-              {
-                type: "bulletListItem",
-                content: "Slash menu includes product list insert",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: "heading",
-        props: { level: 3 },
-        content: "Custom Inline Content Demo",
-      },
-      {
-        type: "paragraph",
-        content: [
-          "The customer name is ",
-          {
-            type: "placeholderInput",
-            props: { label: "Customer Name" },
-          } as const,
-          " and the project address is ",
-          {
-            type: "placeholderInput",
-            props: { label: "Project Address" },
-          } as const,
-          ".",
-        ],
-      },
-      {
-        type: "paragraph",
-        content: [
-          "Estimated completion date: ",
-          {
-            type: "placeholderInput",
-            props: { label: "MM/DD/YYYY" },
-          } as const,
-          ", total budget: ",
-          {
-            type: "placeholderInput",
-            props: { label: "$0.00" },
-          } as const,
-          ".",
-        ],
-      },
-      {
-        type: "paragraph",
-        content:
-          'Type "#" to insert a placeholder input field anywhere.',
-      },
-      {
-        type: "heading",
-        props: { level: 3 },
-        content: "Standalone Product List (outside columns)",
-      },
-      {
-        type: "productList" as const,
-      },
-      {
-        type: "heading",
-        props: { level: 3 },
-        content: "Drawing / Floor Plan",
-      },
-      {
-        type: "drawing" as const,
-      },
-      {
-        type: "paragraph",
-      },
-    ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    initialContent: INITIAL_EDITOR_CONTENT as unknown as any,
   });
 
   const getSlashMenuItems = useMemo(() => {
