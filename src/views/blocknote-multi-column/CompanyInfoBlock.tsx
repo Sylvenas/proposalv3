@@ -95,14 +95,38 @@ export const COMPANY_INFO_INITIAL_BLOCKS = [
         type: "column" as const,
         props: { width: 1.0 },
         children: [
-          { type: "companyField" as const, props: { fieldType: "name" },         content: "Sample Company" },
-          { type: "companyField" as const, props: { fieldType: "website" },      content: "www.sample.com" },
-          { type: "companyField" as const, props: { fieldType: "email" },        content: "sample@sample.com" },
-          { type: "companyField" as const, props: { fieldType: "phone" },        content: "(888) 266-1843" },
-          { type: "companyField" as const, props: { fieldType: "address" },      content: "Company Street Address" },
-          { type: "companyField" as const, props: { fieldType: "cityStateZip" }, content: "Company City, MI, 49546" },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "name" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Name" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "website" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Website" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "email" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Email" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "phone" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Phone" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "address" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Address" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "cityStateZip" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company City/St/Zip" } }],
+          },
         ],
       },
     ],
   },
-] as const;
+];

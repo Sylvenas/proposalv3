@@ -122,13 +122,19 @@ export const placeholderColorSyncExtension = createExtension({
 // Component
 // ---------------------------------------------------------------------------
 const PLACEHOLDER_OPTIONS = [
-  { title: "Customer Name",   label: "Customer Name" },
-  { title: "Project Address", label: "Project Address" },
-  { title: "Date",            label: "MM/DD/YYYY" },
-  { title: "Amount",          label: "$0.00" },
-  { title: "Phone",           label: "(xxx) xxx-xxxx" },
-  { title: "Email",           label: "email@example.com" },
-  { title: "Custom Field",    label: "Enter value" },
+  { title: "Customer Name",        label: "Customer Name" },
+  { title: "Project Address",      label: "Project Address" },
+  { title: "Date",                 label: "MM/DD/YYYY" },
+  { title: "Amount",               label: "$0.00" },
+  { title: "Phone",                label: "(xxx) xxx-xxxx" },
+  { title: "Email",                label: "email@example.com" },
+  { title: "Custom Field",         label: "Enter value" },
+  { title: "Company Name",         label: "Company Name" },
+  { title: "Company Website",      label: "Company Website" },
+  { title: "Company Email",        label: "Company Email" },
+  { title: "Company Phone",        label: "Company Phone" },
+  { title: "Company Address",      label: "Company Address" },
+  { title: "Company City/St/Zip",  label: "Company City/St/Zip" },
 ];
 
 function PlaceholderInputInner({ label, stylesJson }: { label: string; stylesJson: string }) {

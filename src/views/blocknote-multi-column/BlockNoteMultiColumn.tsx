@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  BlockNoteSchema,
-  combineByGroup,
-} from "@blocknote/core";
+import { BlockNoteSchema, combineByGroup } from "@blocknote/core";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
 import * as locales from "@blocknote/core/locales";
 import "@blocknote/core/fonts/inter.css";
@@ -38,29 +35,31 @@ function markConditionalSections(htmlContent: string): string {
   const container = document.createElement("div");
   container.innerHTML = htmlContent;
 
-  container.querySelectorAll<HTMLElement>(".conditional-section-block").forEach((header) => {
-    const field    = header.dataset.conditionField    ?? "";
-    const operator = header.dataset.conditionOperator ?? "eq";
-    const value    = header.dataset.conditionValue    ?? "";
+  container
+    .querySelectorAll<HTMLElement>(".conditional-section-block")
+    .forEach((header) => {
+      const field = header.dataset.conditionField ?? "";
+      const operator = header.dataset.conditionOperator ?? "eq";
+      const value = header.dataset.conditionValue ?? "";
 
-    // Collect the header + all immediately-following siblings with data-nesting-level
-    const toWrap: HTMLElement[] = [header];
-    let sibling = header.nextElementSibling as HTMLElement | null;
-    while (sibling && sibling.hasAttribute("data-nesting-level")) {
-      toWrap.push(sibling);
-      sibling = sibling.nextElementSibling as HTMLElement | null;
-    }
+      // Collect the header + all immediately-following siblings with data-nesting-level
+      const toWrap: HTMLElement[] = [header];
+      let sibling = header.nextElementSibling as HTMLElement | null;
+      while (sibling && sibling.hasAttribute("data-nesting-level")) {
+        toWrap.push(sibling);
+        sibling = sibling.nextElementSibling as HTMLElement | null;
+      }
 
-    // Create wrapper, stamp attributes, move elements into it
-    const wrapper = document.createElement("div");
-    wrapper.dataset.conditionalWrapper = "true";
-    wrapper.dataset.conditionField     = field;
-    wrapper.dataset.conditionOperator  = operator;
-    wrapper.dataset.conditionValue     = value;
+      // Create wrapper, stamp attributes, move elements into it
+      const wrapper = document.createElement("div");
+      wrapper.dataset.conditionalWrapper = "true";
+      wrapper.dataset.conditionField = field;
+      wrapper.dataset.conditionOperator = operator;
+      wrapper.dataset.conditionValue = value;
 
-    header.parentElement!.insertBefore(wrapper, header);
-    toWrap.forEach((el) => wrapper.appendChild(el));
-  });
+      header.parentElement!.insertBefore(wrapper, header);
+      toWrap.forEach((el) => wrapper.appendChild(el));
+    });
 
   return container.innerHTML;
 }
@@ -77,51 +76,76 @@ function markConditionalSections(htmlContent: string): string {
 
 function getFieldValue(formData: ExportFormData, field: string): string {
   switch (field) {
-    case "customerName":   return formData.customerName   ?? "";
-    case "projectAddress": return formData.projectAddress ?? "";
-    case "completionDate": return formData.completionDate ?? "";
-    case "totalBudget":    return formData.totalBudget    ?? "";
-    default:               return "";
+    case "customerName":
+      return formData.customerName ?? "";
+    case "projectAddress":
+      return formData.projectAddress ?? "";
+    case "completionDate":
+      return formData.completionDate ?? "";
+    case "totalBudget":
+      return formData.totalBudget ?? "";
+    default:
+      return "";
   }
 }
 
-function evaluateCondition(fieldValue: string, operator: string, conditionValue: string): boolean {
+function evaluateCondition(
+  fieldValue: string,
+  operator: string,
+  conditionValue: string,
+): boolean {
   if (!conditionValue) return true; // No condition set → always show
   const a = fieldValue.toLowerCase();
   const b = conditionValue.toLowerCase();
   switch (operator) {
-    case "eq":          return a === b;
-    case "neq":         return a !== b;
-    case "contains":    return a.includes(b);
-    case "notContains": return !a.includes(b);
-    default:            return true;
+    case "eq":
+      return a === b;
+    case "neq":
+      return a !== b;
+    case "contains":
+      return a.includes(b);
+    case "notContains":
+      return !a.includes(b);
+    default:
+      return true;
   }
 }
 
-function processInlineConditionals(fullHtml: string, formData: ExportFormData): string {
+function processInlineConditionals(
+  fullHtml: string,
+  formData: ExportFormData,
+): string {
   if (typeof document === "undefined") return fullHtml;
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(fullHtml, "text/html");
 
-  doc.querySelectorAll<HTMLElement>('[data-inline-content-type="conditionalInline"]').forEach((el) => {
-    // BlockNote only serialises non-default props, so fall back to schema defaults
-    const field    = el.dataset.conditionField    ?? "customerName";
-    const operator = el.dataset.conditionOperator ?? "eq";
-    const value    = el.dataset.conditionValue    ?? "";
+  doc
+    .querySelectorAll<HTMLElement>(
+      '[data-inline-content-type="conditionalInline"]',
+    )
+    .forEach((el) => {
+      // BlockNote only serialises non-default props, so fall back to schema defaults
+      const field = el.dataset.conditionField ?? "customerName";
+      const operator = el.dataset.conditionOperator ?? "eq";
+      const value = el.dataset.conditionValue ?? "";
 
-    // The user-typed text lives in the [data-editable] child span
-    const editableSpan = el.querySelector<HTMLElement>("[data-editable]");
-    const text = editableSpan?.textContent ?? "";
+      // The user-typed text lives in the [data-editable] child span
+      const editableSpan = el.querySelector<HTMLElement>("[data-editable]");
+      const text = editableSpan?.textContent ?? "";
 
-    const conditionMet = evaluateCondition(getFieldValue(formData, field), operator, value);
+      const conditionMet = evaluateCondition(
+        getFieldValue(formData, field),
+        operator,
+        value,
+      );
 
-    if (conditionMet) {
-      el.replaceWith(document.createTextNode(text));
-    } else {
-      el.remove();
-    }
-  });
+      if (conditionMet) {
+        el.replaceWith(document.createTextNode(text));
+      } else {
+        el.remove();
+      }
+    });
 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
@@ -129,74 +153,119 @@ function processInlineConditionals(fullHtml: string, formData: ExportFormData): 
 // ── Client-side HTML post-processing (mirrors pdf-server replace_placeholders) ─
 
 const PLACEHOLDER_FIELD_MAP: Record<string, keyof ExportFormData> = {
-  "Customer Name": "customerName",
-  "Project Address": "projectAddress",
-  "MM/DD/YYYY": "completionDate",
-  "$0.00": "totalBudget",
+  "Customer Name":       "customerName",
+  "Project Address":     "projectAddress",
+  "MM/DD/YYYY":          "completionDate",
+  "$0.00":               "totalBudget",
+  "Company Name":        "companyName",
+  "Company Website":     "companyWebsite",
+  "Company Email":       "companyEmail",
+  "Company Phone":       "companyPhone",
+  "Company Address":     "companyAddress",
+  "Company City/St/Zip": "companyCityStateZip",
 };
 
-function replacePlaceholderInputs(html: string, formData: ExportFormData): string {
+function replacePlaceholderInputs(
+  html: string,
+  formData: ExportFormData,
+): string {
   if (typeof document === "undefined") return html;
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  doc.querySelectorAll<HTMLElement>('[data-inline-content-type="placeholderInput"]').forEach((el) => {
-    const label    = el.dataset.label ?? el.textContent?.trim() ?? "";
-    const fieldKey = PLACEHOLDER_FIELD_MAP[label];
-    const value    = fieldKey ? (formData[fieldKey] as string) || "\u2014" : "\u2014";
+  doc
+    .querySelectorAll<HTMLElement>(
+      '[data-inline-content-type="placeholderInput"]',
+    )
+    .forEach((el) => {
+      const label = el.dataset.label ?? el.textContent?.trim() ?? "";
+      const fieldKey = PLACEHOLDER_FIELD_MAP[label];
+      const value = fieldKey
+        ? (formData[fieldKey] as string) || "\u2014"
+        : "\u2014";
 
-    // All formatting is stored as JSON in the stylesJson prop → data-styles-json attribute
-    const css = stylesToReactCSS(parseStyles(el.dataset.stylesJson ?? ""));
+      // All formatting is stored as JSON in the stylesJson prop → data-styles-json attribute
+      const css = stylesToReactCSS(parseStyles(el.dataset.stylesJson ?? ""));
 
-    el.innerHTML = "";
-    const span = document.createElement("span");
-    if (css.fontWeight)      span.style.fontWeight      = String(css.fontWeight);
-    if (css.fontStyle)       span.style.fontStyle       = String(css.fontStyle);
-    if (css.textDecoration)  span.style.textDecoration  = String(css.textDecoration);
-    if (css.fontFamily)      span.style.fontFamily      = String(css.fontFamily);
-    if (css.color)           span.style.color           = String(css.color);
-    span.textContent = value;
-    el.appendChild(span);
-  });
+      el.innerHTML = "";
+      const span = document.createElement("span");
+      if (css.fontWeight) span.style.fontWeight = String(css.fontWeight);
+      if (css.fontStyle) span.style.fontStyle = String(css.fontStyle);
+      if (css.textDecoration)
+        span.style.textDecoration = String(css.textDecoration);
+      if (css.fontFamily) span.style.fontFamily = String(css.fontFamily);
+      if (css.color) span.style.color = String(css.color);
+      span.textContent = value;
+      el.appendChild(span);
+    });
 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
 
-function processConditionalSectionBlocks(html: string, formData: ExportFormData): string {
+function processConditionalSectionBlocks(
+  html: string,
+  formData: ExportFormData,
+): string {
   if (typeof document === "undefined") return html;
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  doc.querySelectorAll<HTMLElement>('[data-conditional-wrapper="true"]').forEach((el) => {
-    const field = el.dataset.conditionField ?? "";
-    const operator = el.dataset.conditionOperator ?? "eq";
-    const compare = el.dataset.conditionValue ?? "";
-    if (!compare.trim()) return;
-    const met = evaluateCondition(getFieldValue(formData, field), operator, compare);
-    if (!met) el.remove();
-  });
+  doc
+    .querySelectorAll<HTMLElement>('[data-conditional-wrapper="true"]')
+    .forEach((el) => {
+      const field = el.dataset.conditionField ?? "";
+      const operator = el.dataset.conditionOperator ?? "eq";
+      const compare = el.dataset.conditionValue ?? "";
+      if (!compare.trim()) return;
+      const met = evaluateCondition(
+        getFieldValue(formData, field),
+        operator,
+        compare,
+      );
+      if (!met) el.remove();
+    });
 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
 
-function buildProductListHtml(products: { name: string; quantity: string; amount: string }[], summary?: { subtotal: string; discount: string; salesTaxRate: string; salesTax: string; total: string }): string {
-  const rows = products.map(p =>
-    `<div class="product-list-row">` +
-    `<div class="product-list-desc"><div class="product-list-name">${p.name}</div></div>` +
-    `<div class="product-list-qty">${p.quantity}</div>` +
-    `<div class="product-list-amt">${p.amount}</div>` +
-    `</div>`
-  ).join("");
+function buildProductListHtml(
+  products: { name: string; quantity: string; amount: string }[],
+  summary?: {
+    subtotal: string;
+    discount: string;
+    salesTaxRate: string;
+    salesTax: string;
+    total: string;
+  },
+): string {
+  const rows = products
+    .map(
+      (p) =>
+        `<div class="product-list-row">` +
+        `<div class="product-list-desc"><div class="product-list-name">${p.name}</div></div>` +
+        `<div class="product-list-qty">${p.quantity}</div>` +
+        `<div class="product-list-amt">${p.amount}</div>` +
+        `</div>`,
+    )
+    .join("");
 
   let summaryRows = "";
-  if (summary && (summary.subtotal || summary.discount || summary.salesTax || summary.total)) {
-    if (summary.subtotal) summaryRows += `<div class="product-list-summary-row"><span>Subtotal</span><span>${summary.subtotal}</span></div>`;
-    if (summary.discount) summaryRows += `<div class="product-list-summary-row"><span>Discount</span><span>${summary.discount}</span></div>`;
+  if (
+    summary &&
+    (summary.subtotal || summary.discount || summary.salesTax || summary.total)
+  ) {
+    if (summary.subtotal)
+      summaryRows += `<div class="product-list-summary-row"><span>Subtotal</span><span>${summary.subtotal}</span></div>`;
+    if (summary.discount)
+      summaryRows += `<div class="product-list-summary-row"><span>Discount</span><span>${summary.discount}</span></div>`;
     if (summary.salesTax) {
-      const ratePrefix = summary.salesTaxRate ? `(${summary.salesTaxRate}) ` : "";
+      const ratePrefix = summary.salesTaxRate
+        ? `(${summary.salesTaxRate}) `
+        : "";
       summaryRows += `<div class="product-list-summary-row"><span>Sales Tax</span><span>${ratePrefix}${summary.salesTax}</span></div>`;
     }
-    if (summary.total) summaryRows += `<div class="product-list-summary-row product-list-total"><span>Total</span><span>${summary.total}</span></div>`;
+    if (summary.total)
+      summaryRows += `<div class="product-list-summary-row product-list-total"><span>Total</span><span>${summary.total}</span></div>`;
   } else {
     const total = products.reduce((sum, p) => {
       const cleaned = p.amount.replace(/[^0-9.\-]/g, "");
@@ -220,26 +289,35 @@ function buildProductListHtml(products: { name: string; quantity: string; amount
 // blocksToHTMLLossy puts the editable text in [data-editable]; the editor DOM
 // renders it via contentRef (no data-editable attr). We extract it by cloning
 // the element and stripping all contenteditable=false children (gear, IF badge).
-function processInlineConditionalsFromEditorDom(html: string, formData: ExportFormData): string {
+function processInlineConditionalsFromEditorDom(
+  html: string,
+  formData: ExportFormData,
+): string {
   if (typeof document === "undefined") return html;
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  doc.querySelectorAll<HTMLElement>('[data-inline-content-type="conditionalInline"]').forEach((el) => {
-    const field    = el.dataset.conditionField    ?? "customerName";
-    const operator = el.dataset.conditionOperator ?? "eq";
-    const value    = el.dataset.conditionValue    ?? "";
+  doc
+    .querySelectorAll<HTMLElement>(
+      '[data-inline-content-type="conditionalInline"]',
+    )
+    .forEach((el) => {
+      const field = el.dataset.conditionField ?? "customerName";
+      const operator = el.dataset.conditionOperator ?? "eq";
+      const value = el.dataset.conditionValue ?? "";
 
-    const clone = el.cloneNode(true) as HTMLElement;
-    clone.querySelectorAll('[contenteditable="false"]').forEach(n => n.remove());
-    const text = clone.textContent ?? "";
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone
+        .querySelectorAll('[contenteditable="false"]')
+        .forEach((n) => n.remove());
+      const text = clone.textContent ?? "";
 
-    if (evaluateCondition(getFieldValue(formData, field), operator, value)) {
-      el.replaceWith(document.createTextNode(text));
-    } else {
-      el.remove();
-    }
-  });
+      if (evaluateCondition(getFieldValue(formData, field), operator, value)) {
+        el.replaceWith(document.createTextNode(text));
+      } else {
+        el.remove();
+      }
+    });
 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
@@ -247,26 +325,36 @@ function processInlineConditionalsFromEditorDom(html: string, formData: ExportFo
 // ── Preview-only: conditional sections from the live ProseMirror DOM ─────────
 // In the editor DOM, conditional children are properly nested under .bn-block-outer.
 // Removing that ancestor removes both the header and all child blocks atomically.
-function processConditionalSectionsFromEditorDom(html: string, formData: ExportFormData): string {
+function processConditionalSectionsFromEditorDom(
+  html: string,
+  formData: ExportFormData,
+): string {
   if (typeof document === "undefined") return html;
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  doc.querySelectorAll<HTMLElement>(".conditional-section-block").forEach((el) => {
-    const field    = el.dataset.conditionField    ?? "";
-    const operator = el.dataset.conditionOperator ?? "eq";
-    const compare  = el.dataset.conditionValue    ?? "";
-    if (!compare.trim()) return;
-    if (!evaluateCondition(getFieldValue(formData, field), operator, compare)) {
-      el.closest(".bn-block-outer")?.remove();
-    }
-    // condition met → .conditional-section-header already hidden by CSS
-  });
+  doc
+    .querySelectorAll<HTMLElement>(".conditional-section-block")
+    .forEach((el) => {
+      const field = el.dataset.conditionField ?? "";
+      const operator = el.dataset.conditionOperator ?? "eq";
+      const compare = el.dataset.conditionValue ?? "";
+      if (!compare.trim()) return;
+      if (
+        !evaluateCondition(getFieldValue(formData, field), operator, compare)
+      ) {
+        el.closest(".bn-block-outer")?.remove();
+      }
+      // condition met → .conditional-section-header already hidden by CSS
+    });
 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
 }
 
-function replaceProductListBlocks(html: string, formData: ExportFormData): string {
+function replaceProductListBlocks(
+  html: string,
+  formData: ExportFormData,
+): string {
   if (typeof document === "undefined") return html;
   if (!formData.products?.length) return html;
   const parser = new DOMParser();
@@ -286,12 +374,24 @@ function replaceProductListBlocks(html: string, formData: ExportFormData): strin
 import { createProductList } from "./ProductListBlock";
 import { createConditionalSection } from "./ConditionalSectionBlock";
 import { createPageBreak } from "./PageBreakBlock";
-import { createCompanyLogo, createCompanyField, COMPANY_INFO_INITIAL_BLOCKS } from "./CompanyInfoBlock";
+import {
+  createCompanyLogo,
+  createCompanyField,
+  COMPANY_INFO_INITIAL_BLOCKS,
+} from "./CompanyInfoBlock";
 import { createDrawing } from "./DrawingBlock";
-import { PlaceholderInput, placeholderColorSyncExtension, parseStyles, stylesToReactCSS } from "./PlaceholderInput";
+import {
+  PlaceholderInput,
+  placeholderColorSyncExtension,
+  parseStyles,
+  stylesToReactCSS,
+} from "./PlaceholderInput";
 import { ConditionalInline } from "./ConditionalInlineContent";
 import { ExportModal, type ExportFormData } from "./ExportModal";
-import { ConditionalSectionModal, type ConditionalSectionConfig } from "./ConditionalSectionModal";
+import {
+  ConditionalSectionModal,
+  type ConditionalSectionConfig,
+} from "./ConditionalSectionModal";
 import { ConditionalInlineModal } from "./ConditionalInlineModal";
 import "./product-list.css";
 import "./conditional-section.css";
@@ -351,68 +451,28 @@ const PDF_STYLES = `
   [data-page-break="true"] { display: block; height: 0; overflow: hidden; visibility: hidden; break-after: page; page-break-after: always; }
 `;
 
+// pagedjs reads @page { size: A4; margin: 20mm } from PDF_STYLES and auto-paginates.
+// We only need to style the outer shell and give each generated .pagedjs_page a shadow.
 const PREVIEW_EXTRA_STYLES = `
-  html { background: #e8e8e8; }
+  /* Zero out @page margins so pagedjs sets all --pagedjs-margin-* vars to 0.
+     This collapses the empty grid rows/columns that were pushing content down.
+     The 20mm margins in PDF_STYLES still apply when exporting via WeasyPrint. */
+  @page { margin: 0; }
   body {
-    margin: 0; padding: 0; background: transparent;
-    font-size: 16px;
-    font-family: Inter, SF Pro Display, -apple-system, BlinkMacSystemFont, "Open Sans", "Segoe UI", Roboto, sans-serif;
+    background: #e8e8e8;
+    margin: 0;
+    padding: 16px 0;
   }
-  h1 { font-size: 3em; }
-  h2 { font-size: 2em; }
-  h3 { font-size: 1.3em; }
-  .preview-page {
-    max-width: 750px;
-    margin: 16px auto;
-    padding: 0 40px;
-    background: white;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-    border-radius: 4px;
-    min-height: 120px;
-    box-sizing: border-box;
+  .pagedjs_pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
   }
-  .preview-page:last-child { margin-bottom: 0; }
-`;
-
-// Script injected at the end of <body> to split content into visual pages.
-// It finds the top-level body child that contains [data-page-break] and uses
-// it as a split point, wrapping the surrounding content into .preview-page divs.
-const PREVIEW_PAGE_SPLIT_SCRIPT = `
-<script>
-(function () {
-  var body = document.body;
-  var breaks = body.querySelectorAll('[data-page-break="true"]');
-
-  // Mark the top-level body child that is (or contains) each page break
-  breaks.forEach(function (el) {
-    var node = el;
-    while (node.parentElement && node.parentElement !== body) {
-      node = node.parentElement;
-    }
-    node.setAttribute('data-page-break-wrapper', 'true');
-  });
-
-  // Split body children into page buckets at break wrappers
-  var children = Array.from(body.children);
-  var pages = [[]];
-  children.forEach(function (child) {
-    if (child.getAttribute('data-page-break-wrapper') === 'true') {
-      pages.push([]);
-    } else {
-      pages[pages.length - 1].push(child);
-    }
-  });
-
-  // Rebuild body with .preview-page wrappers
-  body.innerHTML = '';
-  pages.forEach(function (nodes) {
-    var page = document.createElement('div');
-    page.className = 'preview-page';
-    nodes.forEach(function (n) { page.appendChild(n); });
-    body.appendChild(page);
-  });
-})();
-</script>
+  .pagedjs_page {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10) !important;
+    background: white !important;
+  }
 `;
 
 const DEFAULT_PREVIEW_DATA: ExportFormData = {
@@ -427,8 +487,16 @@ const DEFAULT_PREVIEW_DATA: ExportFormData = {
   companyAddress: "4820 Cascade Rd SE",
   companyCityStateZip: "Grand Rapids, MI, 49503",
   products: [
-    { name: "6ft Cedar Privacy Fence", quantity: "320 ft", amount: "$25,600.00" },
-    { name: "Aluminum Gate (Double Swing)", quantity: "2", amount: "$4,200.00" },
+    {
+      name: "6ft Cedar Privacy Fence",
+      quantity: "320 ft",
+      amount: "$25,600.00",
+    },
+    {
+      name: "Aluminum Gate (Double Swing)",
+      quantity: "2",
+      amount: "$4,200.00",
+    },
     { name: "Concrete Post Footings", quantity: "48", amount: "$7,680.00" },
     { name: "Stain & Sealant Treatment", quantity: "1", amount: "$3,200.00" },
     { name: "Permit & Inspection Fee", quantity: "1", amount: "$450.00" },
@@ -453,7 +521,7 @@ const schema = withMultiColumn(
       drawing: createDrawing(),
     },
     inlineContentSpecs: {
-      placeholderInput:  PlaceholderInput,
+      placeholderInput: PlaceholderInput,
       conditionalInline: ConditionalInline,
     },
   }),
@@ -480,12 +548,36 @@ const INITIAL_EDITOR_CONTENT = [
         type: "column" as const,
         props: { width: 1.0 },
         children: [
-          { type: "companyField" as const, props: { fieldType: "name" },         content: "Sample Company" },
-          { type: "companyField" as const, props: { fieldType: "website" },      content: "www.sample.com" },
-          { type: "companyField" as const, props: { fieldType: "email" },        content: "sample@sample.com" },
-          { type: "companyField" as const, props: { fieldType: "phone" },        content: "(888) 266-1843" },
-          { type: "companyField" as const, props: { fieldType: "address" },      content: "Company Street Address" },
-          { type: "companyField" as const, props: { fieldType: "cityStateZip" }, content: "Company City, MI, 49546" },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "name" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Name" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "website" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Website" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "email" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Email" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "phone" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Phone" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "address" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Address" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "cityStateZip" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company City/St/Zip" } }],
+          },
         ],
       },
     ],
@@ -507,27 +599,47 @@ const INITIAL_EDITOR_CONTENT = [
         type: "column" as const,
         props: { width: 1.0 },
         children: [
-          { type: "heading" as const, props: { level: 3 }, content: "Project Notes" },
+          {
+            type: "heading" as const,
+            props: { level: 3 },
+            content: "Project Notes",
+          },
           {
             type: "paragraph" as const,
             content:
               "This column sits next to the Product List to verify that custom blocks participate in multi-column layouts correctly.",
           },
-          { type: "bulletListItem" as const, content: "Custom blocks render properly in columns" },
-          { type: "bulletListItem" as const, content: "Drag & drop works across columns" },
-          { type: "bulletListItem" as const, content: "Slash menu includes product list insert" },
+          {
+            type: "bulletListItem" as const,
+            content: "Custom blocks render properly in columns",
+          },
+          {
+            type: "bulletListItem" as const,
+            content: "Drag & drop works across columns",
+          },
+          {
+            type: "bulletListItem" as const,
+            content: "Slash menu includes product list insert",
+          },
         ],
       },
     ],
   },
-  { type: "heading" as const, props: { level: 3 }, content: "Custom Inline Content Demo" },
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Custom Inline Content Demo",
+  },
   {
     type: "paragraph" as const,
     content: [
       "The customer name is ",
       { type: "placeholderInput" as const, props: { label: "Customer Name" } },
       " and the project address is ",
-      { type: "placeholderInput" as const, props: { label: "Project Address" } },
+      {
+        type: "placeholderInput" as const,
+        props: { label: "Project Address" },
+      },
       ".",
     ],
   },
@@ -541,13 +653,46 @@ const INITIAL_EDITOR_CONTENT = [
       ".",
     ],
   },
-  { type: "paragraph" as const, content: 'Type "#" to insert a placeholder input field anywhere.' },
-  { type: "heading" as const, props: { level: 3 }, content: "Standalone Product List (outside columns)" },
+  {
+    type: "paragraph" as const,
+    content: 'Type "#" to insert a placeholder input field anywhere.',
+  },
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Standalone Product List (outside columns)",
+  },
   { type: "productList" as const },
-  { type: "heading" as const, props: { level: 3 }, content: "Drawing / Floor Plan" },
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Drawing / Floor Plan",
+  },
   { type: "drawing" as const },
   { type: "paragraph" as const },
 ] as const;
+
+// ── Placeholder preset (replace with real content later) ──────────────────────
+const PRESET_SIMPLE_EXAMPLE = [
+  {
+    type: "heading" as const,
+    props: { level: 2 },
+    content: "Simple Example Preset",
+  },
+  {
+    type: "paragraph" as const,
+    content:
+      "This is a placeholder preset. Replace this content with real data.",
+  },
+  { type: "paragraph" as const },
+] as const;
+
+// ── Preset registry ───────────────────────────────────────────────────────────
+// Add new presets here. The first entry is selected by default.
+const CONTENT_PRESETS: { label: string; content: unknown }[] = [
+  { label: "Default Template", content: INITIAL_EDITOR_CONTENT },
+  { label: "Simple Example", content: PRESET_SIMPLE_EXAMPLE },
+];
 
 export default function BlockNoteMultiColumn() {
   const editor = useCreateBlockNote({
@@ -567,8 +712,18 @@ export default function BlockNoteMultiColumn() {
       filterSuggestionItems(
         [
           ...combineByGroup(
-            getDefaultReactSlashMenuItems(editor).filter((item) =>
-              !["Emoji", "Video", "Audio", "File", "Quote", "Code Block", "Toggle List", "Check List"].includes(item.title)
+            getDefaultReactSlashMenuItems(editor).filter(
+              (item) =>
+                ![
+                  "Emoji",
+                  "Video",
+                  "Audio",
+                  "File",
+                  "Quote",
+                  "Code Block",
+                  "Toggle List",
+                  "Check List",
+                ].includes(item.title),
             ),
             getMultiColumnSlashMenuItems(editor),
           ),
@@ -591,7 +746,8 @@ export default function BlockNoteMultiColumn() {
             subtext: "Show or hide content based on a field value",
             group: "Other",
             onItemClick: () => {
-              conditionalInsertBlockRef.current = editor.getTextCursorPosition().block;
+              conditionalInsertBlockRef.current =
+                editor.getTextCursorPosition().block;
               setIsConditionalModalOpen(true);
             },
             aliases: ["condition", "if", "show", "hide", "conditional"],
@@ -646,38 +802,57 @@ export default function BlockNoteMultiColumn() {
   }, [editor]);
 
   // --- Conditional inline insert modal ---
-  const [isConditionalInlineModalOpen, setIsConditionalInlineModalOpen] = useState(false);
+  const [isConditionalInlineModalOpen, setIsConditionalInlineModalOpen] =
+    useState(false);
 
-  const handleInsertConditionalInline = useCallback((cfg: { conditionField: string; conditionOperator: string; conditionValue: string }) => {
-    setIsConditionalInlineModalOpen(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tiptap = (editor as any)._tiptapEditor;
+  const handleInsertConditionalInline = useCallback(
+    (cfg: {
+      conditionField: string;
+      conditionOperator: string;
+      conditionValue: string;
+    }) => {
+      setIsConditionalInlineModalOpen(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tiptap = (editor as any)._tiptapEditor;
 
-    // Step 1: insert the (empty) node via BlockNote — this reliably places it
-    editor.insertInlineContent([{
-      type: "conditionalInline" as const,
-      props: cfg,
-    }]);
-
-    // Step 2: in the next tick the node is in the doc; find the nearest empty
-    // conditionalInline and fill it with the default text
-    setTimeout(() => {
-      const { state } = tiptap;
-      const { from } = state.selection;
-      let filled = false;
-      state.doc.nodesBetween(
-        Math.max(0, from - 5),
-        Math.min(state.doc.content.size, from + 5),
-        (node: { type: { name: string }; content: { size: number } }, pos: number) => {
-          if (!filled && node.type.name === "conditionalInline" && node.content.size === 0) {
-            tiptap.view.dispatch(state.tr.insertText("Conditional Text", pos + 1));
-            filled = true;
-            return false;
-          }
+      // Step 1: insert the (empty) node via BlockNote — this reliably places it
+      editor.insertInlineContent([
+        {
+          type: "conditionalInline" as const,
+          props: cfg,
         },
-      );
-    }, 0);
-  }, [editor]);
+      ]);
+
+      // Step 2: in the next tick the node is in the doc; find the nearest empty
+      // conditionalInline and fill it with the default text
+      setTimeout(() => {
+        const { state } = tiptap;
+        const { from } = state.selection;
+        let filled = false;
+        state.doc.nodesBetween(
+          Math.max(0, from - 5),
+          Math.min(state.doc.content.size, from + 5),
+          (
+            node: { type: { name: string }; content: { size: number } },
+            pos: number,
+          ) => {
+            if (
+              !filled &&
+              node.type.name === "conditionalInline" &&
+              node.content.size === 0
+            ) {
+              tiptap.view.dispatch(
+                state.tr.insertText("Conditional Text", pos + 1),
+              );
+              filled = true;
+              return false;
+            }
+          },
+        );
+      }, 0);
+    },
+    [editor],
+  );
 
   const getPlaceholderMenuItems = useMemo(() => {
     const items = [
@@ -697,7 +872,10 @@ export default function BlockNoteMultiColumn() {
             title: item.title,
             onItemClick: () => {
               editor.insertInlineContent([
-                { type: "placeholderInput" as const, props: { label: item.label } },
+                {
+                  type: "placeholderInput" as const,
+                  props: { label: item.label },
+                },
                 " ",
               ]);
             },
@@ -722,21 +900,33 @@ export default function BlockNoteMultiColumn() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conditionalInsertBlockRef = useRef<any>(null);
 
-  const handleInsertConditionalSection = useCallback((config: ConditionalSectionConfig) => {
-    setIsConditionalModalOpen(false);
-    const targetBlock = conditionalInsertBlockRef.current ?? editor.getTextCursorPosition().block;
-    editor.insertBlocks(
-      [{ type: "conditionalSection" as const, props: config, children: [{ type: "paragraph" as const }] }],
-      targetBlock,
-      "after",
-    );
-  }, [editor]);
+  const handleInsertConditionalSection = useCallback(
+    (config: ConditionalSectionConfig) => {
+      setIsConditionalModalOpen(false);
+      const targetBlock =
+        conditionalInsertBlockRef.current ??
+        editor.getTextCursorPosition().block;
+      editor.insertBlocks(
+        [
+          {
+            type: "conditionalSection" as const,
+            props: config,
+            children: [{ type: "paragraph" as const }],
+          },
+        ],
+        targetBlock,
+        "after",
+      );
+    },
+    [editor],
+  );
 
   // --- Preview state (auto-populate with default data on mount) ---
   const [previewData, setPreviewData] = useState<ExportFormData | null>(
     DEFAULT_PREVIEW_DATA,
   );
-  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const previewUrlRef = useRef<string>("");
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [editorVersion, setEditorVersion] = useState(0);
 
@@ -744,18 +934,17 @@ export default function BlockNoteMultiColumn() {
   const [isExporting, setIsExporting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const buildFullHtml = useCallback(
-    async () => {
-      const blocks = editor.document;
-      const rawHtml = await editor.blocksToHTMLLossy(blocks);
-      // Preserve empty paragraphs: blocksToHTMLLossy outputs <p></p> with no
-      // content, so browsers and WeasyPrint collapse them. Adding a <br>
-      // gives each empty paragraph the height of one line — matching the editor.
-      const withEmptyParas = rawHtml.replace(/<p><\/p>/g, '<p><br></p>');
-      // Stamp data-conditional-wrapper on the correct ancestor so the server
-      // can remove the entire section (header + children) in one query.
-      const markedHtml = markConditionalSections(withEmptyParas);
-      return `<!DOCTYPE html>
+  const buildFullHtml = useCallback(async () => {
+    const blocks = editor.document;
+    const rawHtml = await editor.blocksToHTMLLossy(blocks);
+    // Preserve empty paragraphs: blocksToHTMLLossy outputs <p></p> with no
+    // content, so browsers and WeasyPrint collapse them. Adding a <br>
+    // gives each empty paragraph the height of one line — matching the editor.
+    const withEmptyParas = rawHtml.replace(/<p><\/p>/g, "<p><br></p>");
+    // Stamp data-conditional-wrapper on the correct ancestor so the server
+    // can remove the entire section (header + children) in one query.
+    const markedHtml = markConditionalSections(withEmptyParas);
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -765,40 +954,45 @@ export default function BlockNoteMultiColumn() {
 ${markedHtml}
 </body>
 </html>`;
-    },
-    [editor],
-  );
+  }, [editor]);
 
   // Preview uses the live ProseMirror DOM so all BN class names are preserved
   // and blocknoteCoreCSS applies exactly as in the editor — no manual CSS patches needed.
   // PDF export continues to use buildFullHtml (blocksToHTMLLossy → WeasyPrint).
-  const buildPreviewHtml = useCallback((currentData: ExportFormData): string => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tiptap = (editor as any)._tiptapEditor;
-    const innerHtml = (tiptap.view.dom as HTMLElement).innerHTML;
+  const buildPreviewHtml = useCallback(
+    (currentData: ExportFormData): string => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tiptap = (editor as any)._tiptapEditor;
+      const innerHtml = (tiptap.view.dom as HTMLElement).innerHTML;
 
-    let html = `<!DOCTYPE html>
+      let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <style>${PDF_STYLES}</style>
 <style>
-  .bn-editor { padding-inline: 0 !important; outline: none !important; }
+  .bn-editor { outline: none !important; }
 </style>
 </head>
 <body>
-<div class="bn-root"><div class="bn-default-styles">${innerHtml}</div></div>
+<div class="bn-root"><div class="bn-default-styles"><div class="bn-editor">${innerHtml}</div></div></div>
 </body>
 </html>`;
 
-    html = processInlineConditionalsFromEditorDom(html, currentData);
-    html = replacePlaceholderInputs(html, currentData);
-    html = processConditionalSectionsFromEditorDom(html, currentData);
-    html = replaceProductListBlocks(html, currentData);
-    html = html.replace("</head>", `<style>${PREVIEW_EXTRA_STYLES}</style></head>`);
-    html = html.replace("</body>", `${PREVIEW_PAGE_SPLIT_SCRIPT}</body>`);
-    return html;
-  }, [editor]);
+      html = processInlineConditionalsFromEditorDom(html, currentData);
+      html = replacePlaceholderInputs(html, currentData);
+      html = processConditionalSectionsFromEditorDom(html, currentData);
+      html = replaceProductListBlocks(html, currentData);
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      html = html.replace(
+        "</head>",
+        `<style>${PREVIEW_EXTRA_STYLES}</style><script src="${origin}/static/pagedjs/paged.polyfill.js"></script></head>`,
+      );
+      return html;
+    },
+    [editor],
+  );
 
   const previewDataRef = useRef(previewData);
   previewDataRef.current = previewData;
@@ -808,13 +1002,25 @@ ${markedHtml}
     if (!currentData) return;
     setIsPreviewLoading(true);
     try {
-      setPreviewHtml(buildPreviewHtml(currentData));
+      const html = buildPreviewHtml(currentData);
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = url;
+      setPreviewUrl(url);
     } catch (error) {
       console.error("Preview update failed:", error);
     } finally {
       setIsPreviewLoading(false);
     }
   }, [buildPreviewHtml]);
+
+  // Revoke blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   // Debounced preview: re-run when editor content or preview data changes
   useEffect(() => {
@@ -824,6 +1030,17 @@ ${markedHtml}
   }, [previewData, editorVersion, updatePreview]);
 
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState(0);
+
+  const handlePresetChange = useCallback(
+    (index: number) => {
+      setSelectedPresetIndex(index);
+      const blocks = editor.document;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      editor.replaceBlocks(blocks, CONTENT_PRESETS[index].content as any);
+    },
+    [editor],
+  );
 
   const handleUpdatePreviewData = useCallback((data: ExportFormData) => {
     setPreviewData(data);
@@ -841,8 +1058,10 @@ ${markedHtml}
       setIsExporting(true);
       try {
         const fullHtml = await buildFullHtml();
-        const processedHtml = processInlineConditionals(fullHtml, data);
-        const pdfServerUrl = process.env.NEXT_PUBLIC_PDF_SERVER_URL ?? "http://localhost:5001";
+        let processedHtml = processInlineConditionals(fullHtml, data);
+        processedHtml = replacePlaceholderInputs(processedHtml, data);
+        const pdfServerUrl =
+          process.env.NEXT_PUBLIC_PDF_SERVER_URL ?? "http://localhost:5001";
         const response = await fetch(`${pdfServerUrl}/api/html-to-pdf`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -859,7 +1078,9 @@ ${markedHtml}
         setIsModalOpen(false);
       } catch (error) {
         console.error("Export failed:", error);
-        alert("Export failed. Make sure the Python server is running on port 5001.");
+        alert(
+          "Export failed. Make sure the Python server is running on port 5001.",
+        );
       } finally {
         setIsExporting(false);
       }
@@ -880,7 +1101,7 @@ ${markedHtml}
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           alignItems: "center",
           gap: 10,
           padding: "10px 20px",
@@ -889,36 +1110,58 @@ ${markedHtml}
           flexShrink: 0,
         }}
       >
-        <button
-          onClick={() => setIsDataEditorOpen(true)}
+        <select
+          value={selectedPresetIndex}
+          onChange={(e) => handlePresetChange(Number(e.target.value))}
           style={{
-            padding: "8px 20px",
-            backgroundColor: "#fff",
-            color: "#333",
+            padding: "7px 12px",
             border: "1px solid #ccc",
             borderRadius: 6,
             fontSize: 13,
-            fontWeight: 600,
+            fontWeight: 500,
+            color: "#333",
+            backgroundColor: "#fff",
             cursor: "pointer",
           }}
         >
-          Edit Preview Data
-        </button>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          style={{
-            padding: "8px 20px",
-            backgroundColor: "#228be6",
-            color: "#fff",
-            border: "none",
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          Export to PDF
-        </button>
+          {CONTENT_PRESETS.map((preset, i) => (
+            <option key={i} value={i}>
+              {preset.label}
+            </option>
+          ))}
+        </select>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => setIsDataEditorOpen(true)}
+            style={{
+              padding: "8px 20px",
+              backgroundColor: "#fff",
+              color: "#333",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Edit Preview Data
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            style={{
+              padding: "8px 20px",
+              backgroundColor: "#228be6",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Export to PDF
+          </button>
+        </div>
       </div>
 
       {/* Split content */}
@@ -979,7 +1222,14 @@ ${markedHtml}
                 gap: 12,
               }}
             >
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.5">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#bbb"
+                strokeWidth="1.5"
+              >
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <line x1="3" y1="9" x2="21" y2="9" />
                 <line x1="9" y1="21" x2="9" y2="9" />
@@ -1008,7 +1258,7 @@ ${markedHtml}
                 </div>
               )}
               <iframe
-                srcDoc={previewHtml}
+                src={previewUrl || undefined}
                 style={{
                   width: "100%",
                   height: "100%",

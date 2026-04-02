@@ -50,6 +50,12 @@ const INITIAL_FORM: ExportFormData = {
   totalBudget: "",
   products: INITIAL_PRODUCTS,
   summary: INITIAL_SUMMARY,
+  companyName: "",
+  companyWebsite: "",
+  companyEmail: "",
+  companyPhone: "",
+  companyAddress: "",
+  companyCityStateZip: "",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -199,6 +205,66 @@ export const ExportModal = ({
               value={form.totalBudget}
               onChange={(e) => handleFieldChange("totalBudget", e.target.value)}
             />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ ...labelStyle, marginBottom: 8 }}>Company Info</label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ ...labelStyle, fontSize: 11 }}>Company Name</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. Apex Construction LLC"
+                value={form.companyName ?? ""}
+                onChange={(e) => handleFieldChange("companyName", e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, fontSize: 11 }}>Website</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. www.example.com"
+                value={form.companyWebsite ?? ""}
+                onChange={(e) => handleFieldChange("companyWebsite", e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, fontSize: 11 }}>Email</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. contact@example.com"
+                value={form.companyEmail ?? ""}
+                onChange={(e) => handleFieldChange("companyEmail", e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, fontSize: 11 }}>Phone</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. (616) 847-2200"
+                value={form.companyPhone ?? ""}
+                onChange={(e) => handleFieldChange("companyPhone", e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, fontSize: 11 }}>Address</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. 4820 Cascade Rd SE"
+                value={form.companyAddress ?? ""}
+                onChange={(e) => handleFieldChange("companyAddress", e.target.value)}
+              />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, fontSize: 11 }}>City / State / Zip</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. Grand Rapids, MI, 49503"
+                value={form.companyCityStateZip ?? ""}
+                onChange={(e) => handleFieldChange("companyCityStateZip", e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
