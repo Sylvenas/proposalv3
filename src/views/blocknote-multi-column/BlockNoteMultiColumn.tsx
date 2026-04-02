@@ -672,18 +672,193 @@ const INITIAL_EDITOR_CONTENT = [
   { type: "paragraph" as const },
 ] as const;
 
-// ── Placeholder preset (replace with real content later) ──────────────────────
+// ── ArcSite Sample Drawing preset ─────────────────────────────────────────────
+// Mirrors the structure of "ArcSite Sample Drawing_Blank Template.pdf":
+//   Page 1 – company header + intro blurb
+//   Page 2 – cover sheet (client info, evaluated on/by)
+//   Page 3 – detail plan drawing + product list
 const PRESET_SIMPLE_EXAMPLE = [
+  // ── Page 1: Company header ────────────────────────────────────────────────
   {
-    type: "heading" as const,
-    props: { level: 2 },
-    content: "Simple Example Preset",
+    type: "columnList" as const,
+    children: [
+      {
+        type: "column" as const,
+        props: { width: 0.6 },
+        children: [{ type: "companyLogo" as const }],
+      },
+      {
+        type: "column" as const,
+        props: { width: 1.0 },
+        children: [
+          {
+            type: "companyField" as const,
+            props: { fieldType: "name" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Name" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "website" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Website" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "email" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Email" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "phone" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Phone" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "address" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Address" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "cityStateZip" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company City/St/Zip" } }],
+          },
+        ],
+      },
+    ],
+  },
+  // Intro lines referencing customer placeholders
+  {
+    type: "paragraph" as const,
+    content: [
+      "The customer name is ",
+      { type: "placeholderInput" as const, props: { label: "Customer Name" } },
+      " and the project address is ",
+      { type: "placeholderInput" as const, props: { label: "Project Address" } },
+      ".",
+    ],
   },
   {
     type: "paragraph" as const,
-    content:
-      "This is a placeholder preset. Replace this content with real data.",
+    content: [
+      "Estimated  total budget: ",
+      { type: "placeholderInput" as const, props: { label: "$0.00" } },
+    ],
   },
+  {
+    type: "paragraph" as const,
+    content: 'Type "#" to insert a placeholder input field anywhere.',
+  },
+
+  // ── Page break → cover sheet ──────────────────────────────────────────────
+  { type: "pageBreak" as const },
+
+  // ── Page 2: Cover sheet ───────────────────────────────────────────────────
+  // Three-column layout to center the logo: empty | logo | empty
+  {
+    type: "columnList" as const,
+    children: [
+      {
+        type: "column" as const,
+        props: { width: 1.0 },
+        children: [{ type: "paragraph" as const }],
+      },
+      {
+        type: "column" as const,
+        props: { width: 0.8 },
+        children: [{ type: "companyLogo" as const }],
+      },
+      {
+        type: "column" as const,
+        props: { width: 1.0 },
+        children: [{ type: "paragraph" as const }],
+      },
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: "This evaluation was prepared for:",
+  },
+  {
+    type: "heading" as const,
+    props: { level: 1, textAlignment: "center" as const },
+    content: [{ type: "placeholderInput" as const, props: { label: "Customer Name" } }],
+  },
+  {
+    type: "heading" as const,
+    props: { level: 1, textAlignment: "center" as const },
+    content: [{ type: "placeholderInput" as const, props: { label: "Project Address" } }],
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: "Evaluated on:",
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: [{ type: "placeholderInput" as const, props: { label: "MM/DD/YYYY" } }],
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: "Evaluated by:",
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: [
+      { type: "text" as const, text: "Sales Name", styles: {} },
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: [
+      { type: "placeholderInput" as const, props: { label: "Company Phone" } },
+      { type: "text" as const, text: " | ", styles: {} },
+      { type: "placeholderInput" as const, props: { label: "Company Email" } },
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: [
+      { type: "text" as const, text: "", styles: { bold: true } },
+      { type: "placeholderInput" as const, props: { label: "Company Name" } },
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: [
+      { type: "text" as const, text: "", styles: { bold: true } },
+      { type: "placeholderInput" as const, props: { label: "Company Address" } },
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    props: { textAlignment: "center" as const },
+    content: [
+      { type: "text" as const, text: "", styles: { bold: true } },
+      { type: "placeholderInput" as const, props: { label: "Company City/St/Zip" } },
+    ],
+  },
+
+  // ── Page 3: Detail plan drawing ───────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 2 },
+    content: "Detail Plan",
+  },
+  { type: "drawing" as const },
+
+  // ── Product list ──────────────────────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 2 },
+    content: "Product List",
+  },
+  { type: "productList" as const },
   { type: "paragraph" as const },
 ] as const;
 
@@ -691,7 +866,7 @@ const PRESET_SIMPLE_EXAMPLE = [
 // Add new presets here. The first entry is selected by default.
 const CONTENT_PRESETS: { label: string; content: unknown }[] = [
   { label: "Default Template", content: INITIAL_EDITOR_CONTENT },
-  { label: "Simple Example", content: PRESET_SIMPLE_EXAMPLE },
+  { label: "ArcSite Proposal Template", content: PRESET_SIMPLE_EXAMPLE },
 ];
 
 export default function BlockNoteMultiColumn() {

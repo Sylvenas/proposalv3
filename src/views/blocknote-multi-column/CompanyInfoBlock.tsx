@@ -6,42 +6,55 @@ import { createReactBlockSpec } from "@blocknote/react";
 export const createCompanyLogo = createReactBlockSpec(
   {
     type: "companyLogo" as const,
-    propSchema: {},
+    propSchema: {
+      centered: { default: false as boolean },
+    },
     content: "none",
   },
   {
-    render: () => (
-      <div
-        contentEditable={false}
-        style={{
-          width: 220,
-          height: 140,
-          backgroundColor: "#f0f0f0",
-          border: "1px solid #e0e0e0",
-          borderRadius: 4,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-      >
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <path
-            d="M8 38 L24 10 L40 38"
-            stroke="#c0c0c0"
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-          <line x1="13" y1="30" x2="35" y2="30" stroke="#c0c0c0" strokeWidth="3" strokeLinecap="round" />
-        </svg>
-        <span style={{ fontSize: 12, color: "#b0b0b0", letterSpacing: 0.5 }}>
-          Company Logo
-        </span>
-      </div>
-    ),
+    render: ({ block }) => {
+      const logo = (
+        <div
+          contentEditable={false}
+          style={{
+            width: 220,
+            height: 140,
+            backgroundColor: "#f0f0f0",
+            border: "1px solid #e0e0e0",
+            borderRadius: 4,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <path
+              d="M8 38 L24 10 L40 38"
+              stroke="#c0c0c0"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <line x1="13" y1="30" x2="35" y2="30" stroke="#c0c0c0" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+          <span style={{ fontSize: 12, color: "#b0b0b0", letterSpacing: 0.5 }}>
+            Company Logo
+          </span>
+        </div>
+      );
+
+      if (block.props.centered) {
+        return (
+          <div contentEditable={false} style={{ display: "flex", justifyContent: "center" }}>
+            {logo}
+          </div>
+        );
+      }
+      return logo;
+    },
   },
 );
 
