@@ -216,6 +216,56 @@ function buildProductListHtml(products: { name: string; quantity: string; amount
   );
 }
 
+// ── Preview-only: inline conditionals from the live ProseMirror DOM ──────────
+// blocksToHTMLLossy puts the editable text in [data-editable]; the editor DOM
+// renders it via contentRef (no data-editable attr). We extract it by cloning
+// the element and stripping all contenteditable=false children (gear, IF badge).
+function processInlineConditionalsFromEditorDom(html: string, formData: ExportFormData): string {
+  if (typeof document === "undefined") return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc.querySelectorAll<HTMLElement>('[data-inline-content-type="conditionalInline"]').forEach((el) => {
+    const field    = el.dataset.conditionField    ?? "customerName";
+    const operator = el.dataset.conditionOperator ?? "eq";
+    const value    = el.dataset.conditionValue    ?? "";
+
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('[contenteditable="false"]').forEach(n => n.remove());
+    const text = clone.textContent ?? "";
+
+    if (evaluateCondition(getFieldValue(formData, field), operator, value)) {
+      el.replaceWith(document.createTextNode(text));
+    } else {
+      el.remove();
+    }
+  });
+
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
+// ── Preview-only: conditional sections from the live ProseMirror DOM ─────────
+// In the editor DOM, conditional children are properly nested under .bn-block-outer.
+// Removing that ancestor removes both the header and all child blocks atomically.
+function processConditionalSectionsFromEditorDom(html: string, formData: ExportFormData): string {
+  if (typeof document === "undefined") return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc.querySelectorAll<HTMLElement>(".conditional-section-block").forEach((el) => {
+    const field    = el.dataset.conditionField    ?? "";
+    const operator = el.dataset.conditionOperator ?? "eq";
+    const compare  = el.dataset.conditionValue    ?? "";
+    if (!compare.trim()) return;
+    if (!evaluateCondition(getFieldValue(formData, field), operator, compare)) {
+      el.closest(".bn-block-outer")?.remove();
+    }
+    // condition met → .conditional-section-header already hidden by CSS
+  });
+
+  return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+}
+
 function replaceProductListBlocks(html: string, formData: ExportFormData): string {
   if (typeof document === "undefined") return html;
   if (!formData.products?.length) return html;
@@ -313,7 +363,7 @@ const PREVIEW_EXTRA_STYLES = `
   h3 { font-size: 1.3em; }
   .preview-page {
     max-width: 750px;
-    margin: 0 auto 20px;
+    margin: 16px auto;
     padding: 0 40px;
     background: white;
     box-shadow: 0 2px 12px rgba(0,0,0,0.10);
@@ -744,29 +794,52 @@ ${markedHtml}
     [editor],
   );
 
-  // Fetch preview from server (data replacement happens server-side)
+  // Preview uses the live ProseMirror DOM so all BN class names are preserved
+  // and blocknoteCoreCSS applies exactly as in the editor — no manual CSS patches needed.
+  // PDF export continues to use buildFullHtml (blocksToHTMLLossy → WeasyPrint).
+  const buildPreviewHtml = useCallback((currentData: ExportFormData): string => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tiptap = (editor as any)._tiptapEditor;
+    const innerHtml = (tiptap.view.dom as HTMLElement).innerHTML;
+
+    let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>${PDF_STYLES}</style>
+<style>
+  .bn-editor { padding-inline: 0 !important; outline: none !important; }
+</style>
+</head>
+<body>
+<div class="bn-root"><div class="bn-default-styles">${innerHtml}</div></div>
+</body>
+</html>`;
+
+    html = processInlineConditionalsFromEditorDom(html, currentData);
+    html = replacePlaceholderInputs(html, currentData);
+    html = processConditionalSectionsFromEditorDom(html, currentData);
+    html = replaceProductListBlocks(html, currentData);
+    html = html.replace("</head>", `<style>${PREVIEW_EXTRA_STYLES}</style></head>`);
+    html = html.replace("</body>", `${PREVIEW_PAGE_SPLIT_SCRIPT}</body>`);
+    return html;
+  }, [editor]);
+
   const previewDataRef = useRef(previewData);
   previewDataRef.current = previewData;
 
-  const updatePreview = useCallback(async () => {
+  const updatePreview = useCallback(() => {
     const currentData = previewDataRef.current;
     if (!currentData) return;
     setIsPreviewLoading(true);
     try {
-      const fullHtml = await buildFullHtml();
-      let processedHtml = processInlineConditionals(fullHtml, currentData);
-      processedHtml = replacePlaceholderInputs(processedHtml, currentData);
-      processedHtml = processConditionalSectionBlocks(processedHtml, currentData);
-      processedHtml = replaceProductListBlocks(processedHtml, currentData);
-      let html = processedHtml.replace("</head>", `<style>${PREVIEW_EXTRA_STYLES}</style></head>`);
-      html = html.replace("</body>", `${PREVIEW_PAGE_SPLIT_SCRIPT}</body>`);
-      setPreviewHtml(html);
+      setPreviewHtml(buildPreviewHtml(currentData));
     } catch (error) {
       console.error("Preview update failed:", error);
     } finally {
       setIsPreviewLoading(false);
     }
-  }, [buildFullHtml]);
+  }, [buildPreviewHtml]);
 
   // Debounced preview: re-run when editor content or preview data changes
   useEffect(() => {
