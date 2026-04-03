@@ -116,3 +116,8 @@
   color: #1a1a1a;
   padding-top: 2px;
 }
+
+/* Fix: prevent multi-column container from clipping the blue selection outline */
+.bn-block-column {
+  overflow-x: visible;
+}
