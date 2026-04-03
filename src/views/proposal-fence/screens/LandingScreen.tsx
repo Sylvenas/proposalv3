@@ -185,7 +185,7 @@ export function LandingScreen({
       <img
         src={FENCE_NAV_LOGO}
         alt="Grand Rapids Fence"
-        style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+        style={{ width: "auto", height: sv(100), objectFit: "contain" }}
       />
       <button
         onClick={onHome}
@@ -242,7 +242,7 @@ export function LandingScreen({
             <img
               src={FENCE_HERO_LOGO}
               alt="Grand Rapids Fence"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           </div>
 
@@ -450,7 +450,7 @@ export function LandingScreen({
                 style={{
                   height: sv(40),
                   padding: `0 ${sv(16)}`,
-                  backgroundColor: "rgb(212, 26, 50)",
+                  backgroundColor: "#F5A020",
                   color: "white",
                   border: "none",
                   borderRadius: sv(4),

@@ -707,7 +707,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           <img
                             src={EMAIL_CONTENT_LOGO}
                             alt="Grand Rapids Fence"
-                            className="absolute inset-0 block size-full object-cover"
+                            className="absolute inset-0 block size-full object-contain"
                           />
                         </div>
                         {/* Hi */}

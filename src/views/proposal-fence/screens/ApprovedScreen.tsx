@@ -80,8 +80,8 @@ export function ApprovedScreen({
         <div style={{ width: sv(1440), margin: "0 auto" }}>
           {/* Row 1: nav */}
           <nav
-            className="flex items-start justify-between"
-            style={{ height: sv(54), padding: `${sv(31)} ${sv(217)} 0` }}
+            className="flex items-center justify-between"
+            style={{ padding: `${sv(14)} ${sv(217)}` }}
           >
             <button
               onClick={onHome}

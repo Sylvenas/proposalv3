@@ -85,8 +85,7 @@ export const OPTION_CARD_IMAGE_1 =
   "/assets/figma-local/b3a2fca2-f15b-4fb4-9709-eb448f7e7d19-0fd1b446fe.png";
 export const OPTION_CARD_IMAGE_2 =
   "/assets/figma-local/65787a1a-2075-401b-891f-18a2e00f57eb-dfac981e26.png";
-export const OPTION_LOGO_IMAGE =
-  "/assets/figma-local/2d66bc15-bb7b-46b6-9877-769f911daab7-f7ce0f3462.png";
+export const OPTION_LOGO_IMAGE = "/assets/grand-rapids-fence-logo.png";
 export const OPTION_COMPARE_ICON =
   "/assets/figma-local/8c28d037-63ce-4e99-8acc-b89fdcb25640-2a5cf4bf8d.svg";
 export const OPTION_STICKY_CHEVRON =
@@ -99,8 +98,7 @@ export const OPTION_USER_ICON =
   "/assets/figma-local/be7b996d-c6ef-489c-8ceb-6741da1b14ee-440bae599f.svg";
 export const OPTION_INFO_ICON =
   "/assets/figma-local/028a1418-0005-4ead-b04c-f9e8becd5138-7f07ab0078.svg";
-export const OPTION_CHAIN_PLACEHOLDER =
-  "/assets/figma-local/cdd35f48-c738-4aa0-9be8-564fdab0b479-c26c079d24.png";
+export const OPTION_CHAIN_PLACEHOLDER = "/assets/grand-rapids-fence-logo.png";
 export const OPTION_GATE_IMAGE_1 =
   "/assets/figma-local/79ed251c-3b2d-4fd9-82a7-345238d8ddc3-63fef2806a.png";
 export const OPTION_GATE_IMAGE_2 =
@@ -141,10 +139,8 @@ export const CONTRACT_PAGES = [
   "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_3 1.png",
   "/pdf2/Madison Fence - Rozier - Option 2 - Approved_页面_4 1.png",
 ];
-export const EMAIL_CONTENT_LOGO =
-  "https://www.figma.com/api/mcp/asset/e182eb12-f01c-4deb-a581-866053874a4c";
-export const PRODUCT_DETAIL_EMPTY_LOGO =
-  "https://www.figma.com/api/mcp/asset/851b002b-204b-43ec-9e80-70ecd0b77d17";
+export const EMAIL_CONTENT_LOGO = "/assets/grand-rapids-fence-logo.png";
+export const PRODUCT_DETAIL_EMPTY_LOGO = "/assets/grand-rapids-fence-logo.png";
 
 export function isPlaceholderProductImage(src?: string | null) {
   return Boolean(src && PLACEHOLDER_PRODUCT_IMAGES.has(src));

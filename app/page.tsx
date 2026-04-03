@@ -15,7 +15,7 @@ const pages = [
   },
   {
     href: '/proposal-fence',
-    title: 'Proposal Fence',
+    title: 'Proposals V3 - Grand Rapids Fence',
     description:
       'A full copy of Proposal V3 for independent iteration on the fence proposal flow.',
   },

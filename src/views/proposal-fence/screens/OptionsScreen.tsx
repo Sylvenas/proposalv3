@@ -914,7 +914,7 @@ export function OptionsScreen({
         >
           <div
             className="flex items-center justify-between"
-            style={{ width: sv(991), height: sv(30) }}
+            style={{ width: sv(991), height: sv(100) }}
           >
             <button
               onClick={onHome}
@@ -930,7 +930,7 @@ export function OptionsScreen({
             <img
               src={OPTION_LOGO_IMAGE}
               alt="Grand Rapids Fence"
-              style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
+              style={{ width: "auto", height: sv(100), objectFit: "contain" }}
             />
             <button
               className="flex items-center justify-center"

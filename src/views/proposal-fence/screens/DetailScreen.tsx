@@ -81,7 +81,7 @@ export function DetailScreen({
           {/* Nav Row 1: home | logo | user */}
           <nav
             className="flex items-center justify-between"
-            style={{ padding: `${sv(31)} ${sv(217)} 0` }}
+            style={{ padding: `${sv(14)} ${sv(217)}` }}
           >
             <button
               onClick={onHome}
