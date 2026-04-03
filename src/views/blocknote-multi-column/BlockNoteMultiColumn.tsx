@@ -862,11 +862,367 @@ const PRESET_SIMPLE_EXAMPLE = [
   { type: "paragraph" as const },
 ] as const;
 
+// ── Olshan Foundation Repair Agreement preset ─────────────────────────────────
+// Faithful reproduction of "Olshan - 38 Harmony Hollow Ct_Modified copy.pdf"
+// using BlockNote table blocks for all tabular content.
+const PRESET_OLSHAN_AGREEMENT = [
+  // ── Company header ────────────────────────────────────────────────────────
+  {
+    type: "columnList" as const,
+    children: [
+      {
+        type: "column" as const,
+        props: { width: 0.6 },
+        children: [{ type: "companyLogo" as const }],
+      },
+      {
+        type: "column" as const,
+        props: { width: 1.0 },
+        children: [
+          {
+            type: "companyField" as const,
+            props: { fieldType: "address" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Address" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "cityStateZip" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company City/St/Zip" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "phone" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Phone" } }],
+          },
+          {
+            type: "companyField" as const,
+            props: { fieldType: "email" },
+            content: [{ type: "placeholderInput" as const, props: { label: "Company Email" } }],
+          },
+        ],
+      },
+    ],
+  },
+
+  // ── Title ─────────────────────────────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 2, textAlignment: "center" as const },
+    content: "Agreement / Contract",
+  },
+
+  // ── Contract intro ────────────────────────────────────────────────────────
+  {
+    type: "paragraph" as const,
+    content: [
+      { type: "placeholderInput" as const, props: { label: "Company Name" } },
+      { type: "text" as const, text: ", hereinafter called CONTRACTOR, enters into this agreement on this ", styles: {} },
+      { type: "placeholderInput" as const, props: { label: "MM/DD/YYYY" } },
+      { type: "text" as const, text: ", with:", styles: {} },
+    ],
+  },
+  {
+    type: "heading" as const,
+    props: { level: 2, textAlignment: "center" as const },
+    content: [{ type: "placeholderInput" as const, props: { label: "Customer Name" } }],
+  },
+  {
+    type: "paragraph" as const,
+    content: ", hereinafter called OWNER to provide labor, equipment, and materials for the work described herein upon the structure located at:",
+  },
+  {
+    type: "heading" as const,
+    props: { level: 2, textAlignment: "center" as const },
+    content: [{ type: "placeholderInput" as const, props: { label: "Project Address" } }],
+  },
+  {
+    type: "paragraph" as const,
+    content: [
+      { type: "text" as const, text: "Owner's Contact Number: ", styles: {} },
+      { type: "placeholderInput" as const, props: { label: "Company Phone" } },
+      { type: "text" as const, text: "     Alternate Number: ", styles: {} },
+      { type: "placeholderInput" as const, props: { label: "Company Email" } },
+    ],
+  },
+
+  // ── Foundation Underpinning ───────────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Foundation Underpinning (Scope of Work)",
+  },
+  // 4-column table: [Repair Plan Service | Repair Warranty | Modified Service | Modified Warranty]
+  {
+    type: "table" as const,
+    content: {
+      type: "tableContent" as const,
+      rows: [
+        {
+          cells: [
+            [{ type: "text" as const, text: "REPAIR PLAN: at Total Cost of $10,100.00", styles: { bold: true } }],
+            [{ type: "text" as const, text: "Warranty", styles: { bold: true } }],
+            [{ type: "text" as const, text: "MODIFIED REPAIR PLAN: at Total Cost of $5,500.00", styles: { bold: true } }],
+            [{ type: "text" as const, text: "Warranty", styles: { bold: true } }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "Service or Product", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+            [{ type: "text" as const, text: "Service or Product", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "Hybrid Piling  (19-Exterior and 0-Interior)", styles: {} }],
+            [{ type: "text" as const, text: "Lifetime Service", styles: {} }],
+            [{ type: "text" as const, text: "Hybrid Piling  (10-Exterior and 0-Interior)", styles: {} }],
+            [{ type: "text" as const, text: "Lifetime Service", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "2 Exterior Breakouts  2 Concrete Patches", styles: {} }],
+            [{ type: "text" as const, text: "1 Year Limited", styles: {} }],
+            [{ type: "text" as const, text: "", styles: {} }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "REPAIR PLAN SPECIAL PROVISIONS:", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+            [{ type: "text" as const, text: "MODIFICATIONS TO REPAIR PLAN SPECIAL PROVISIONS:", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "<> <> <>", styles: {} }],
+            [{ type: "text" as const, text: "", styles: {} }],
+            [{ type: "text" as const, text: "<> <> <>  Install Exterior Pilings #10-19.", styles: {} }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+      ],
+    },
+  },
+  {
+    type: "paragraph" as const,
+    content: "Note: Possible Additional Charges (if needed, during initial job):  Tunnel per ft $225 ;  Cut Builder Piers $350 each;  Remove Previous Work / Concrete $125 per Hour;  Steel Support / Angle Iron $40 per piling;  Generator Rental $75 per day",
+  },
+  {
+    type: "paragraph" as const,
+    content: [
+      { type: "text" as const, text: "Owner has selected the MODIFIED REPAIR PLAN with a TOTAL COST to the OWNER of:  ", styles: {} },
+      { type: "text" as const, text: "$ 5,500.00", styles: { bold: true } },
+    ],
+  },
+
+  // ── Plumbing Repair ───────────────────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Plumbing Repair (Scope of Work)",
+  },
+  {
+    type: "table" as const,
+    content: {
+      type: "tableContent" as const,
+      rows: [
+        {
+          cells: [
+            [{ type: "text" as const, text: "REPAIR PLAN: at Total Cost of $250.00", styles: { bold: true } }],
+            [{ type: "text" as const, text: "Warranty", styles: { bold: true } }],
+            [{ type: "text" as const, text: "MODIFIED REPAIR PLAN: N/A", styles: { bold: true } }],
+            [{ type: "text" as const, text: "Warranty", styles: { bold: true } }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "Service or Product", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+            [{ type: "text" as const, text: "Service or Product", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "1 (EA) - Post-Leak Detection (Waste Water)", styles: {} }],
+            [{ type: "text" as const, text: "No Warranty", styles: {} }],
+            [{ type: "text" as const, text: "N/A", styles: {} }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "SPECIAL PROVISIONS:", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+            [{ type: "text" as const, text: "MODIFICATIONS TO SPECIAL PROVISIONS:", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "N/A", styles: {} }],
+            [{ type: "text" as const, text: "", styles: {} }],
+            [{ type: "text" as const, text: "N/A", styles: {} }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+      ],
+    },
+  },
+  {
+    type: "paragraph" as const,
+    content: "Note: Possible Additional Charges (if needed, during initial work) >>  Chipping $125 per Hour     Generator Rental $75 per Day     Cleanout Installation $450 Ea.",
+  },
+  {
+    type: "paragraph" as const,
+    content: "Owner has selected the MODIFIED Plumbing Repair (Scope of Work) with a TOTAL COST to the OWNER of:  $ -",
+  },
+
+  // ── Other Special Provisions ──────────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Other Special Provisions",
+  },
+  {
+    type: "table" as const,
+    content: {
+      type: "tableContent" as const,
+      rows: [
+        {
+          cells: [
+            [{ type: "text" as const, text: "Other Cost Adjustments - brief description>>", styles: {} }],
+            [{ type: "text" as const, text: "5% Discount valid through 02/17/2017", styles: {} }],
+            [{ type: "text" as const, text: "$ (275.00)", styles: { bold: true } }],
+          ],
+        },
+      ],
+    },
+  },
+
+  // ── Totals ────────────────────────────────────────────────────────────────
+  {
+    type: "table" as const,
+    content: {
+      type: "tableContent" as const,
+      rows: [
+        {
+          cells: [
+            [{ type: "text" as const, text: "TOTAL AGREEMENT COST >>", styles: { bold: true } }],
+            [{ type: "text" as const, text: "$ 5,225.00", styles: { bold: true } }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "Deposit  (Note: deposits may be refundable up to 2 weeks prior to work beginning)", styles: {} }],
+            [{ type: "text" as const, text: "$ -", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "Net Amount Due from Customer per payment terms below", styles: { bold: true } }],
+            [{ type: "text" as const, text: "$ 5,225.00", styles: { bold: true } }],
+          ],
+        },
+      ],
+    },
+  },
+
+  // ── Payment Terms ─────────────────────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Payment Terms:",
+  },
+  {
+    type: "paragraph" as const,
+    content: "Payment for services to be paid  (1/2) $2,612.50  Due before work starts     (1/2) $2,612.50  Due upon completion",
+  },
+  {
+    type: "paragraph" as const,
+    content: "Available Cash Discount: Pay entire amount by CHECK and save $104.50     Final payment reduced from $2,612.50 to $2,508.00",
+  },
+  {
+    type: "paragraph" as const,
+    content: [
+      { type: "text" as const, text: "<<<Owner Initial acknowledging receipt of a copy of Applicable Warranties & Warranties Terms & Provisions", styles: { italic: true } },
+    ],
+  },
+
+  // ── Legal text ────────────────────────────────────────────────────────────
+  {
+    type: "paragraph" as const,
+    content: "This agreement is subject to Chapter 27 of the Texas Property Code. The provisions of that chapter may affect your right to recover damages from the performance of this contract. If you have a complaint concerning a construction defect arising from the performance of this contract and that defect has not been corrected through existing warranty service, you must provide notice regarding the defect to the contractor by certified mail, not later than the 60th day before the date you file suit in a court of law. If requested by Contractor, you must provide an opportunity to inspect & cure the defect pursuant to Section 27.004, Texas Property Code.",
+  },
+  {
+    type: "paragraph" as const,
+    content: [
+      { type: "text" as const, text: "LIMITED WARRANTY: ", styles: { bold: true } },
+      { type: "text" as const, text: "UNLESS A LONGER WARRANTY PERIOD IS SPECIFIED, CONTRACTOR WARRANTS THE WORKMANSHIP OF THE INSTALLATION FOR ONE YEAR FROM ITS COMPLETION DATE. DURING THE WARRANTY PERIOD, CONTRACTOR WILL REPAIR AT NO CHARGE TO YOU, ANY DEFECTS DUE TO FAULTY WORKMANSHIP. CONTRACTOR'S WARRANTY EXCLUDES INDIRECT OR CONSEQUENTIAL DAMAGES, DAMAGE CAUSED BY ABUSE, MISUSE, NEGLECT, WORK PERFORMED BY OTHERS, OR IMPROPER CARE/CLEANING. YOU MAY HAVE OTHER RIGHTS UNDER APPLICABLE LAW. MECHANICAL AND ELECTRICAL PARTS ARE COVERED BY AND LIMITED TO MANUFACTURER'S WARRANTY AND ARE NOT WARRANTED BY CONTRACTOR.", styles: {} },
+    ],
+  },
+  {
+    type: "paragraph" as const,
+    content: "This signed AGREEMENT, the attached TERMS and CONDITIONS, Warranties provided and drawings (Addendum A) collectively shall represent the Contract/Agreement for repairs with the OWNER. To the extent there is a conflict between documents, the AGREEMENT shall control.",
+  },
+  {
+    type: "paragraph" as const,
+    content: "This Agreement must be signed, returned to the office and signed by Contractor within 30 days to be binding upon both parties. I have read and initialed confirming my understanding of the terms of this Agreement. By signing below, I agree with and will abide by the terms and conditions set forth in this Agreement, and authorize Contractor to perform the work specified.",
+  },
+
+  // ── Signatures ────────────────────────────────────────────────────────────
+  {
+    type: "heading" as const,
+    props: { level: 3 },
+    content: "Signatures:",
+  },
+  {
+    type: "table" as const,
+    content: {
+      type: "tableContent" as const,
+      rows: [
+        {
+          cells: [
+            [{ type: "text" as const, text: "Owner(s):", styles: { bold: true } }],
+            [{ type: "text" as const, text: "", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "Date: ___________________", styles: {} }],
+            [{ type: "text" as const, text: "Date: ___________________", styles: {} }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "Prepared By: DeShazer Shawn", styles: {} }],
+            [{ type: "placeholderInput" as const, props: { label: "Customer Name" } }],
+          ],
+        },
+        {
+          cells: [
+            [{ type: "text" as const, text: "General Manager (Contractor)", styles: {} }],
+            [{ type: "text" as const, text: "Date: ___________________", styles: {} }],
+          ],
+        },
+      ],
+    },
+  },
+
+  { type: "paragraph" as const },
+] as const;
+
 // ── Preset registry ───────────────────────────────────────────────────────────
 // Add new presets here. The first entry is selected by default.
 const CONTENT_PRESETS: { label: string; content: unknown }[] = [
   { label: "Default Template", content: INITIAL_EDITOR_CONTENT },
   { label: "ArcSite Proposal Template", content: PRESET_SIMPLE_EXAMPLE },
+  { label: "Olshan Foundation Repair Agreement", content: PRESET_OLSHAN_AGREEMENT },
 ];
 
 export default function BlockNoteMultiColumn() {
