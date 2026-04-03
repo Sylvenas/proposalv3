@@ -184,7 +184,7 @@ export function LandingScreen({
       </button>
       <img
         src={FENCE_NAV_LOGO}
-        alt="Madison Fence Company"
+        alt="Grand Rapids Fence"
         style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
       />
       <button
@@ -241,7 +241,7 @@ export function LandingScreen({
           >
             <img
               src={FENCE_HERO_LOGO}
-              alt="Madison Fence Company"
+              alt="Grand Rapids Fence"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           </div>
@@ -336,7 +336,7 @@ export function LandingScreen({
               style={{
                 width: hsv(168),
                 height: hsv(40),
-                backgroundColor: "#d41a32",
+                backgroundColor: "#F5A020",
                 color: "#ffffff",
                 fontSize: hsv(14),
                 fontWeight: 600,

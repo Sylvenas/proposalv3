@@ -65,10 +65,8 @@ export const FENCE_REPORT_IMAGE_11 =
   "/assets/figma-local/604881f7-32e5-4ecf-81c1-440cd804eeb8-8518666e45.png";
 export const FENCE_REPORT_IMAGE_12 =
   "/assets/figma-local/b35dc5d5-4cc7-4350-93a8-ccc61a6d7b05-9961aa633f.png";
-export const FENCE_HERO_LOGO =
-  "/assets/figma-local/b02f8bc3-57dc-4213-9641-c04f056d81a2-4dded8ea44.jpg";
-export const FENCE_NAV_LOGO =
-  "/assets/figma-local/670f5677-273c-4b14-b4f6-461a424e2a1d-01b30d815b.png";
+export const FENCE_HERO_LOGO = "/assets/grand-rapids-fence-logo.png";
+export const FENCE_NAV_LOGO = "/assets/grand-rapids-fence-logo.png";
 export const FENCE_ZOOM_IN_ICON =
   "/assets/figma-local/e3c306b7-b20f-4b57-bf85-59e38b1f6932-e2b6136576.svg";
 export const FENCE_ZOOM_OUT_ICON =

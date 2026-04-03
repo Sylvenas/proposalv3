@@ -220,7 +220,7 @@ export function SignModal({
             scope, pricing, and terms outlined in this agreement.
           </p>
           <button
-            className="w-full bg-[#d41a32] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="w-full bg-[#F5A020] text-white font-semibold flex items-center justify-center hover:opacity-80 transition-opacity"
             style={{ height: sv(40), fontSize: sv(14), borderRadius: sv(2) }}
             onClick={() => {
               onClose();

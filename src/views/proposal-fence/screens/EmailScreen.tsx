@@ -658,7 +658,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                       </p>
                     </div>
                     <div className="flex flex-col gap-[7px] text-[#424242] whitespace-nowrap">
-                      <p className="text-[16px] leading-[16px]">{`Madison Fence Company <service@madisonfence.com>`}</p>
+                      <p className="text-[16px] leading-[16px]">{`Grand Rapids Fence <service@grandrapidsfence.com>`}</p>
                       <div className="flex gap-[6px] items-center text-[14px]">
                         <p>To:</p>
                         <p>You</p>
@@ -706,7 +706,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                         >
                           <img
                             src={EMAIL_CONTENT_LOGO}
-                            alt="Madison Fence Company"
+                            alt="Grand Rapids Fence"
                             className="absolute inset-0 block size-full object-cover"
                           />
                         </div>
@@ -723,8 +723,8 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           style={{ fontWeight: 300 }}
                         >
                           <p className="mb-[6px]">
-                            Your fence project proposal from Madison Fence
-                            Company is ready.
+                            Your fence project proposal from Grand Rapids Fence
+                            is ready.
                           </p>
                           <p>
                             You can now review your project online — compare
@@ -769,7 +769,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                         </p>
                         {/* CTA */}
                         <div
-                          className="bg-[#d41a32] flex items-center justify-center px-[16px] py-[6px] rounded-[2px] flex-shrink-0"
+                          className="bg-[#F5A020] flex items-center justify-center px-[16px] py-[6px] rounded-[2px] flex-shrink-0"
                           style={{ height: 40 }}
                         >
                           <button
@@ -798,7 +798,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           style={{ fontWeight: 300 }}
                         >
                           <p className="mb-[6px]">Thank you,</p>
-                          <p>Madison Fence Company</p>
+                          <p>Grand Rapids Fence</p>
                         </div>
                       </div>
                       {/* Email footer */}
@@ -810,7 +810,7 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           className="leading-[12px] w-full"
                           style={{ fontWeight: 400 }}
                         >
-                          Madison Fence Company
+                          Grand Rapids Fence
                           <br />
                           1268 Wilshire Boulevard, Suite 410, Santa Monica, CA
                           90403
@@ -836,8 +836,8 @@ export function EmailScreen({ onContinue }: { onContinue: () => void }) {
                           className="leading-[12px] w-full"
                           style={{ letterSpacing: "-0.16px" }}
                         >
-                          You are receiving this email because Madison Fence
-                          Company has invited you to review your project online.
+                          You are receiving this email because Grand Rapids Fence
+                          has invited you to review your project online.
                           Your digital proposal may include configurable package
                           options, upgrades, add-ons, and estimated pricing.
                           Final contract terms are defined by the signed

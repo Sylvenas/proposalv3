@@ -633,7 +633,7 @@ export function OptionsScreen({
                 flex: "1 0 0",
                 height: sv(40),
                 padding: `${sv(6)} ${sv(16)}`,
-                backgroundColor: "#d41a32",
+                backgroundColor: "#F5A020",
                 color: "white",
                 fontSize: sv(14),
                 fontWeight: 600,
@@ -929,7 +929,7 @@ export function OptionsScreen({
             </button>
             <img
               src={OPTION_LOGO_IMAGE}
-              alt="Madison Fence Company"
+              alt="Grand Rapids Fence"
               style={{ width: sv(109), height: sv(30), objectFit: "cover" }}
             />
             <button

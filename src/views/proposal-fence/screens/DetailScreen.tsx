@@ -340,7 +340,7 @@ export function DetailScreen({
             </div>
             <div className="flex flex-col" style={{ gap: sv(8) }}>
               <p className="font-semibold text-[#262626]" style={{ fontSize: sv(16) }}>
-                Madison Fence Company
+                Grand Rapids Fence
               </p>
               <div className="flex items-center" style={{ gap: sv(16) }}>
                 <div className="flex items-center" style={{ gap: sv(4) }}>
@@ -351,18 +351,18 @@ export function DetailScreen({
                 </div>
                 <span className="text-[#262626]" style={{ fontSize: sv(14) }}>(882 reviews)</span>
                 <span className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: sv(14), fontWeight: 300 }}>
-                  https://www.gomadisonfence.com/
+                  https://www.grandrapidsfence.com/
                 </span>
               </div>
             </div>
             <div className="flex flex-col" style={{ gap: sv(24), fontWeight: 300, lineHeight: 1.5 }}>
               {[
                 {
-                  quote: `"I had such a great experience with Madison Fence Company! From start to finish, everything was handled so smoothly and professionally. Pei, the owner, is truly wonderful, knowledgeable, honest, and committed to making sure the job is done right. Junyu, who handles the scheduling, is equally fantastic, she's so organized, friendly, and always kept me updated, which made the whole process stress-free."`,
+                  quote: `"I had such a great experience with Grand Rapids Fence! From start to finish, everything was handled so smoothly and professionally. Pei, the owner, is truly wonderful, knowledgeable, honest, and committed to making sure the job is done right. Junyu, who handles the scheduling, is equally fantastic, she's so organized, friendly, and always kept me updated, which made the whole process stress-free."`,
                   author: "— Aileen, Grand Rapids Michigan",
                 },
                 {
-                  quote: `"First and foremost. I'd like to say this about Madison Fence Company. When I needed someone to come out and look at my fencing to get me a quote? Not only were they johnny on the spot with fast service the quote was extremely reasonable. Their workers were very courteous, professional and experienced. This company was and will always be my first choice for my home needs for fencing replacement and repairs. Thanks guys for being of great service."`,
+                  quote: `"First and foremost. I'd like to say this about Grand Rapids Fence. When I needed someone to come out and look at my fencing to get me a quote? Not only were they johnny on the spot with fast service the quote was extremely reasonable. Their workers were very courteous, professional and experienced. This company was and will always be my first choice for my home needs for fencing replacement and repairs. Thanks guys for being of great service."`,
                   author: "— Joe, Grand Rapids, Michigan",
                 },
                 {
@@ -479,7 +479,7 @@ export function DetailScreen({
                 height: sv(40),
                 fontSize: sv(14),
                 borderRadius: sv(4),
-                backgroundColor: "#d41a32",
+                backgroundColor: "#F5A020",
               }}
               onClick={() => setShowSignModal(true)}
             >

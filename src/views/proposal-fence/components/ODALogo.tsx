@@ -14,8 +14,8 @@ export function ODALogo({
 
   return (
     <Image
-      src="/assets/madison-fence-logo.png"
-      alt="Madison Fence Company"
+      src="/assets/grand-rapids-fence-logo.png"
+      alt="Grand Rapids Fence"
       width={width}
       height={height}
       priority={size !== "lg"}
