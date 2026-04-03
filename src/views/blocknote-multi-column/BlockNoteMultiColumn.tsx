@@ -449,6 +449,15 @@ const PDF_STYLES = `
 
   /* ── Page break ──────────────────────────────────────────────────────────── */
   [data-page-break="true"] { display: block; height: 0; overflow: hidden; visibility: hidden; break-after: page; page-break-after: always; }
+
+  /* ── WeasyPrint flex-height bug workaround ─────────────────────────────── */
+  /* WeasyPrint miscalculates the height of flex-row containers, leaving a
+     large blank gap after them. The pdf-server converts column-lists from
+     flex to CSS table layout with proportional widths (see
+     convert_flex_columns_to_table in server.py). These rules are a
+     safety net in case the server transform is skipped. */
+  .bn-block-column-list { table-layout: fixed; }
+  .bn-block-column { vertical-align: top; }
 `;
 
 // pagedjs reads @page { size: A4; margin: 20mm } from PDF_STYLES and auto-paginates.
@@ -1619,6 +1628,39 @@ ${markedHtml}
     [isExporting, buildFullHtml],
   );
 
+  // --- Export via Playwright ---
+  const [isExportingPw, setIsExportingPw] = useState(false);
+  const handleExportPlaywright = useCallback(async () => {
+    if (isExportingPw) return;
+    setIsExportingPw(true);
+    try {
+      const fullHtml = await buildFullHtml();
+      const data = previewDataRef.current;
+      let processedHtml = processInlineConditionals(fullHtml, data);
+      processedHtml = replacePlaceholderInputs(processedHtml, data);
+      const pdfServerUrl =
+        process.env.NEXT_PUBLIC_PDF_SERVER_URL ?? "http://localhost:5001";
+      const response = await fetch(`${pdfServerUrl}/api/html-to-pdf-playwright`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html: processedHtml, formData: data }),
+      });
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "blocknote-export-pw.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Playwright export failed:", error);
+      alert("Playwright export failed. Make sure the server is running on port 5001.");
+    } finally {
+      setIsExportingPw(false);
+    }
+  }, [isExportingPw, buildFullHtml]);
+
   return (
     <div
       style={{
@@ -1691,6 +1733,22 @@ ${markedHtml}
             }}
           >
             Export to PDF
+          </button>
+          <button
+            onClick={handleExportPlaywright}
+            disabled={isExportingPw}
+            style={{
+              padding: "8px 20px",
+              backgroundColor: isExportingPw ? "#999" : "#40c057",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: isExportingPw ? "not-allowed" : "pointer",
+            }}
+          >
+            {isExportingPw ? "Exporting..." : "Export PDF by Playwright"}
           </button>
         </div>
       </div>

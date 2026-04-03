@@ -135,6 +135,48 @@ def build_product_list_html(products, summary=None):
     )
 
 
+def convert_flex_columns_to_table(soup):
+    """Convert bn-block-column-list from flex to CSS table layout for WeasyPrint.
+
+    WeasyPrint miscalculates the height of flex-row containers, leaving a
+    large blank gap after them. CSS table layout renders identically and
+    does not have this bug. We read each column's data-width attribute to
+    preserve the original width ratios as percentage widths.
+    """
+    for col_list in soup.find_all(class_="bn-block-column-list"):
+        columns = col_list.find_all(class_="bn-block-column", recursive=False)
+        if not columns:
+            continue
+
+        # Read width ratios from data-width (defaults to 1)
+        widths = []
+        for col in columns:
+            try:
+                w = float(col.get("data-width", "1"))
+            except (ValueError, TypeError):
+                w = 1.0
+            widths.append(w)
+        total = sum(widths)
+
+        # Convert container to table
+        col_list["style"] = "display: table; width: 100%;"
+
+        # Convert each column to table-cell with proportional width
+        for i, (col, w) in enumerate(zip(columns, widths)):
+            pct = (w / total) * 100
+            padding_left = "0" if i == 0 else "20px"
+            padding_right = "0" if i == len(columns) - 1 else "20px"
+            col["style"] = (
+                f"display: table-cell; vertical-align: top;"
+                f" width: {pct:.1f}%;"
+                f" padding: 12px {padding_right} 12px {padding_left};"
+            )
+
+    count = len(soup.find_all(class_="bn-block-column-list"))
+    if count:
+        print(f"  [ok] Converted {count} column-list(s) to table layout")
+
+
 def replace_placeholders(html, form_data):
     soup = BeautifulSoup(html, "html.parser")
 
@@ -186,6 +228,9 @@ def replace_placeholders(html, form_data):
             new_tag = BeautifulSoup(new_html, "html.parser")
             block.replace_with(new_tag)
             print(f"  [ok] Replaced product list ({len(products)} items)")
+
+    print("[convert_flex_columns_to_table] Starting...")
+    convert_flex_columns_to_table(soup)
 
     return str(soup)
 
@@ -255,6 +300,55 @@ def html_to_pdf():
         )
     except Exception as e:
         print(f"ERROR: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/html-to-pdf-playwright", methods=["POST"])
+def html_to_pdf_playwright():
+    data = request.get_json()
+    if not data or "html" not in data:
+        return jsonify({"error": "Missing 'html' field in request body"}), 400
+
+    html_string = data["html"]
+    form_data = data.get("formData")
+    filename = data.get("filename", "blocknote-export-pw.pdf")
+
+    save_debug_html(html_string, "pw-1-raw")
+
+    if form_data:
+        print("[Playwright] replace_placeholders starting...")
+        html_string = replace_placeholders(html_string, form_data)
+        save_debug_html(html_string, "pw-2-replaced")
+
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+            page.set_content(html_string, wait_until="networkidle")
+            pdf_bytes = page.pdf(
+                format="A4",
+                margin={"top": "20mm", "right": "20mm", "bottom": "20mm", "left": "20mm"},
+                print_background=True,
+            )
+            browser.close()
+
+        save_path = os.path.join(OUTPUT_DIR, filename)
+        with open(save_path, "wb") as f:
+            f.write(pdf_bytes)
+        print(f"[Playwright] PDF saved to: {save_path}")
+
+        return send_file(
+            save_path,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=filename,
+        )
+    except ImportError:
+        return jsonify({"error": "playwright is not installed. Run: pip install playwright && playwright install chromium"}), 500
+    except Exception as e:
+        print(f"[Playwright] ERROR: {e}")
         return jsonify({"error": str(e)}), 500
 
 
