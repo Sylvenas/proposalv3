@@ -130,7 +130,7 @@ export function OptionsScreen({
       title: "OPTION 1 - CHAIN LINK FENCE",
       description:
         "Durable / Low Maintenance / Cost-Effective Perimeter Security",
-      duration: "2–3 Weeks Estimated Construction Time",
+      duration: "1–2 Days Estimated Time Under Construction",
       price: "$8,615.00 USD",
       contractTotal: "$8,615.00",
       monthly: "$404.13 / mo",
@@ -140,7 +140,7 @@ export function OptionsScreen({
       title: "OPTION 2 - VINYL TRADITIONS FENCE",
       description:
         "Enhanced Privacy / Clean Appearance / Minimal Maintenance",
-      duration: "4–6 Weeks Estimated Construction Time",
+      duration: "2–3 Days Estimated Time Under Construction",
       price: "$9,999.00 USD",
       contractTotal: "$9,999.00",
       monthly: "$469.06 / mo",
@@ -155,7 +155,7 @@ export function OptionsScreen({
         label: "Estimated Monthly Payment Starting at",
         value: optionSummaries[0].monthly,
       },
-      { label: "Estimated Construction Time", value: "2–3 Weeks" },
+      { label: "Estimated Time Under Construction", value: "1–2 Days" },
       { label: "Proposal Valid Until", value: "April 30, 2026" },
     ],
     [
@@ -164,7 +164,7 @@ export function OptionsScreen({
         label: "Estimated Monthly Payment Starting at",
         value: optionSummaries[1].monthly,
       },
-      { label: "Estimated Construction Time", value: "4–6 Weeks" },
+      { label: "Estimated Time Under Construction", value: "2–3 Days" },
       { label: "Proposal Valid Until", value: "April 30, 2026" },
     ],
   ];

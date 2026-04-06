@@ -177,10 +177,10 @@ const buildOption = (option: Omit<ODAOption, "summary" | "scopeGroups" | "detail
       ? "Enhanced Privacy / Clean Appearance / Minimal Maintenance"
       : option.subtitle;
   const duration = index === 0
-    ? "2–3 Weeks Estimated Construction Time"
+    ? "2–3 Weeks Estimated Time Under Construction"
     : index === 1
-      ? "4–6 Weeks Estimated Construction Time"
-      : `${option.deliveryDays} Days Estimated Construction Time`;
+      ? "4–6 Weeks Estimated Time Under Construction"
+      : `${option.deliveryDays} Days Estimated Time Under Construction`;
   const contractTotal = index === 0 ? "$8,615.00" : index === 1 ? "$9,999.00" : `$${option.priceFrom.toLocaleString()}.00`;
   const monthly = index === 0 ? "$404.13 / mo" : index === 1 ? "$469.06 / mo" : `$${option.monthlyPayment.toLocaleString()} / mo`;
   const scopeGroups = index === 1 ? fenceScopeGroups : [];
@@ -285,7 +285,7 @@ export const defaultProposalV3Data: ProposalV3Data = {
     selectButtonLabel: "Select",
     contractTotalLabel: "Contract Total",
     monthlyPaymentLabel: "Estimated Monthly Payment Starting at",
-    constructionTimeLabel: "Estimated Construction Time",
+    constructionTimeLabel: "Estimated Time Under Construction",
   },
   detailPage: {
     reviewsCompanyName: "Madison Fence Company",
