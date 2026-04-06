@@ -156,6 +156,7 @@ export function OptionsScreen({
         value: optionSummaries[0].monthly,
       },
       { label: "Estimated Construction Time", value: "2–3 Weeks" },
+      { label: "Proposal Valid Until", value: "April 30, 2026" },
     ],
     [
       { label: "Contract Total", value: optionSummaries[1].contractTotal },
@@ -164,6 +165,7 @@ export function OptionsScreen({
         value: optionSummaries[1].monthly,
       },
       { label: "Estimated Construction Time", value: "4–6 Weeks" },
+      { label: "Proposal Valid Until", value: "April 30, 2026" },
     ],
   ];
 
@@ -619,6 +621,16 @@ export function OptionsScreen({
               }}
             >
               {opt.price}
+            </p>
+            <p
+              style={{
+                fontSize: sv(13),
+                color: "#737373",
+                width: "100%",
+                lineHeight: "normal",
+              }}
+            >
+              Proposal Valid Until: April 30, 2026
             </p>
           </div>
           <div className="flex items-center justify-end w-full">

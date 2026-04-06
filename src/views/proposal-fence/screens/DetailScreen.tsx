@@ -436,6 +436,20 @@ export function DetailScreen({
                 $469.06 / mo
               </p>
             </div>
+            <div className="flex flex-col">
+              <p
+                className="text-[#737373] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(14) }}
+              >
+                Proposal Valid Until
+              </p>
+              <p
+                className="text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontSize: sv(20) }}
+              >
+                April 30, 2026
+              </p>
+            </div>
           </div>
 
           {/* Price breakdown */}

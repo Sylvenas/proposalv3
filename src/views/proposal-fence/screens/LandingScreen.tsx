@@ -355,13 +355,13 @@ export function LandingScreen({
           <p
             className="m-0 text-center whitespace-nowrap"
             style={{
-              fontSize: hsv(16),
+              fontSize: hsv(20),
               fontWeight: 300,
               lineHeight: "normal",
               flexShrink: 0,
             }}
           >
-            Valid Until: April 30, 2026
+            Proposal Valid Until: April 30, 2026
           </p>
         </div>
       </section>
