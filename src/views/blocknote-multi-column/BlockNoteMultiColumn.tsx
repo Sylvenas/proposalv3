@@ -394,11 +394,17 @@ const PDF_STYLES = `
   /* ── PDF page setup ──────────────────────────────────────────────────────── */
   @page {
     size: A4;
-    margin: 24mm 20mm 20mm;
+    margin: 24mm 20mm;
     @top-left {
       content: element(proposalHeader);
       vertical-align: bottom;
       padding-bottom: 4mm;
+      width: 170mm;
+    }
+    @bottom-left {
+      content: element(proposalFooter);
+      vertical-align: top;
+      padding-top: 4mm;
       width: 170mm;
     }
   }
@@ -442,6 +448,42 @@ const PDF_STYLES = `
     text-align: right;
     white-space: nowrap;
     vertical-align: bottom;
+  }
+
+  .proposal-page-footer {
+    position: running(proposalFooter);
+    width: 170mm;
+    max-width: 170mm;
+    box-sizing: border-box;
+    border-top: 1px solid #d9dde3;
+    padding-top: 3mm;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #6b7280;
+  }
+  .proposal-page-footer-inner {
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+  }
+  .proposal-page-footer-note {
+    display: table-cell;
+    width: 50%;
+    font-size: 9px;
+    line-height: 1.2;
+    white-space: nowrap;
+    vertical-align: top;
+  }
+  .proposal-page-footer-meta {
+    display: table-cell;
+    width: 50%;
+    font-size: 9px;
+    line-height: 1.2;
+    text-align: right;
+    white-space: nowrap;
+    vertical-align: top;
+  }
+  .proposal-page-footer-page-number::after {
+    content: "Page " counter(page) " of " counter(pages);
   }
 
   /* ── Typography (blocksToHTMLLossy outputs semantic tags) ────────────────── */
@@ -497,6 +539,14 @@ const PAGE_HEADER_HTML = `
   <div class="proposal-page-header-inner">
     <div class="proposal-page-header-brand">Apex Construction LLC</div>
     <div class="proposal-page-header-meta">Proposal | 742 Evergreen Terrace</div>
+  </div>
+</div>`;
+
+const PAGE_FOOTER_HTML = `
+<div class="proposal-page-footer">
+  <div class="proposal-page-footer-inner">
+    <div class="proposal-page-footer-note">Apex Construction LLC</div>
+    <div class="proposal-page-footer-meta"><span class="proposal-page-footer-page-number"></span></div>
   </div>
 </div>`;
 
@@ -1548,6 +1598,7 @@ export default function BlockNoteMultiColumn() {
 </head>
 <body>
 ${PAGE_HEADER_HTML}
+${PAGE_FOOTER_HTML}
 ${markedHtml}
 </body>
 </html>`;
@@ -1573,6 +1624,7 @@ ${markedHtml}
 </head>
 <body>
 ${PAGE_HEADER_HTML}
+${PAGE_FOOTER_HTML}
 <div class="bn-root"><div class="bn-default-styles"><div class="bn-editor">${innerHtml}</div></div></div>
 </body>
 </html>`;
