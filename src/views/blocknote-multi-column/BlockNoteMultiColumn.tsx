@@ -184,19 +184,11 @@ function replacePlaceholderInputs(
         ? (formData[fieldKey] as string) || "\u2014"
         : "\u2014";
 
-      // All formatting is stored as JSON in the stylesJson prop → data-styles-json attribute
-      const css = stylesToReactCSS(parseStyles(el.dataset.stylesJson ?? ""));
-
-      el.innerHTML = "";
-      const span = document.createElement("span");
-      if (css.fontWeight) span.style.fontWeight = String(css.fontWeight);
-      if (css.fontStyle) span.style.fontStyle = String(css.fontStyle);
-      if (css.textDecoration)
-        span.style.textDecoration = String(css.textDecoration);
-      if (css.fontFamily) span.style.fontFamily = String(css.fontFamily);
-      if (css.color) span.style.color = String(css.color);
-      span.textContent = value;
-      el.appendChild(span);
+      // Marks (bold, italic, color…) are stored natively by ProseMirror and
+      // rendered as wrapper elements outside the placeholder span — e.g.
+      // <strong><span data-inline-content-type="placeholderInput">…</span></strong>.
+      // Replacing the span with a plain text node preserves those wrappers.
+      el.replaceWith(document.createTextNode(value));
     });
 
   return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
@@ -380,13 +372,9 @@ import {
   COMPANY_INFO_INITIAL_BLOCKS,
 } from "./CompanyInfoBlock";
 import { createDrawing } from "./DrawingBlock";
-import {
-  PlaceholderInput,
-  placeholderColorSyncExtension,
-  parseStyles,
-  stylesToReactCSS,
-} from "./PlaceholderInput";
+import { PlaceholderInput } from "./PlaceholderInput";
 import { ConditionalInline } from "./ConditionalInlineContent";
+import { Mention, MENTION_USERS } from "./Mention";
 import { ExportModal, type ExportFormData } from "./ExportModal";
 import {
   ConditionalSectionModal,
@@ -532,6 +520,7 @@ const schema = withMultiColumn(
     inlineContentSpecs: {
       placeholderInput: PlaceholderInput,
       conditionalInline: ConditionalInline,
+      mention: Mention,
     },
   }),
 );
@@ -1237,7 +1226,7 @@ const CONTENT_PRESETS: { label: string; content: unknown }[] = [
 export default function BlockNoteMultiColumn() {
   const editor = useCreateBlockNote({
     schema,
-    extensions: [placeholderColorSyncExtension],
+    extensions: [],
     dropCursor: multiColumnDropCursor,
     dictionary: {
       ...locales.en,
@@ -1431,6 +1420,22 @@ export default function BlockNoteMultiColumn() {
             badge: "New",
           },
         ],
+        query,
+      );
+  }, [editor]);
+
+  const getMentionMenuItems = useMemo(() => {
+    return async (query: string) =>
+      filterSuggestionItems(
+        MENTION_USERS.map((user) => ({
+          title: user,
+          onItemClick: () => {
+            editor.insertInlineContent([
+              { type: "mention" as const, props: { user } },
+              " ",
+            ]);
+          },
+        })),
         query,
       );
   }, [editor]);
@@ -1785,6 +1790,10 @@ ${markedHtml}
               <SuggestionMenuController
                 triggerCharacter="#"
                 getItems={getPlaceholderMenuItems}
+              />
+              <SuggestionMenuController
+                triggerCharacter="@"
+                getItems={getMentionMenuItems}
               />
             </BlockNoteView>
           </div>
