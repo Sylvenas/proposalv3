@@ -568,6 +568,12 @@ const PREVIEW_EXTRA_STYLES = `
     box-shadow: 0 2px 12px rgba(0,0,0,0.10) !important;
     background: white !important;
   }
+
+  /* Export HTML does not include BlockNote's editor shell. Remove the live
+     editor-only padding so preview pagination stays closer to the PDF output. */
+  .bn-editor {
+    padding-inline: 0 !important;
+  }
 `;
 
 const DEFAULT_PREVIEW_DATA: ExportFormData = {
