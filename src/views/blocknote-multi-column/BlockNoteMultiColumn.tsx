@@ -1226,6 +1226,9 @@ const CONTENT_PRESETS: { label: string; content: unknown }[] = [
 export default function BlockNoteMultiColumn() {
   const editor = useCreateBlockNote({
     schema,
+    tables: {
+      splitCells: true,
+    },
     extensions: [],
     dropCursor: multiColumnDropCursor,
     dictionary: {
@@ -1641,6 +1644,9 @@ ${markedHtml}
     try {
       const fullHtml = await buildFullHtml();
       const data = previewDataRef.current;
+      if (!data) {
+        throw new Error("Preview data is not available.");
+      }
       let processedHtml = processInlineConditionals(fullHtml, data);
       processedHtml = replacePlaceholderInputs(processedHtml, data);
       const pdfServerUrl =
