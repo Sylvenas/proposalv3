@@ -392,12 +392,56 @@ const PDF_STYLES = `
   ${blocknoteCoreCSS}
 
   /* ── PDF page setup ──────────────────────────────────────────────────────── */
-  @page { size: A4; margin: 20mm; }
+  @page {
+    size: A4;
+    margin: 24mm 20mm 20mm;
+    @top-left {
+      content: element(proposalHeader);
+      vertical-align: bottom;
+      padding-bottom: 4mm;
+      width: 170mm;
+    }
+  }
   body {
     font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 14px;
     color: #3f3f3f;
     line-height: 1.6;
+  }
+
+  .proposal-page-header {
+    position: running(proposalHeader);
+    width: 170mm;
+    max-width: 170mm;
+    box-sizing: border-box;
+    border-bottom: 1px solid #d9dde3;
+    padding-bottom: 3mm;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #2f3640;
+  }
+  .proposal-page-header-inner {
+    display: table;
+    table-layout: fixed;
+    width: 100%;
+  }
+  .proposal-page-header-brand {
+    display: table-cell;
+    width: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+  .proposal-page-header-meta {
+    display: table-cell;
+    width: 50%;
+    font-size: 9px;
+    color: #6b7280;
+    line-height: 1.2;
+    text-align: right;
+    white-space: nowrap;
+    vertical-align: bottom;
   }
 
   /* ── Typography (blocksToHTMLLossy outputs semantic tags) ────────────────── */
@@ -448,13 +492,17 @@ const PDF_STYLES = `
   .bn-block-column { vertical-align: top; }
 `;
 
-// pagedjs reads @page { size: A4; margin: 20mm } from PDF_STYLES and auto-paginates.
+const PAGE_HEADER_HTML = `
+<div class="proposal-page-header">
+  <div class="proposal-page-header-inner">
+    <div class="proposal-page-header-brand">Apex Construction LLC</div>
+    <div class="proposal-page-header-meta">Proposal | 742 Evergreen Terrace</div>
+  </div>
+</div>`;
+
+// pagedjs reads @page from PDF_STYLES and auto-paginates.
 // We only need to style the outer shell and give each generated .pagedjs_page a shadow.
 const PREVIEW_EXTRA_STYLES = `
-  /* Zero out @page margins so pagedjs sets all --pagedjs-margin-* vars to 0.
-     This collapses the empty grid rows/columns that were pushing content down.
-     The 20mm margins in PDF_STYLES still apply when exporting via WeasyPrint. */
-  @page { margin: 0; }
   body {
     background: #e8e8e8;
     margin: 0;
@@ -1499,6 +1547,7 @@ export default function BlockNoteMultiColumn() {
 <style>${PDF_STYLES}</style>
 </head>
 <body>
+${PAGE_HEADER_HTML}
 ${markedHtml}
 </body>
 </html>`;
@@ -1523,6 +1572,7 @@ ${markedHtml}
 </style>
 </head>
 <body>
+${PAGE_HEADER_HTML}
 <div class="bn-root"><div class="bn-default-styles"><div class="bn-editor">${innerHtml}</div></div></div>
 </body>
 </html>`;
