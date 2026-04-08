@@ -6,6 +6,7 @@ import * as locales from "@blocknote/core/locales";
 import "@blocknote/core/fonts/inter.css";
 import "@mantine/core/styles.css";
 import { BlockNoteView } from "@blocknote/mantine";
+import type { Theme } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import {
   FormattingToolbar,
@@ -1418,11 +1419,31 @@ function BlockBackgroundColorButton() {
   );
 }
 
+const customTheme: Theme = {
+  colors: {
+    editor: { text: "#1F1F1F", background: "#ffffff" },
+    menu: { text: "#1F1F1F", background: "#ffffff" },
+    tooltip: { text: "#1F1F1F", background: "#F2F2F2" },
+    hovered: { text: "#1F1F1F", background: "#F2F2F2" },
+    selected: { text: "#ffffff", background: "#1F1F1F" },
+    disabled: { text: "#9B9B9B", background: "#F2F2F2" },
+    shadow: "#CFCFCF",
+    border: "#E6E6E6",
+    sideMenu: "#CFCFCF",
+  },
+  borderRadius: 4,
+  fontFamily:
+    '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Open Sans", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+};
+
 export default function BlockNoteMultiColumn() {
   const editor = useCreateBlockNote({
     schema,
     tables: {
       splitCells: true,
+      cellBackgroundColor: true,
+      cellTextColor: true,
+      headers: true,
     },
     extensions: [],
     dropCursor: multiColumnDropCursor,
@@ -1984,7 +2005,9 @@ ${PAGE_FOOTER_HTML}
           >
             <BlockNoteView
               editor={editor}
-              theme="light"
+              theme={customTheme}
+              sideMenu={true}
+              tableHandles={true}
               slashMenu={false}
               formattingToolbar={false}
               onChange={handleEditorChange}
