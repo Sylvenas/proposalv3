@@ -7,7 +7,7 @@ import { ODALogo } from "../components/ODALogo";
 import { ProductDetailModal } from "../components/ProductDetailModal";
 import { SignModal } from "../components/SignModal";
 import { SummaryGroup } from "../components/SummaryGroup";
-import { FENCE_DRAWING_MAP, FENCE_THUMB_CAP, FENCE_THUMB_GATE_1, FENCE_THUMB_GATE_3, FENCE_THUMB_PANEL, FENCE_THUMB_POST_INSERT, type SummaryLineItem, FENCE_WARRANTY_IMG, sv } from "../shared";
+import { FENCE_DRAWING_MAP, FENCE_THUMB_GATE_1, FENCE_THUMB_GATE_3, FENCE_THUMB_PANEL, type SummaryLineItem, FENCE_WARRANTY_IMG, sv } from "../shared";
 
 export function DetailScreen({
   option,
@@ -35,28 +35,12 @@ export function DetailScreen({
     id, name, spec: "", price, previewImage: img,
   });
   const fenceParts: SummaryLineItem[] = [
-    { name: "Vinyl | Stratford | 4' | Panel | White", qty: "17", unit: "sec.", price: 2125, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-1", "Vinyl | Stratford | 4' | Panel | White", 2125, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | End Post | White", qty: "2", unit: "pcs", price: 140, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-2", "Vinyl | Stratford | 4' | End Post | White", 140, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | Corner Post | White", qty: "8", unit: "pcs.", price: 520, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-3", "Vinyl | Stratford | 4' | Corner Post | White", 520, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Stratford | 4' | Line Post | White", qty: "32", unit: "pcs", price: 760, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-4", "Vinyl | Stratford | 4' | Line Post | White", 760, FENCE_THUMB_PANEL) },
+    { name: "Vinyl Stratford Fence — 4' Height", qty: "136", unit: "lf", price: 4490, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("fp-1", "Vinyl Stratford Fence — 4' Height", 4490, FENCE_THUMB_PANEL) },
   ];
   const gateItems: SummaryLineItem[] = [
     { name: "Vinyl | Stratford | 4' | 5'W Gate | White", qty: "1", unit: "sets", price: 560, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem("g-1", "Vinyl | Stratford | 4' | 5'W Gate | White", 560, FENCE_THUMB_GATE_1) },
     { name: "Vinyl | Stratford | 5' | 4'W Gate | White", qty: "1", unit: "sets", price: 520, thumbnailSrc: FENCE_THUMB_GATE_1, showChange: false, odaItem: mkItem("g-2", "Vinyl | Stratford | 5' | 4'W Gate | White", 520, FENCE_THUMB_GATE_1) },
     { name: "Vinyl | Stratford | 5' | 5'W Gate | White", qty: "1", unit: "sets", price: 610, thumbnailSrc: FENCE_THUMB_GATE_3, showChange: false, odaItem: mkItem("g-3", "Vinyl | Stratford | 5' | 5'W Gate | White", 610, FENCE_THUMB_GATE_3) },
-  ];
-  const sectionParts: SummaryLineItem[] = [
-    { name: `7/8" x 8' CQ20 Galv Post`, qty: "2", unit: "pcs.", price: 90, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("sp-1", `7/8" x 8' CQ20 Galv Post`, 90, FENCE_THUMB_PANEL) },
-    { name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`, qty: "2", unit: "pcs.", price: 120, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("sp-2", `5" x 5" Heavy Duty Post Stiffeners`, 120, FENCE_THUMB_PANEL) },
-  ];
-  const hardwareItems: SummaryLineItem[] = [
-    { name: `Vinyl | 5" New England Cap - White`, qty: "18", unit: "pcs.", price: 85, thumbnailSrc: FENCE_THUMB_CAP, showChange: false, odaItem: mkItem("hw-1", `Vinyl | 5" New England Cap - White`, 85, FENCE_THUMB_CAP) },
-    { name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, qty: "2", unit: "pcs.", price: 140, thumbnailSrc: FENCE_THUMB_POST_INSERT, showChange: false, odaItem: mkItem("hw-2", `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`, 140, FENCE_THUMB_POST_INSERT) },
-    { name: "Vinyl | Std Latch - 1 Side - External - Keyed - Black", qty: "1", unit: "sets", price: 95, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("hw-3", "Vinyl | Std Latch - 1 Side - External - Keyed - Black", 95, FENCE_THUMB_PANEL) },
-    { name: "Vinyl | Std Self Close Adj Hinge - Pair - Black", qty: "2", unit: "pairs", price: 110, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("hw-4", "Vinyl | Std Self Close Adj Hinge - Pair - Black", 110, FENCE_THUMB_PANEL) },
-  ];
-  const additionalMaterial: SummaryLineItem[] = [
-    { name: "Concrete 50 lb Bag", qty: "20", unit: "bags", price: 305, thumbnailSrc: FENCE_THUMB_PANEL, showChange: false, odaItem: mkItem("am-1", "Concrete 50 lb Bag", 305, FENCE_THUMB_PANEL) },
   ];
 
   const handleProductInfoClick = (item: SummaryLineItem) => {
@@ -209,11 +193,8 @@ export function DetailScreen({
                 All Included/Selected Products
               </p>
             </div>
-            <SummaryGroup name="Fence Parts" items={fenceParts} onInfoClick={handleProductInfoClick} />
+            <SummaryGroup name="Fence" items={fenceParts} onInfoClick={handleProductInfoClick} />
             <SummaryGroup name="Gate" items={gateItems} onInfoClick={handleProductInfoClick} />
-            <SummaryGroup name="Sections" items={sectionParts} onInfoClick={handleProductInfoClick} />
-            <SummaryGroup name="Hardware" items={hardwareItems} onInfoClick={handleProductInfoClick} />
-            <SummaryGroup name="Additional Material" items={additionalMaterial} onInfoClick={handleProductInfoClick} />
           </div>
 
           {/* Drawings card */}
@@ -456,14 +437,12 @@ export function DetailScreen({
           <div
             className="flex flex-col"
             style={{
-              gap: sv(8),
-              paddingTop: sv(24),
-              paddingBottom: sv(24),
-              borderTop: "0.5px solid rgba(0,0,0,0.2)",
+              gap: sv(4),
+              paddingTop: sv(12),
+              paddingBottom: sv(16),
             }}
           >
             {[
-              { label: "Materials & Installation", value: "$9,030" },
               { label: "Discount -5%", value: "$300" },
               { label: "Sales Tax & Fees", value: "$1,269" },
             ].map(({ label, value }) => (
