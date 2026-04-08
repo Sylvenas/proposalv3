@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#1a3a5c"/>
+  <rect x="40" y="40" width="720" height="520" rx="16" fill="none" stroke="#4a7ab5" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="400" y="280" text-anchor="middle" fill="#8bb0d8" font-family="system-ui,sans-serif" font-size="28" font-weight="600">Walkthrough Video 1</text>
+  <text x="400" y="340" text-anchor="middle" fill="#4a7ab5" font-family="system-ui,sans-serif" font-size="14">PLACEHOLDER</text>
+</svg>
