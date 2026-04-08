@@ -8,9 +8,15 @@ import "@mantine/core/styles.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import {
+  FormattingToolbar,
+  FormattingToolbarController,
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
+  getFormattingToolbarItems,
+  useBlockNoteEditor,
+  useComponentsContext,
   useCreateBlockNote,
+  useSelectedBlocks,
 } from "@blocknote/react";
 import {
   getMultiColumnSlashMenuItems,
@@ -372,6 +378,10 @@ import {
   COMPANY_INFO_INITIAL_BLOCKS,
 } from "./CompanyInfoBlock";
 import { createDrawing } from "./DrawingBlock";
+import {
+  createLandscapingTerms,
+  LANDSCAPING_TERMS_BLOCK,
+} from "./LandscapingTermsBlock";
 import { PlaceholderInput } from "./PlaceholderInput";
 import { ConditionalInline } from "./ConditionalInlineContent";
 import { Mention, MENTION_USERS } from "./Mention";
@@ -620,6 +630,7 @@ const schema = withMultiColumn(
       companyLogo: createCompanyLogo(),
       companyField: createCompanyField(),
       drawing: createDrawing(),
+      landscapingTerms: createLandscapingTerms(),
     },
     inlineContentSpecs: {
       placeholderInput: PlaceholderInput,
@@ -1323,9 +1334,89 @@ const PRESET_OLSHAN_AGREEMENT = [
 // Add new presets here. The first entry is selected by default.
 const CONTENT_PRESETS: { label: string; content: unknown }[] = [
   { label: "Default Template", content: INITIAL_EDITOR_CONTENT },
+  {
+    label: "Landscaping Terms & Conditions",
+    content: [LANDSCAPING_TERMS_BLOCK],
+  },
   { label: "ArcSite Proposal Template", content: PRESET_SIMPLE_EXAMPLE },
   { label: "Olshan Foundation Repair Agreement", content: PRESET_OLSHAN_AGREEMENT },
 ];
+
+const BLOCK_BACKGROUND_COLORS = [
+  { label: "Default", value: "default", swatch: "#fff" },
+  { label: "Gray", value: "gray", swatch: "#e9ecef" },
+  { label: "Red", value: "red", swatch: "#ffe3e3" },
+  { label: "Orange", value: "orange", swatch: "#ffe8cc" },
+  { label: "Yellow", value: "yellow", swatch: "#fff3bf" },
+  { label: "Green", value: "green", swatch: "#d3f9d8" },
+  { label: "Blue", value: "blue", swatch: "#d0ebff" },
+  { label: "Purple", value: "purple", swatch: "#e5dbff" },
+  { label: "Pink", value: "pink", swatch: "#ffdeeb" },
+] as const;
+
+function BlockBackgroundColorButton() {
+  const editor = useBlockNoteEditor();
+  const Components = useComponentsContext()!;
+  const selectedBlocks = useSelectedBlocks();
+
+  const blocks =
+    selectedBlocks.length > 0
+      ? selectedBlocks
+      : [editor.getTextCursorPosition().block];
+  const supportedBlocks = blocks.filter((block) =>
+    Object.prototype.hasOwnProperty.call(block.props, "backgroundColor"),
+  );
+  const activeColor =
+    supportedBlocks.length > 0
+      ? supportedBlocks[0].props.backgroundColor ?? "default"
+      : "default";
+
+  if (supportedBlocks.length === 0) {
+    return null;
+  }
+
+  return (
+    <Components.Generic.Menu.Root position="bottom-start">
+      <Components.Generic.Menu.Trigger>
+        <Components.FormattingToolbar.Button
+          mainTooltip="Block background color"
+          isSelected={activeColor !== "default"}
+        >
+          Block BG
+        </Components.FormattingToolbar.Button>
+      </Components.Generic.Menu.Trigger>
+      <Components.Generic.Menu.Dropdown className="bn-menu-dropdown">
+        {BLOCK_BACKGROUND_COLORS.map((color) => (
+          <Components.Generic.Menu.Item
+            key={color.value}
+            checked={activeColor === color.value}
+            icon={
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 14,
+                  height: 14,
+                  borderRadius: 3,
+                  border: "1px solid rgba(0,0,0,0.24)",
+                  backgroundColor: color.swatch,
+                }}
+              />
+            }
+            onClick={() => {
+              supportedBlocks.forEach((block) => {
+                editor.updateBlock(block, {
+                  props: { backgroundColor: color.value },
+                });
+              });
+            }}
+          >
+            {color.label}
+          </Components.Generic.Menu.Item>
+        ))}
+      </Components.Generic.Menu.Dropdown>
+    </Components.Generic.Menu.Root>
+  );
+}
 
 export default function BlockNoteMultiColumn() {
   const editor = useCreateBlockNote({
@@ -1895,8 +1986,17 @@ ${PAGE_FOOTER_HTML}
               editor={editor}
               theme="light"
               slashMenu={false}
+              formattingToolbar={false}
               onChange={handleEditorChange}
             >
+              <FormattingToolbarController
+                formattingToolbar={(props) => (
+                  <FormattingToolbar {...props}>
+                    {getFormattingToolbarItems(props.blockTypeSelectItems)}
+                    <BlockBackgroundColorButton key="blockBackgroundColorButton" />
+                  </FormattingToolbar>
+                )}
+              />
               <SuggestionMenuController
                 triggerCharacter="/"
                 getItems={getSlashMenuItems}
