@@ -1981,6 +1981,33 @@ ${PAGE_FOOTER_HTML}
           >
             {isExportingPw ? "Exporting..." : "Export PDF by Playwright"}
           </button>
+          <button
+            onClick={() => {
+              const blocks = editor.document;
+              const json = JSON.stringify(blocks, null, 2);
+              const blob = new Blob([json], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "blocknote-content.json";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }}
+            style={{
+              padding: "8px 20px",
+              backgroundColor: "#7950f2",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Export JSON
+          </button>
         </div>
       </div>
 
