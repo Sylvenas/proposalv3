@@ -155,7 +155,6 @@ export function OptionsScreen({
         label: "Estimated Monthly Payment Starting at",
         value: optionSummaries[0].monthly,
       },
-      { label: "Estimated Time Under Construction", value: "1–2 Days" },
       { label: "Proposal Valid Until", value: "April 30, 2026" },
     ],
     [
@@ -164,7 +163,6 @@ export function OptionsScreen({
         label: "Estimated Monthly Payment Starting at",
         value: optionSummaries[1].monthly,
       },
-      { label: "Estimated Time Under Construction", value: "2–3 Days" },
       { label: "Proposal Valid Until", value: "April 30, 2026" },
     ],
   ];
@@ -598,17 +596,6 @@ export function OptionsScreen({
               }}
             >
               {opt.description}
-            </p>
-            <p
-              style={{
-                fontSize: sv(16),
-                color: "#262626",
-                width: "100%",
-                letterSpacing: sv(-0.16),
-                lineHeight: "normal",
-              }}
-            >
-              {opt.duration}
             </p>
             <p
               style={{

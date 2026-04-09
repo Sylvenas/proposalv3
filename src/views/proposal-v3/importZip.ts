@@ -611,7 +611,6 @@ export async function importProposalZip(file: File): Promise<ProposalV3Data> {
         selectButtonLabel: "Select",
         contractTotalLabel: "Contract Total",
         monthlyPaymentLabel: "Estimated Monthly Payment Starting at",
-        constructionTimeLabel: "Estimated Time Under Construction",
       },
       detailPage: {
         reviewsCompanyName: contractorName,

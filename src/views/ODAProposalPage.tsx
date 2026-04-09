@@ -2662,9 +2662,6 @@ function OptionsScreen({
             }}
           >
             <p style={{ fontWeight: 400 }}>{opt.materials[0]}</p>
-            <p style={{ fontWeight: 400 }}>
-              {opt.deliveryDays} Days Estimate Delivery Time
-            </p>
             <p style={{ fontWeight: 600 }}>
               Starting from {formatPrice(opt.priceFrom)} USD
             </p>
