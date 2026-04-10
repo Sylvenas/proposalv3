@@ -13,11 +13,6 @@ import {
   OPTION_GATE_IMAGE_2,
   OPTION_GATE_IMAGE_3,
   OPTION_GATE_IMAGE_4,
-  OPTION_HARDWARE_IMAGE_1,
-  OPTION_HARDWARE_IMAGE_2,
-  OPTION_HARDWARE_IMAGE_3,
-  OPTION_HARDWARE_IMAGE_4,
-  OPTION_HARDWARE_IMAGE_5,
   OPTION_HOME_ICON,
   OPTION_INFO_ICON,
   OPTION_LOGO_IMAGE,
@@ -229,92 +224,29 @@ export function OptionsScreen({
     columns: (CompareLineItem | CompareDash)[][];
   }> = [
     {
-      title: "Fence Parts",
+      title: "Fence",
       columns: [
         [
           {
-            name: "8F x 4' KK Extruded Blk",
-            qty: "2",
-            unit: "pcs",
+            name: "Chain Link Fence — 4' Height",
+            qty: "136",
+            unit: "lf",
             img: OPTION_CHAIN_PLACEHOLDER,
             faded: true,
           },
           {
-            name: "8F x 5' KK Extruded Blk",
-            qty: "2",
-            unit: "pcs",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: 'Btm Lock Slat 2" Mesh Dsn',
-            qty: "4",
-            unit: "pcs",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: 'Btm Lock Slat 2" Mesh Dsn',
-            qty: "5",
-            unit: "pcs",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "3/8 x 21' SE 17ga Poly Blk",
-            qty: "9",
-            unit: "rolls",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "5/8 x 8' 16ga Polyester Blk",
-            qty: "11",
-            unit: "rolls",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "8 x 9' 16ga Polyester Blk",
-            qty: "2",
-            unit: "rolls",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "3/8 x 8' 16ga Polyester Blk",
-            qty: "2",
-            unit: "rolls",
+            name: "Chain Link Fence — 5' Height",
+            qty: "96",
+            unit: "lf",
             img: OPTION_CHAIN_PLACEHOLDER,
             faded: true,
           },
         ],
         [
           {
-            name: "Vinyl | Stratford | 4' | Panel | White",
-            qty: "17",
-            unit: "sec.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "Vinyl | Stratford | 4' | End Post | White",
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "Vinyl | Stratford | 4' | Corner Post | White",
-            qty: "8",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: "Vinyl | Stratford | 4' | Line Post | White",
-            qty: "32",
-            unit: "pcs.",
+            name: "Vinyl Stratford Fence — 4' Height",
+            qty: "136",
+            unit: "lf",
             img: OPTION_CHAIN_PLACEHOLDER,
             faded: true,
           },
@@ -378,142 +310,6 @@ export function OptionsScreen({
             img: OPTION_GATE_IMAGE_4,
           },
         ],
-      ],
-    },
-    {
-      title: "Sections",
-      columns: [
-        [
-          {
-            name: `BCL | 5' | 58" Tension Bar`,
-            qty: "6",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: `BCL | 5' | 9' Terminal Post`,
-            qty: "6",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-        [
-          {
-            name: `7/8" x 8' CQ20 Galv Post`,
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-          {
-            name: `5" x 5" Heavy Duty Post Stiffeners for 1 7/8" (2") Post`,
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Hardware",
-      columns: [
-        [
-          {
-            name: `3/8" DC Rail End Poly Blk`,
-            qty: "4",
-            unit: "pcs",
-            img: OPTION_HARDWARE_IMAGE_1,
-          },
-          {
-            name: `3/8" Brace Band Poly Blk`,
-            qty: "12",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-          {
-            name: `3/8" DC Cap Poly Blk`,
-            qty: "6",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-          {
-            name: `3/8" Tension Band Poly`,
-            qty: "12",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_3,
-          },
-        ],
-        [
-          {
-            name: `Vinyl | 5" New England Cap - White`,
-            qty: "18",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_4,
-          },
-          {
-            name: `Vinyl | 5"x5"x96" Aluminum Gate Post Insert`,
-            qty: "2",
-            unit: "pcs.",
-            img: OPTION_HARDWARE_IMAGE_5,
-          },
-          {
-            name: `Vinyl | Std Latch - 1 Side - External - Keyed - Black`,
-            qty: "1",
-            unit: "sets",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-          {
-            name: `Vinyl | Std Self Close Adj Hinge - Pair - Black`,
-            qty: "2",
-            unit: "pairs",
-            img: OPTION_HARDWARE_IMAGE_2,
-            faded: true,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Additional Materials",
-      columns: [
-        [
-          {
-            name: "Concrete 50 lb Bag",
-            qty: "18",
-            unit: "bags",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-        [
-          {
-            name: "Concrete 50 lb Bag",
-            qty: "20",
-            unit: "bags",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-      ],
-    },
-    {
-      title: "Services",
-      columns: [
-        [
-          {
-            name: "Soil Condition Survey",
-            qty: "2",
-            unit: "svc.",
-            img: OPTION_CHAIN_PLACEHOLDER,
-            faded: true,
-          },
-        ],
-        [{ dash: true as const }],
       ],
     },
   ];

@@ -20,6 +20,12 @@ const pages = [
       'A full copy of Proposal V3 for independent iteration on the fence proposal flow.',
   },
   {
+    href: '/proposal-foundation',
+    title: 'Proposals V3 - Bosterra Foundation Repair',
+    description:
+      'A full copy of the proposal flow adapted for Bosterra, Inc. foundation repair services.',
+  },
+  {
     href: '/proposal-html-render',
     title: 'Proposal HTML Render',
     description:
