@@ -177,7 +177,6 @@ export type ProposalV3Data = {
     selectButtonLabel: string;
     contractTotalLabel: string;
     monthlyPaymentLabel: string;
-    constructionTimeLabel: string;
   };
   detailPage: {
     reviewsCompanyName: string;

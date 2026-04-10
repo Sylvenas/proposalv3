@@ -215,12 +215,10 @@ function CompareInner() {
   const pricingA = [
     { label: 'Base Scope Cost', value: `$${optA.priceFrom.toLocaleString()}` },
     { label: 'Maximum Project Cost', value: `$${Math.round(optA.priceFrom * 1.367).toLocaleString()}` },
-    { label: 'Estimate Completion Time', value: `${optA.deliveryDays} Days` },
   ]
   const pricingB = [
     { label: 'Base Scope Cost', value: `$${optB.priceFrom.toLocaleString()}` },
     { label: 'Maximum Project Cost', value: `$${Math.round(optB.priceFrom * 1.677).toLocaleString()}` },
-    { label: 'Estimate Completion Time', value: `${optB.deliveryDays} Days` },
   ]
 
   // Base scope

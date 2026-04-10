@@ -123,7 +123,6 @@ export function OptionsScreen({
         label: data.optionsPage.monthlyPaymentLabel,
         value: option.summary.monthly,
       },
-      { label: data.optionsPage.constructionTimeLabel, value: option.summary.duration.replace(` ${data.optionsPage.constructionTimeLabel}`, "") },
     ],
   );
 
@@ -293,18 +292,6 @@ export function OptionsScreen({
               }}
             >
               {opt.description}
-            </p>
-            <p
-              className="truncate"
-              style={{
-                fontSize: sv(16),
-                color: "#262626",
-                width: "100%",
-                letterSpacing: sv(-0.16),
-                lineHeight: "normal",
-              }}
-            >
-              {opt.duration}
             </p>
             <p
               style={{

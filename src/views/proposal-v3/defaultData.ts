@@ -285,7 +285,6 @@ export const defaultProposalV3Data: ProposalV3Data = {
     selectButtonLabel: "Select",
     contractTotalLabel: "Contract Total",
     monthlyPaymentLabel: "Estimated Monthly Payment Starting at",
-    constructionTimeLabel: "Estimated Time Under Construction",
   },
   detailPage: {
     reviewsCompanyName: "Madison Fence Company",
