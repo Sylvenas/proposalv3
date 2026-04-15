@@ -20,6 +20,12 @@ const pages = [
       'A full copy of Proposal V3 for independent iteration on the fence proposal flow.',
   },
   {
+    href: '/proposal-fence-mobile',
+    title: 'Proposals V3 - Grand Rapids Fence (Mobile)',
+    description:
+      'A mobile-optimized version of the Grand Rapids Fence proposal flow, featuring pinch-to-zoom drawings, accordion inspection report, Apple-style side-by-side option comparison, and a slide-up sign sheet.',
+  },
+  {
     href: '/proposal-foundation',
     title: 'Proposals V3 - Bosterra Foundation Repair',
     description:
