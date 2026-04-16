@@ -2,6 +2,12 @@ import Link from 'next/link';
 
 const pages = [
   {
+    href: '/proposal-v3-responsive',
+    title: 'Proposal V3 (Responsive)',
+    description:
+      'A fully responsive Options selection page built from the Figma design system. Layout adapts across XS/S/M/L/XL/XXL breakpoints with Low Density (mobile) and Medium Density (tablet+) spacing modes.',
+  },
+  {
     href: '/proposal-future-blueprint',
     title: 'Proposal Future Blueprint',
     description:

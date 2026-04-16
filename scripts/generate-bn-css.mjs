@@ -9,6 +9,7 @@
 import { createRequire } from "module";
 import { readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 const require = createRequire(import.meta.url);
 
@@ -25,7 +26,7 @@ export default blocknoteCoreCSS;
 `;
 
 const outPath = join(
-  dirname(new URL(import.meta.url).pathname),
+  dirname(fileURLToPath(import.meta.url)),
   "../src/views/blocknote-multi-column/bn-core-css.generated.ts"
 );
 
