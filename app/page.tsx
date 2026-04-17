@@ -67,6 +67,12 @@ const pages = [
     description:
       'A BlockNote rich-text editor demo showcasing multi-column block layouts using @blocknote/xl-multi-column.',
   },
+  {
+    href: '/blocknote-multi-column-ui',
+    title: 'BlockNote Multi-Column UI',
+    description:
+      'The BlockNote multi-column editor with the production Figma-designed UI shell featuring a split edit/preview layout.',
+  },
 ];
 
 export default function HomePage() {
