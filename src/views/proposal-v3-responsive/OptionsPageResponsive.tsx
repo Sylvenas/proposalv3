@@ -2,6 +2,28 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+// ── Viewport-width font-size hook ────────────────────────────────────────────
+// Returns a font size in px that updates whenever the window is resized.
+// breakpoints: array of [minWidth, fontSize] pairs, sorted ascending by minWidth.
+function useViewportFontSize(breakpoints: [number, number][]): number {
+  const getSize = () => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 0;
+    let result = breakpoints[0][1];
+    for (const [minW, size] of breakpoints) {
+      if (w >= minW) result = size;
+    }
+    return result;
+  };
+  const [size, setSize] = useState(getSize);
+  useEffect(() => {
+    const handler = () => setSize(getSize());
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return size;
+}
+
 // ── Equal-height hook ─────────────────────────────────────────────────────────
 // For each [data-card-container], finds all [data-card-section="X"] elements,
 // resets their heights, measures the tallest, then applies that height to all.
@@ -320,15 +342,23 @@ function ProductLineItem({
 // Font XXL token: Low Density (<md) = 20px / Medium Density (md+) = 24px
 // Mobile layout  (<md): logo 160×160, stacked CTAs (Valid Until → Explore → Inspection)
 // Desktop layout (md+): logo 320×320, side-by-side CTAs (Inspection | Explore), then Valid Until
+// Title font sizes: XS=24 S=28 M=32 XL=40  (Figma Font XL/XXL per breakpoint)
+const COVER_TITLE_BREAKPOINTS: [number, number][] = [
+  [0,    24],  // XS  <640
+  [640,  28],  // S   640-767
+  [768,  32],  // M   768-1279
+  [1280, 40],  // XL  1280+
+];
+
 function CoverPageContent({ onExplore }: { onExplore: () => void }) {
+  const titleFontSize = useViewportFontSize(COVER_TITLE_BREAKPOINTS);
+
   // ── Token table (from Figma variable defs per breakpoint frame) ──────────────
   // FONTS — viewport-responsive (change at sm and xl):
   //   Font S  : XS=12  S=14  M=14  L=14  XL=16  XXL=16  → text-[12px] sm:text-[14px] xl:text-[16px]
   //   Font M  : XS=14  S=16  M=16  L=16  XL=20  XXL=20  → text-[14px] sm:text-[16px] xl:text-[20px]
   //   Font L  : XS=16  S=20  M=20  L=20  XL=24  XXL=24  → text-[16px] sm:text-[20px] xl:text-[24px]
-  //   Title   : XS=24  S=24  (24px across mobile)         → text-[24px]
-  //           : M=32   L=32  XL=40  XXL=40 (Font XXL)    → md:text-[32px] xl:text-[40px]
-  //   Combined: text-[24px] md:text-[32px] xl:text-[40px]
+  //   Title   : XS=24  S=28  M=32  XL=40               → .cover-proposal-title (globals.css)
   //
   // SPACING — density-mode only (change only at md):
   //   Spacing XL: Low Density (XS/S)=48px  Medium Density (md+)=32px → gap-12 md:gap-8
@@ -341,11 +371,13 @@ function CoverPageContent({ onExplore }: { onExplore: () => void }) {
       className="flex flex-col items-center justify-center gap-12 md:gap-8 w-full h-full px-4 sm:px-6 md:px-4 lg:px-6"
       style={{ fontFamily: 'Segoe UI, sans-serif' }}
     >
-      {/* Logo: 160×160 mobile (<md), 320×320 desktop (md+) */}
-      <div className="shrink-0 md:hidden" style={{ width: 160, height: 160 }}>
+      {/* Logo — Mobile (<md): 1/3 content width, max-height 180px
+               Desktop (md+): 1/5 content width, max-height 320px
+               aspect-square keeps it square; min() applies both constraints at once */}
+      <div className="shrink-0 aspect-square md:hidden" style={{ width: 'min(33.333%, 180px)' }}>
         <img src={IMG_COVER_LOGO} alt="Madison Fence Company" className="w-full h-full object-cover" />
       </div>
-      <div className="shrink-0 hidden md:block" style={{ width: 320, height: 320 }}>
+      <div className="shrink-0 aspect-square hidden md:block" style={{ width: 'min(20%, 320px)' }}>
         <img src={IMG_COVER_LOGO} alt="Madison Fence Company" className="w-full h-full object-cover" />
       </div>
 
@@ -355,10 +387,10 @@ function CoverPageContent({ onExplore }: { onExplore: () => void }) {
         <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-light text-[#262626] text-center leading-normal">
           1722 Willis Ave NW, Grand Rapids, MI 49504
         </p>
-        {/* Title — Font XL on mobile (20→24px), Font XXL on desktop (32→40px) */}
+        {/* Title — XS=24 S=28 M=32 XL=40px, computed via useViewportFontSize */}
         <p
-          className="text-[24px] md:text-[32px] xl:text-[40px] font-light text-[#262626] text-center leading-normal"
-          style={{ letterSpacing: '-0.03em' }}
+          className="font-light text-[#262626] text-center leading-normal"
+          style={{ fontSize: titleFontSize, letterSpacing: '-0.03em' }}
         >
           FENCE REPLACEMENT PROPOSAL
         </p>
