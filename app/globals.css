@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tldraw/tldraw.css";
 
+/* Always reserve scrollbar gutter space so layout width never shifts
+   when the scrollbar appears or disappears (e.g. cover curtain dismiss). */
+html {
+  scrollbar-gutter: stable;
+}
+
 :root {
   --arc-orange: #e3571c;
   --arc-orange-deep: #b64616;
