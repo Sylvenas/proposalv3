@@ -13,7 +13,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        {/* Disable browser scroll restoration and reset to top immediately,
+            before React hydrates, so the cover curtain always starts at top. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+              window.scrollTo(0, 0);
+            `,
+          }}
+        />
+      </head>
+      {/* overflow:hidden prevents scrollbar flash while CoverCurtain is visible.
+          CoverCurtain's cleanup restores overflow when dismissed. */}
+      <body style={{ overflow: 'hidden' }}>{children}</body>
     </html>
   );
 }

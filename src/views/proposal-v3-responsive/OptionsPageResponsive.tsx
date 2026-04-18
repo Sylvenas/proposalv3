@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+// useLayoutEffect runs synchronously before paint (prevents scrollbar flash).
+// Falls back to useEffect on the server to avoid SSR warnings.
+const useBrowserLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import SummaryPageResponsive from './SummaryPageResponsive';
+import type { FenceOption as SummaryFenceOption } from './SummaryPageResponsive';
+import PageHeader from './PageHeader';
+import BackToTopButton from './BackToTopButton';
 
 // ── Viewport-width font-size hook ────────────────────────────────────────────
 // Returns a font size in px that updates whenever the window is resized.
@@ -95,6 +103,8 @@ type FenceOption = {
   monthly: string;
   image: string;
   products: { name: string; qty: string; unit: string }[];
+  /** Base materials cost (before any addons) used to compute dynamic financials on Summary page. */
+  baseMaterials: number;
 };
 
 const OPTIONS: FenceOption[] = [
@@ -107,6 +117,8 @@ const OPTIONS: FenceOption[] = [
     contractTotal: '$8,615.00',
     monthly: '$404.13 / mo',
     image: IMG_OPTION_1,
+    // baseMaterials: 8397 → discount $420 → afterDisc $7,977 → tax $638 → total $8,615
+    baseMaterials: 8397,
     products: [
       { name: 'Chain Link Fabric', qty: '960', unit: 'sqf.' },
       { name: 'Line Posts', qty: '24', unit: 'ea.' },
@@ -123,6 +135,8 @@ const OPTIONS: FenceOption[] = [
     contractTotal: '$9,999.00',
     monthly: '$469.06 / mo',
     image: IMG_OPTION_2,
+    // baseMaterials: 9745 → discount $487 → afterDisc $9,258 → tax $741 → total $9,999
+    baseMaterials: 9745,
     products: [
       { name: 'Vinyl Panels', qty: '960', unit: 'sqf.' },
       { name: 'Vinyl Posts', qty: '24', unit: 'ea.' },
@@ -135,10 +149,12 @@ const OPTIONS: FenceOption[] = [
     label: 'OPTION 3 - ALUMINUM ORNAMENTAL FENCE',
     features: 'Elegant Design / Rust Resistant / Long Lasting',
     constructionTime: '4–6 Weeks',
-    price: '$9,999.00 USD',
-    contractTotal: '$9,999.00',
-    monthly: '$469.06 / mo',
+    price: '$12,480.00 USD',
+    contractTotal: '$12,480.00',
+    monthly: '$520.00 / mo',
     image: IMG_OPTION_3,
+    // baseMaterials: 12164 → discount $608 → afterDisc $11,556 → tax $924 → total $12,480
+    baseMaterials: 12164,
     products: [
       { name: 'Aluminum Panels', qty: '960', unit: 'sqf.' },
       { name: 'Aluminum Posts', qty: '24', unit: 'ea.' },
@@ -181,7 +197,7 @@ function ChevronDownIcon({ size = 10 }: { size?: number }) {
 // Density-aware via Tailwind responsive classes:
 //   Low density (< md):  gap-8 pt-6 pb-5 px-4, info gap-4
 //   Medium density (md+): gap-6 pt-4 pb-6 px-6, info gap-3
-function OptionCard({ opt }: { opt: FenceOption }) {
+function OptionCard({ opt, onSelect }: { opt: FenceOption; onSelect: () => void }) {
   return (
     <div className="flex flex-col">
       {/* Hero image — aspect ratio 800:471 */}
@@ -240,6 +256,7 @@ function OptionCard({ opt }: { opt: FenceOption }) {
         {/* CTA */}
         <div className="flex flex-col gap-4 md:gap-3 w-full">
           <button
+            onClick={onSelect}
             className="w-full h-10 bg-[#d41a32] text-white text-[14px] font-semibold rounded-[4px] flex items-center justify-center cursor-pointer"
             style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
           >
@@ -472,15 +489,12 @@ function CoverCurtain({ onDismiss }: { onDismiss: () => void }) {
   const touchStartY = useRef<number | null>(null);
 
   // Lock body scroll while curtain is visible; restore on unmount.
-  // Compensate for scrollbar width so content doesn't shift when the
-  // scrollbar reappears after the curtain is dismissed.
-  useEffect(() => {
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+  // scrollbar-gutter: stable (globals.css) keeps layout width constant,
+  // so no paddingRight compensation is needed.
+  useBrowserLayoutEffect(() => {
     document.body.style.overflow = 'hidden';
-    document.body.style.paddingRight = `${scrollbarWidth}px`;
     return () => {
       document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
     };
   }, []);
 
@@ -538,50 +552,6 @@ function CoverCurtain({ onDismiss }: { onDismiss: () => void }) {
         <CoverPageContent onExplore={dismiss} />
       </div>
     </div>
-  );
-}
-
-// ── Page Header ───────────────────────────────────────────────────────────────
-// Non-sticky, scrolls with the page.
-// Figma variables: Low Density (XS/S <md): --margin=8px, --s=8px, h=48px
-//                 Medium Density (M+ md+): --margin=12px, --s=12px, h=48px
-function PageHeader({ onShowCover }: { onShowCover: () => void }) {
-  return (
-    <header
-      className="w-full bg-white flex items-center justify-center h-12 px-4 sm:px-6 md:px-4 lg:px-6"
-    >
-      <div className="flex items-center justify-between w-full max-w-[1024px]">
-        {/* Home icon: 24×24 clip box, vector 17.99×15.98px centred inside */}
-        <button
-          onClick={onShowCover}
-          className="relative shrink-0 overflow-clip cursor-pointer bg-transparent border-0 p-0"
-          style={{ width: 24, height: 24 }}
-          aria-label="Back to cover"
-        >
-          <div className="absolute" style={{
-            width: 17.99, height: 15.977,
-            left: 'calc(50% - 0.02px)', top: 'calc(50% + 0.01px)',
-            transform: 'translate(-50%, -50%)',
-          }}>
-            <img src={IMG_HEADER_HOME} alt="" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
-          </div>
-        </button>
-        {/* Logo 87×24 */}
-        <div className="relative shrink-0" style={{ width: 87, height: 24 }}>
-          <img src={IMG_HEADER_LOGO} alt="Madison Fence Company" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ maxWidth: 'none' }} />
-        </div>
-        {/* User icon: 24×24 clip box, vector 14×15.98px centred inside */}
-        <div className="relative shrink-0 overflow-clip" style={{ width: 24, height: 24 }}>
-          <div className="absolute" style={{
-            width: 14, height: 15.977,
-            left: '50%', top: 'calc(50% + 0.01px)',
-            transform: 'translate(-50%, -50%)',
-          }}>
-            <img src={IMG_HEADER_USER} alt="User" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
-          </div>
-        </div>
-      </div>
-    </header>
   );
 }
 
@@ -681,9 +651,20 @@ export default function OptionsPageResponsive() {
   useSyncCardSectionHeights();
   const stickyVisible = useStickyHeader();
   const [curtainMounted, setCurtainMounted] = useState(true);
+  const [selectedOption, setSelectedOption] = useState<FenceOption | null>(null);
 
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function selectOption(opt: FenceOption) {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setSelectedOption(opt);
+  }
+
+  function dismissCurtain() {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setCurtainMounted(false);
   }
 
   function scrollToComparison() {
@@ -699,10 +680,27 @@ export default function OptionsPageResponsive() {
   // lg+   → all 3 options
   const comparisonOptions = OPTIONS; // rendered with CSS visibility per column
 
+  // Show Summary page when an option is selected
+  if (selectedOption) {
+    return (
+      <SummaryPageResponsive
+        option={selectedOption as SummaryFenceOption}
+        onBack={() => {
+          setSelectedOption(null);
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }}
+        onShowCover={() => {
+          setSelectedOption(null);
+          setCurtainMounted(true);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="bg-white min-h-screen">
       {curtainMounted && (
-        <CoverCurtain onDismiss={() => setCurtainMounted(false)} />
+        <CoverCurtain onDismiss={dismissCurtain} />
       )}
       <PageHeader onShowCover={() => setCurtainMounted(true)} />
       <StickyComparisonHeader options={OPTIONS} visible={stickyVisible} />
@@ -732,26 +730,17 @@ export default function OptionsPageResponsive() {
             L+    (lg+):    3-col grid — all 3 cards shown
         */}
         <div data-card-container className="flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-3 lg:grid-cols-3">
-          <OptionCard opt={OPTIONS[0]} />
-          <OptionCard opt={OPTIONS[1]} />
+          <OptionCard opt={OPTIONS[0]} onSelect={() => selectOption(OPTIONS[0])} />
+          <OptionCard opt={OPTIONS[1]} onSelect={() => selectOption(OPTIONS[1])} />
           {/* Card 3: visible on mobile + desktop, hidden on tablet */}
           <div className="block md:hidden lg:block">
-            <OptionCard opt={OPTIONS[2]} />
+            <OptionCard opt={OPTIONS[2]} onSelect={() => selectOption(OPTIONS[2])} />
           </div>
         </div>
 
         {/* ── Back to Top (mobile only, between main cards and need-support) */}
         <div className="flex justify-center md:hidden">
-          <button
-            onClick={scrollToTop}
-            className="flex items-center gap-1 h-10 bg-white rounded-[4px] px-3 py-1.5 w-[276px] justify-center cursor-pointer"
-            style={{ fontFamily: 'Roboto, sans-serif' }}
-          >
-            <ArrowUpIcon />
-            <span className="text-[14px] text-[rgba(0,0,0,0.85)] leading-[18px] whitespace-nowrap">
-              Back to Top
-            </span>
-          </button>
+          <BackToTopButton onClick={scrollToTop} />
         </div>
 
         {/* ── Section 2: "Need support?" ──────────────────────────────────── */}
@@ -810,7 +799,7 @@ export default function OptionsPageResponsive() {
         <div id="comparison-cards" data-card-container className="grid grid-cols-2 gap-4 md:hidden">
           {comparisonOptions.map((opt, i) => (
             <div key={opt.id} className={i === 2 ? 'hidden lg:block' : ''}>
-              <OptionCard opt={opt} />
+              <OptionCard opt={opt} onSelect={() => selectOption(opt)} />
             </div>
           ))}
         </div>
@@ -908,7 +897,7 @@ export default function OptionsPageResponsive() {
         <div id="section-5-cards" data-card-container className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3">
           {comparisonOptions.map((opt, i) => (
             <div key={opt.id} className={i === 2 ? 'hidden lg:block' : ''}>
-              <OptionCard opt={opt} />
+              <OptionCard opt={opt} onSelect={() => selectOption(opt)} />
             </div>
           ))}
         </div>
