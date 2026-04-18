@@ -12,24 +12,30 @@ const FIELD_LABELS: Record<string, string> = {
 
 const OPERATOR_LABELS: Record<string, string> = {
   eq: "equals",
-  neq: "does not equal",
+  neq: "is not empty,",
   contains: "contains",
   notContains: "does not contain",
 };
 
-const GearIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+// Block-toggle icon: 3 horizontal lines in blue (left of text in header)
+const BlockToggleIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <rect x="2" y="4" width="12" height="1.5" rx="0.75" fill="#398ae7" />
+    <rect x="2" y="7.25" width="9" height="1.5" rx="0.75" fill="#398ae7" />
+    <rect x="2" y="10.5" width="12" height="1.5" rx="0.75" fill="#398ae7" />
+  </svg>
+);
+
+// Filled blue gear icon for the right side of the header
+const ConditionalGearIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M6.5 1.5h3l.4 1.9c.35.13.68.3.98.5l1.83-.6 1.5 2.6-1.46 1.3c.04.27.04.54 0 .8l1.46 1.3-1.5 2.6-1.83-.6c-.3.2-.63.37-.98.5L9.5 14.5h-3l-.4-1.9a4.3 4.3 0 0 1-.98-.5l-1.83.6-1.5-2.6 1.46-1.3a4.03 4.03 0 0 1 0-.8L1.79 6.9l1.5-2.6 1.83.6c.3-.2.63-.37.98-.5L6.5 1.5z"
+      fill="#398ae7"
+    />
+    <circle cx="8" cy="8" r="1.8" fill="white" />
   </svg>
 );
 
@@ -55,9 +61,8 @@ export const createConditionalSection = createReactBlockSpec(
         const fieldLabel = FIELD_LABELS[conditionField] ?? conditionField;
         const operatorLabel = OPERATOR_LABELS[conditionOperator] ?? conditionOperator;
 
-        const summary = conditionValue
-          ? `Show when ${fieldLabel} ${operatorLabel} "${conditionValue}"`
-          : "No condition set — always shown";
+        // Build the inline text pieces: "if" [field bold blue] operator "show:"
+        const showOperator = conditionOperator === "neq" ? "is not empty," : operatorLabel;
 
         return (
           <div
@@ -68,6 +73,26 @@ export const createConditionalSection = createReactBlockSpec(
             contentEditable={false}
           >
             <div className="conditional-section-header">
+              {/* Left: block-toggle icon */}
+              <span className="conditional-section-toggle">
+                <BlockToggleIcon />
+              </span>
+
+              {/* Inline text: "if [Field] operator show:" */}
+              <span className="conditional-section-text">
+                <span className="conditional-section-if">if</span>
+                {" "}
+                <span className="conditional-section-field">[{fieldLabel}]</span>
+                {" "}
+                <span className="conditional-section-operator">{showOperator}</span>
+                {" "}
+                <span className="conditional-section-show">show:</span>
+              </span>
+
+              {/* Spacer */}
+              <span style={{ flex: 1 }} />
+
+              {/* Right: gear icon button */}
               <button
                 className="conditional-section-gear"
                 onClick={(e) => {
@@ -77,10 +102,8 @@ export const createConditionalSection = createReactBlockSpec(
                 onMouseDown={(e) => e.stopPropagation()}
                 title="Configure condition"
               >
-                <GearIcon />
+                <ConditionalGearIcon />
               </button>
-              <span className="conditional-section-label">IF</span>
-              <span className="conditional-section-summary">{summary}</span>
 
               {panelOpen && (
                 <div
