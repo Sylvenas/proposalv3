@@ -515,13 +515,28 @@ function Checkbox({ checked }: { checked: boolean }) {
 // ── Add-on line item ──────────────────────────────────────────────────────────
 // Mobile (< md): stacked rows — name+info / qty+price / added+checkbox
 // Desktop (md+): single row — [Name flex-1][Qty w-110px][Price w-88px][Info w-48px][Checkbox w-64px], outer items-center h-80px
+//
+// Interaction model:
+//   Touch (XS/S/M): tap anywhere on the card toggles the addon.
+//     - onPointerDown captures pointerType; onClick only fires on tap (not scroll) → safe toggle.
+//     - Checkbox button stops propagation so the outer onClick doesn't double-fire.
+//   Mouse (all sizes): only the checkbox button toggles (outer onClick ignores mouse).
 function AddonLineItem({ item, onToggle }: { item: AddonItem; onToggle: () => void }) {
+  // Captures the input type on press so onClick can distinguish touch from mouse.
+  const pointerTypeRef = useRef<string>('');
+
   return (
     <div
       className={`bg-white flex gap-2 items-start md:items-center px-2 py-3 md:py-0 md:h-[80px] rounded-[8px] w-full border-solid ${
         item.selected ? 'border-[#262626]' : 'border-[#d9d9d9]'
       }`}
       style={{ borderWidth: '1.5px' }}
+      onPointerDown={(e) => { pointerTypeRef.current = e.pointerType; }}
+      onClick={() => {
+        // Touch/stylus tap anywhere → toggle.
+        // Mouse clicks are handled exclusively by the checkbox button (which stops propagation).
+        if (pointerTypeRef.current !== 'mouse') onToggle();
+      }}
     >
       {/* Thumbnail — always shown, stays 48×48 */}
       <div className="flex flex-col items-start p-[2px] rounded-[4px] shrink-0" style={{ width: 48, height: 48 }}>
@@ -572,7 +587,10 @@ function AddonLineItem({ item, onToggle }: { item: AddonItem; onToggle: () => vo
           >
             {item.selected ? 'Added' : 'Add'}
           </div>
-          <button onClick={onToggle} className="cursor-pointer bg-transparent border-0 p-0 shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+            className="cursor-pointer bg-transparent border-0 p-0 shrink-0"
+          >
             <Checkbox checked={item.selected} />
           </button>
         </div>
@@ -609,7 +627,12 @@ function AddonLineItem({ item, onToggle }: { item: AddonItem; onToggle: () => vo
         </div>
         {/* Checkbox in w-64px upgrade-control slot */}
         <div className="flex items-center justify-center shrink-0" style={{ width: 64 }}>
-          <button onClick={onToggle} className="cursor-pointer bg-transparent border-0 p-0">
+          {/* 64×64 touch target centred on the 20×20 checkbox */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+            className="cursor-pointer bg-transparent border-0 p-0 flex items-center justify-center"
+            style={{ width: 64, height: 64 }}
+          >
             <Checkbox checked={item.selected} />
           </button>
         </div>
@@ -690,9 +713,11 @@ function InfoDuotoneIcon() {
 function StickyFooter({
   visible,
   financials,
+  onScrollToSummary,
 }: {
   visible: boolean;
   financials: Financials;
+  onScrollToSummary: () => void;
 }) {
   return (
     <div
@@ -725,6 +750,7 @@ function StickyFooter({
       {/* Summary button — XS px=12px, S/M px=32px */}
       <div className="flex items-center self-stretch">
         <button
+          onClick={onScrollToSummary}
           className="bg-white border-[0.5px] border-solid border-[#262626] flex items-center justify-center h-full rounded-[2px] cursor-pointer px-3 sm:px-8"
           style={{ paddingTop: 6, paddingBottom: 6 }}
         >
@@ -1116,7 +1142,13 @@ export default function SummaryPageResponsive({
       {/* Sticky Header — XS/S/M only, slides in from top */}
       <StickyHeader option={option} visible={showStickyHeader} />
       {/* Sticky Footer — XS/S/M only, slides down when CTA block is visible */}
-      <StickyFooter visible={showStickyFooter} financials={financials} />
+      <StickyFooter
+        visible={showStickyFooter}
+        financials={financials}
+        onScrollToSummary={() =>
+          mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }
+      />
     </div>
   );
 }
