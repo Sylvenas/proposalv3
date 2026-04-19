@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 // useLayoutEffect runs synchronously before paint (prevents scrollbar flash).
 // Falls back to useEffect on the server to avoid SSR warnings.
@@ -966,7 +966,21 @@ export default function OptionsPageResponsive() {
   //      merging behavior AND PrimaryOptionSlot's click interception).
   //   2. Whether the list actually overflows horizontally (drives nav visibility).
   //   3. Whether the scroll is at its left/right edge (drives prev/next disabled).
-  const primaryScrollRef = useRef<HTMLDivElement>(null);
+  // Callback-ref pattern: we need BOTH a ref (for synchronous access inside
+  // click handlers like scrollPrimaryByCard) AND a reactive state (for the
+  // useEffects that observe the scroll container). Why both:
+  // - OptionsPageResponsive early-returns <SummaryPageResponsive/> when an
+  //   option is selected, which unmounts the scroll container div. Returning
+  //   later re-mounts a NEW div. A plain `useRef` + `useEffect([])` would
+  //   leave the observers attached to the stale (detached) div, so overflow
+  //   detection on resize silently reads invalid values. Storing the element
+  //   in state re-triggers the observer setup every time the div re-mounts.
+  const primaryScrollRef = useRef<HTMLDivElement | null>(null);
+  const [primaryScrollEl, setPrimaryScrollEl] = useState<HTMLDivElement | null>(null);
+  const setPrimaryScrollNode = useCallback((el: HTMLDivElement | null) => {
+    primaryScrollRef.current = el;
+    setPrimaryScrollEl(el);
+  }, []);
   // Default `false` (conservative): before the IntersectionObserver fires its
   // first callback, show dots — not a (potentially wrong) merged pill. The
   // observer corrects to `true` for any slot that's actually fully visible.
@@ -987,8 +1001,10 @@ export default function OptionsPageResponsive() {
 
   // Observe each slot's intersection with the scroll container.
   // Slots identify themselves via `data-slot-index`.
+  // Depends on `primaryScrollEl` so it re-runs when the scroll container is
+  // re-mounted (e.g. after returning from the Summary page).
   useEffect(() => {
-    const root = primaryScrollRef.current;
+    const root = primaryScrollEl;
     if (!root) return;
 
     const observer = new IntersectionObserver(
@@ -1023,7 +1039,7 @@ export default function OptionsPageResponsive() {
       observer.observe(el)
     );
     return () => observer.disconnect();
-  }, []);
+  }, [primaryScrollEl]);
 
   // Track scroll position & overflow state (for nav visibility + button disabled state).
   //
@@ -1039,8 +1055,11 @@ export default function OptionsPageResponsive() {
   //    collapse to a single DOM read after layout settles.
   //  - Media-query listeners for md and lg act as a final safety net for any
   //    browser where the above events fire before CSS reflow completes.
+  //
+  // Depends on `primaryScrollEl` so listeners re-bind to a newly-mounted
+  // scroll container after returning from the Summary page.
   useEffect(() => {
-    const root = primaryScrollRef.current;
+    const root = primaryScrollEl;
     if (!root) return;
 
     let rafId = 0;
@@ -1082,7 +1101,7 @@ export default function OptionsPageResponsive() {
       mqlMd.removeEventListener('change', scheduleUpdate);
       mqlLg.removeEventListener('change', scheduleUpdate);
     };
-  }, []);
+  }, [primaryScrollEl]);
 
   // Scroll by one card "stride" (card width + gap). Measured from actual DOM.
   // Also: predict the final visibility array and set it immediately, so the
@@ -1241,7 +1260,7 @@ export default function OptionsPageResponsive() {
           overflowing cards as fully visible.
         */}
         <div
-          ref={primaryScrollRef}
+          ref={setPrimaryScrollNode}
           data-card-container
           className="flex flex-col gap-4 md:flex-row md:gap-3 md:overflow-x-auto md:overflow-y-hidden scrollbar-none lg:grid lg:grid-cols-3 lg:overflow-visible"
         >
