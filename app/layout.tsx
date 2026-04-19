@@ -14,13 +14,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Disable browser scroll restoration and reset to top immediately,
-            before React hydrates, so the cover curtain always starts at top. */}
+        {/* Disable browser scroll restoration, reset to top, and whitewash the
+            html background before React hydrates. The whitewash is needed because
+            the CoverCurtain covers <body> but not the <html> scrollbar-gutter
+            region on the right; without this, the gutter briefly shows the default
+            cream --arc-paper (#fffdfa) as a thin yellow strip on first paint. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
               window.scrollTo(0, 0);
+              document.documentElement.style.background = 'white';
             `,
           }}
         />
