@@ -193,11 +193,292 @@ function ChevronDownIcon({ size = 10 }: { size?: number }) {
   );
 }
 
+// ── OverflowNavigation ────────────────────────────────────────────────────────
+// Figma node 846:16944.
+// Prev / Next circular buttons (40×40, #f0f0f0) + Indicator pill.
+//
+// Indicator: one shape per option, same dark-gray (#737373). Consecutive
+// fully-visible options merge into a single elongated pill:
+//   • 1 option (not fully visible)  → 8×8 circle
+//   • N consecutive fully-visible   → pill of width `20·N − 12`
+//     (N=2 → 28px, matching Figma; N=3 → 48px; N=1 → 8px, same as a circle)
+//
+// Disabled state: 40% opacity when scroll is at its far edge in that direction.
+function OverflowNavChevron({
+  direction,
+  disabled,
+}: {
+  direction: 'prev' | 'next';
+  disabled?: boolean;
+}) {
+  // 10×10 SVG chevron. Prev = <  ; Next = >
+  const d = direction === 'prev' ? 'M6.25 2.5 L3.75 5 L6.25 7.5' : 'M3.75 2.5 L6.25 5 L3.75 7.5';
+  return (
+    <svg
+      width={10}
+      height={10}
+      viewBox="0 0 10 10"
+      fill="none"
+      aria-hidden
+      // Only the icon dims when the button is disabled — the pill background
+      // (#f0f0f0) stays at full opacity.
+      style={{ opacity: disabled ? 0.4 : 1 }}
+    >
+      <path d={d} stroke="#262626" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function OverflowNavButton({
+  direction,
+  disabled,
+  onClick,
+}: {
+  direction: 'prev' | 'next';
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="bg-[#f0f0f0] rounded-full flex items-center justify-center border-0 shrink-0 cursor-pointer disabled:cursor-not-allowed"
+      style={{ width: 40, height: 40 }}
+      aria-label={direction === 'prev' ? 'Previous option' : 'Next option'}
+    >
+      <OverflowNavChevron direction={direction} disabled={disabled} />
+    </button>
+  );
+}
+
+// Indicator layout constants.
+// DOT_GAP = 12 keeps the merged bar width at 28px for N=2 (matches Figma).
+// Container content width is fixed at (N-1)·(DOT_SIZE+DOT_GAP) + DOT_SIZE, so
+// the indicator pill never changes width regardless of which options are visible.
+const INDICATOR_DOT_SIZE = 8;
+const INDICATOR_DOT_GAP = 12;
+// Matches typical native smooth-scroll duration in Chrome/Firefox/Safari
+// (~300ms for a medium stride), so the bar shrink+extend resolves in sync
+// with the horizontal card scroll.
+const INDICATOR_ANIM_MS = 300;
+// Ease-out cubic (emphasized) — fast start, slow end; used for the trailing edge
+// that "catches up" first during a transition.
+const INDICATOR_EASE_OUT = 'cubic-bezier(0.33, 1, 0.68, 1)';
+// Ease-in cubic (emphasized) — slow start, fast end; used for the leading edge
+// that extends afterward.
+const INDICATOR_EASE_IN = 'cubic-bezier(0.32, 0, 0.67, 0)';
+
+function OverflowNavigation({
+  visibility,
+  canPrev,
+  canNext,
+  onPrev,
+  onNext,
+}: {
+  visibility: boolean[];
+  canPrev: boolean;
+  canNext: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const N = visibility.length;
+  // Fixed content width so the pill never visibly resizes between states.
+  const contentWidth =
+    N === 0 ? 0 : (N - 1) * (INDICATOR_DOT_SIZE + INDICATOR_DOT_GAP) + INDICATOR_DOT_SIZE;
+  // Fixed absolute positions for each option's background dot.
+  const dotPositions = Array.from(
+    { length: N },
+    (_, i) => i * (INDICATOR_DOT_SIZE + INDICATOR_DOT_GAP)
+  );
+
+  // Bar spans from the first visible option's dot to the last visible option's
+  // dot (inclusive). Assumes contiguous visibility (true on real scroll).
+  const firstVisible = visibility.indexOf(true);
+  const lastVisible = visibility.lastIndexOf(true);
+  const hasBar = firstVisible >= 0;
+  const barLeft = hasBar ? dotPositions[firstVisible] : 0;
+  const barRightEdge = hasBar ? dotPositions[lastVisible] + INDICATOR_DOT_SIZE : 0;
+  const barRightOffset = contentWidth - barRightEdge;
+
+  // Imperative animation so we can pick direction-specific easings per property.
+  const barRef = useRef<HTMLDivElement>(null);
+  const prevRef = useRef<{ left: number; right: number } | null>(null);
+
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+
+    const next = { left: barLeft, right: barRightOffset };
+
+    // First paint after the bar mounts: set initial values, no animation.
+    if (prevRef.current === null) {
+      bar.style.left = `${next.left}px`;
+      bar.style.right = `${next.right}px`;
+      prevRef.current = next;
+      return;
+    }
+
+    const prev = prevRef.current;
+    if (prev.left === next.left && prev.right === next.right) return;
+
+    // Pick the animation's start from the CURRENT computed style. If an
+    // in-flight animation was interrupted, this avoids a snap.
+    const cs = getComputedStyle(bar);
+    const fromLeft = parseFloat(cs.left) || 0;
+    const fromRight = parseFloat(cs.right) || 0;
+
+    // Cancel any in-flight animations so the new ones take over cleanly.
+    bar.getAnimations().forEach((a) => a.cancel());
+
+    // Direction: 'right' when the bar is moving rightward (scroll Next),
+    // 'left' when moving leftward (scroll Prev). Used to pick which edge is
+    // the "trailing" (ease-out) vs "leading" (ease-in) side — this produces
+    // the shrink-then-extend acceleration the user requested.
+    const direction =
+      next.left > prev.left
+        ? 'right'
+        : next.left < prev.left
+        ? 'left'
+        : next.right < prev.right
+        ? 'right'
+        : 'left';
+    const leftEasing = direction === 'right' ? INDICATOR_EASE_OUT : INDICATOR_EASE_IN;
+    const rightEasing = direction === 'right' ? INDICATOR_EASE_IN : INDICATOR_EASE_OUT;
+
+    // Commit the target values as inline style so the bar stays there after
+    // the animations finish (no `fill: forwards` needed).
+    bar.style.left = `${next.left}px`;
+    bar.style.right = `${next.right}px`;
+
+    // Two separate animations, one per property, each with its own easing.
+    bar.animate(
+      [{ left: `${fromLeft}px` }, { left: `${next.left}px` }],
+      { duration: INDICATOR_ANIM_MS, easing: leftEasing }
+    );
+    bar.animate(
+      [{ right: `${fromRight}px` }, { right: `${next.right}px` }],
+      { duration: INDICATOR_ANIM_MS, easing: rightEasing }
+    );
+
+    prevRef.current = next;
+  }, [barLeft, barRightOffset]);
+
+  return (
+    <div className="w-full flex justify-center">
+      <div className="flex gap-3 items-center justify-center">
+        <OverflowNavButton direction="prev" disabled={!canPrev} onClick={onPrev} />
+
+        {/* Indicator pill: fixed-width inner track, absolute-positioned dots + bar. */}
+        <div
+          className="bg-[#f0f0f0] rounded-full shrink-0"
+          style={{ padding: 16 }}
+        >
+          <div style={{ position: 'relative', width: contentWidth, height: INDICATOR_DOT_SIZE }}>
+            {/* Background dots — one per option, rendered at fixed positions.
+                The bar overlay hides the ones it covers (same color). */}
+            {dotPositions.map((pos, i) => (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: pos,
+                  top: 0,
+                  width: INDICATOR_DOT_SIZE,
+                  height: INDICATOR_DOT_SIZE,
+                  background: '#737373',
+                  borderRadius: '50%',
+                }}
+              />
+            ))}
+            {/* Animated bar — covers the first-visible to last-visible dot range.
+                left/right are set imperatively in the useEffect above. */}
+            {hasBar && (
+              <div
+                ref={barRef}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  height: INDICATOR_DOT_SIZE,
+                  background: '#737373',
+                  borderRadius: INDICATOR_DOT_SIZE / 2,
+                }}
+              />
+            )}
+          </div>
+        </div>
+
+        <OverflowNavButton direction="next" disabled={!canNext} onClick={onNext} />
+      </div>
+    </div>
+  );
+}
+
+// ── PrimaryOptionSlot ─────────────────────────────────────────────────────────
+// Wraps an OptionCard in the Section 1 horizontal-scroll list.
+// When the card is only partially visible (the "1/8 peek" on the right edge
+// when there's overflow), the FIRST tap scrolls the card fully into view
+// instead of firing the button underneath. Once fully visible, taps pass
+// through normally to Select / Change Option.
+//
+// Full-visibility is tracked by an IntersectionObserver owned by the parent
+// (OptionsPageResponsive) so that the indicator bar in OverflowNavigation can
+// react to the same source of truth. The slot registers itself via
+// `data-slot-index={index}` so the parent's observer can map each entry back
+// to its position in OPTIONS.
+function PrimaryOptionSlot({
+  opt,
+  index,
+  isFullyVisible,
+  onSelect,
+}: {
+  opt: FenceOption;
+  index: number;
+  isFullyVisible: boolean;
+  onSelect: () => void;
+}) {
+  const slotRef = useRef<HTMLDivElement>(null);
+
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (isFullyVisible) return;
+    // Stop the click from reaching any descendant (Select / Change Option buttons).
+    e.stopPropagation();
+    e.preventDefault();
+    slotRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'nearest', // horizontal: minimum scroll to make fully visible
+      block: 'nearest',  // vertical: do nothing if already in view
+    });
+  };
+
+  return (
+    <div
+      ref={slotRef}
+      data-slot-index={index}
+      className="md:shrink-0 md:w-[calc((100%-24px)/2.125)] lg:w-auto"
+      onClickCapture={handleClickCapture}
+    >
+      <OptionCard opt={opt} onSelect={onSelect} />
+    </div>
+  );
+}
+
 // ── Option Card ───────────────────────────────────────────────────────────────
 // Density-aware via Tailwind responsive classes:
 //   Low density (< md):  gap-8 pt-6 pb-5 px-4, info gap-4
 //   Medium density (md+): gap-6 pt-4 pb-6 px-6, info gap-3
-function OptionCard({ opt, onSelect }: { opt: FenceOption; onSelect: () => void }) {
+// `onChangeOption`: when provided, renders a "Change Option" button below the
+// Select CTA. Used only in the comparison-table header & footer cards in the
+// overflow state (total options > visible comparison slots). The menu is a
+// future iteration — the button is rendered but is a no-op for now.
+function OptionCard({
+  opt,
+  onSelect,
+  onChangeOption,
+}: {
+  opt: FenceOption;
+  onSelect: () => void;
+  onChangeOption?: () => void;
+}) {
   return (
     <div className="flex flex-col">
       {/* Hero image — aspect ratio 800:471 */}
@@ -253,7 +534,7 @@ function OptionCard({ opt, onSelect }: { opt: FenceOption; onSelect: () => void 
           </p>
         </div>
 
-        {/* CTA */}
+        {/* CTAs — Select (always) + Change Option (comparison overflow only) */}
         <div className="flex flex-col gap-4 md:gap-3 w-full">
           <button
             onClick={onSelect}
@@ -262,6 +543,18 @@ function OptionCard({ opt, onSelect }: { opt: FenceOption; onSelect: () => void 
           >
             Select
           </button>
+          {/* Change Option — shown only when handler provided AND overflow exists.
+              Hidden on lg+ because lg+ has enough slots to show all options (no overflow).
+              Figma: h-40px, white bg, border #d9d9d9, 14px text, color rgba(0,0,0,0.85) */}
+          {onChangeOption && (
+            <button
+              onClick={onChangeOption}
+              className="lg:hidden w-full h-10 bg-white border border-solid border-[#d9d9d9] text-[14px] rounded-[4px] flex items-center justify-center cursor-pointer"
+              style={{ fontFamily: 'Segoe UI, sans-serif', color: 'rgba(0,0,0,0.85)' }}
+            >
+              Change Option
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -491,10 +784,25 @@ function CoverCurtain({ onDismiss }: { onDismiss: () => void }) {
   // Lock body scroll while curtain is visible; restore on unmount.
   // scrollbar-gutter: stable (globals.css) keeps layout width constant,
   // so no paddingRight compensation is needed.
+  //
+  // Also set html background to pure white while the curtain is up:
+  // `html` has `scrollbar-gutter: stable` which reserves a right-edge gutter,
+  // and its default bg (--arc-paper = #fffdfa) is a subtle cream. The fixed
+  // curtain covers body but NOT html's gutter area, so the cream shows as a
+  // thin yellow strip next to the pure-white curtain. Forcing html white
+  // during mount hides that strip.
+  //
+  // Cleanup ALWAYS clears both inline styles to empty string (not to the
+  // previously-captured value): body was set to 'hidden' by SSR to prevent
+  // scrollbar flash, so "restoring" that would leave the page un-scrollable
+  // after dismiss. Clearing lets CSS defaults apply — body becomes scrollable,
+  // html reverts to the --arc-paper cream.
   useBrowserLayoutEffect(() => {
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.background = 'white';
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.background = '';
     };
   }, []);
 
@@ -652,6 +960,170 @@ export default function OptionsPageResponsive() {
   const stickyVisible = useStickyHeader();
   const [curtainMounted, setCurtainMounted] = useState(true);
   const [selectedOption, setSelectedOption] = useState<FenceOption | null>(null);
+  // ── Section 1 horizontal-scroll state ──────────────────────────────────────
+  // Tracks:
+  //   1. Per-option full-visibility (drives OverflowNavigation's indicator
+  //      merging behavior AND PrimaryOptionSlot's click interception).
+  //   2. Whether the list actually overflows horizontally (drives nav visibility).
+  //   3. Whether the scroll is at its left/right edge (drives prev/next disabled).
+  const primaryScrollRef = useRef<HTMLDivElement>(null);
+  // Default `false` (conservative): before the IntersectionObserver fires its
+  // first callback, show dots — not a (potentially wrong) merged pill. The
+  // observer corrects to `true` for any slot that's actually fully visible.
+  const [primaryVisibility, setPrimaryVisibility] = useState<boolean[]>(
+    () => OPTIONS.map(() => false)
+  );
+  const [primaryHasOverflow, setPrimaryHasOverflow] = useState(false);
+  const [primaryCanPrev, setPrimaryCanPrev] = useState(false);
+  const [primaryCanNext, setPrimaryCanNext] = useState(false);
+
+  // When the user clicks Prev/Next we set visibility to the *predicted* final
+  // state immediately, so the bar animates once (matching scroll duration)
+  // rather than in two sequential phases. During this window we must ignore
+  // IntersectionObserver callbacks — otherwise the intermediate [F,T,F] state
+  // it reports mid-scroll would cancel and re-trigger the animation.
+  const primaryAnimatingRef = useRef(false);
+  const primaryAnimatingTimeoutRef = useRef<number | null>(null);
+
+  // Observe each slot's intersection with the scroll container.
+  // Slots identify themselves via `data-slot-index`.
+  useEffect(() => {
+    const root = primaryScrollRef.current;
+    if (!root) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Ignore observer updates during a click-driven bar animation window
+        // — the predicted visibility is already in state, and intermediate
+        // ratios from the in-flight scroll would trigger extra animations.
+        if (primaryAnimatingRef.current) return;
+        setPrimaryVisibility((prev) => {
+          const next = [...prev];
+          let changed = false;
+          for (const entry of entries) {
+            const idxAttr = (entry.target as HTMLElement).dataset.slotIndex;
+            const idx = idxAttr == null ? -1 : parseInt(idxAttr, 10);
+            if (idx >= 0 && idx < next.length) {
+              // 0.99 tolerates sub-pixel rounding from calc()
+              const v = entry.intersectionRatio >= 0.99;
+              if (next[idx] !== v) {
+                next[idx] = v;
+                changed = true;
+              }
+            }
+          }
+          // Skip re-render when nothing actually changed.
+          return changed ? next : prev;
+        });
+      },
+      { root, threshold: [0, 0.99, 1] }
+    );
+
+    root.querySelectorAll<HTMLElement>('[data-slot-index]').forEach((el) =>
+      observer.observe(el)
+    );
+    return () => observer.disconnect();
+  }, []);
+
+  // Track scroll position & overflow state (for nav visibility + button disabled state).
+  //
+  // Robustness notes (overflow detection across breakpoint changes):
+  //  - ResizeObserver only fires on box-size changes. When the layout switches
+  //    from L+ grid (3-col, no overflow) to M flex-row (2-col + 1/8 peek),
+  //    the root's clientWidth is still 100% of its parent and may barely
+  //    change — but scrollWidth jumps from clientWidth to ~1.5× it. Observing
+  //    only the root misses this. We also observe each child slot: the child
+  //    widths change dramatically (grid auto → fixed calc()) so their Resize
+  //    events reliably fire on breakpoint crossings.
+  //  - rAF-throttle: multiple triggers (resize/scroll/RO/MQL) in one tick all
+  //    collapse to a single DOM read after layout settles.
+  //  - Media-query listeners for md and lg act as a final safety net for any
+  //    browser where the above events fire before CSS reflow completes.
+  useEffect(() => {
+    const root = primaryScrollRef.current;
+    if (!root) return;
+
+    let rafId = 0;
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        if (!root.isConnected) return;
+        const overflow = root.scrollWidth > root.clientWidth + 1;
+        setPrimaryHasOverflow(overflow);
+        setPrimaryCanPrev(root.scrollLeft > 1);
+        setPrimaryCanNext(root.scrollLeft + root.clientWidth < root.scrollWidth - 1);
+      });
+    };
+
+    scheduleUpdate();
+    root.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+
+    // Observe root + each slot. Slot-level observation catches layout-mode
+    // switches (grid → flex) that don't change the root's own box size.
+    const ro = new ResizeObserver(scheduleUpdate);
+    ro.observe(root);
+    root
+      .querySelectorAll<HTMLElement>('[data-slot-index]')
+      .forEach((el) => ro.observe(el));
+
+    // Explicit breakpoint listeners as a final safety net.
+    const mqlMd = window.matchMedia('(min-width: 768px)');
+    const mqlLg = window.matchMedia('(min-width: 1024px)');
+    mqlMd.addEventListener('change', scheduleUpdate);
+    mqlLg.addEventListener('change', scheduleUpdate);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      root.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      ro.disconnect();
+      mqlMd.removeEventListener('change', scheduleUpdate);
+      mqlLg.removeEventListener('change', scheduleUpdate);
+    };
+  }, []);
+
+  // Scroll by one card "stride" (card width + gap). Measured from actual DOM.
+  // Also: predict the final visibility array and set it immediately, so the
+  // bar runs a SINGLE 300ms animation that lines up with the native smooth
+  // scroll — instead of two sequential animations triggered mid-scroll by
+  // the IntersectionObserver.
+  const scrollPrimaryByCard = (direction: 1 | -1) => {
+    const root = primaryScrollRef.current;
+    if (!root) return;
+    const slots = root.querySelectorAll<HTMLElement>('[data-slot-index]');
+    if (slots.length < 2) return;
+    const stride =
+      slots[1].getBoundingClientRect().left - slots[0].getBoundingClientRect().left;
+    root.scrollBy({ left: stride * direction, behavior: 'smooth' });
+
+    // Predict new visibility: shift the current visible run by one slot in
+    // the scroll direction. If prediction exceeds bounds, leave state alone.
+    setPrimaryVisibility((prev) => {
+      const firstVisible = prev.indexOf(true);
+      const lastVisible = prev.lastIndexOf(true);
+      if (firstVisible < 0) return prev;
+      const nextFirst = firstVisible + direction;
+      const nextLast = lastVisible + direction;
+      if (nextFirst < 0 || nextLast >= prev.length) return prev;
+      const next = prev.map(() => false);
+      for (let i = nextFirst; i <= nextLast; i++) next[i] = true;
+      return next;
+    });
+
+    // Block observer-driven updates for the duration of the animation so the
+    // intermediate [F,T,F] ratios don't override our prediction. Use a slight
+    // buffer beyond INDICATOR_ANIM_MS to ensure the bar anim has fully settled.
+    primaryAnimatingRef.current = true;
+    if (primaryAnimatingTimeoutRef.current !== null) {
+      window.clearTimeout(primaryAnimatingTimeoutRef.current);
+    }
+    primaryAnimatingTimeoutRef.current = window.setTimeout(() => {
+      primaryAnimatingRef.current = false;
+      primaryAnimatingTimeoutRef.current = null;
+    }, INDICATOR_ANIM_MS + 50);
+  };
 
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -667,17 +1139,44 @@ export default function OptionsPageResponsive() {
     setCurtainMounted(false);
   }
 
-  function scrollToComparison() {
-    document.getElementById('comparison')?.scrollIntoView({ behavior: 'smooth' });
+  // Smart scroll target: when the comparison mini-header cards are rendered
+  // AND visible (overflow state on XS/S/M), jump to their top edge;
+  // otherwise fall back to the Parameter Comparison heading.
+  // `offsetParent === null` means the element is `display:none` (or hidden via
+  // a lg:hidden ancestor), so it's in the DOM but not visible.
+  function scrollToCompareArea() {
+    const cards = document.getElementById('comparison-cards');
+    const target =
+      cards && cards.offsetParent !== null
+        ? cards
+        : document.getElementById('comparison');
+    target?.scrollIntoView({ behavior: 'smooth' });
   }
 
-  function scrollToComparisonCards() {
-    document.getElementById('comparison-cards')?.scrollIntoView({ behavior: 'smooth' });
-  }
+  // ── Comparison overflow state ──────────────────────────────────────────────
+  // When total options > visible comparison slots (overflow), two options are
+  // shown side-by-side on < lg and a "Change Option" button is exposed so the
+  // user can swap in any hidden option via a menu (menu is a future iteration).
+  //
+  // Visible slots per breakpoint:
+  //   XS/S/M (< lg):  2 slots  → overflow if OPTIONS.length > 2
+  //   L+ (lg+):       3 slots  → overflow if OPTIONS.length > 3
+  //
+  // `comparisonPair` holds the IDs of the 2 options currently being compared
+  // on < lg. Rendering: we still iterate all OPTIONS in document order and hide
+  // the ones NOT in the pair via `hidden lg:block/flex`, so lg+ always sees all
+  // options regardless of pair state, and grid auto-flow places the 2 visible
+  // items in the 2 columns in document order.
+  const [comparisonPair, _setComparisonPair] = useState<[number, number]>(
+    [OPTIONS[0].id, OPTIONS[1].id]
+  );
+  const isInPair = (id: number) => comparisonPair.includes(id);
+  const hasOverflow = OPTIONS.length > 2;
+  // Change Option button: stub for now; menu is a future iteration.
+  const openChangeOptionMenu = (_optId: number) => {
+    // no-op — menu will be implemented in a later iteration
+  };
 
-  // Options visible in comparison at each breakpoint:
-  // < lg  → first 2 options
-  // lg+   → all 3 options
   const comparisonOptions = OPTIONS; // rendered with CSS visibility per column
 
   // Show Summary page when an option is selected
@@ -722,21 +1221,60 @@ export default function OptionsPageResponsive() {
       */}
       <div className="flex flex-col px-4 sm:px-6 md:px-4 lg:px-6 py-4 sm:py-6 gap-4 md:gap-3">
 
-        {/* ── Section 1: Primary option cards ─────────────────────────────── */}
-        {/*
-          Layout:
-            XS/S  (< md):   flex-col — all 3 cards stacked
-            M     (md):     2-col grid — show cards 1 & 2 only (card 3 hidden)
-            L+    (lg+):    3-col grid — all 3 cards shown
+        {/* ── Section 1: Primary All Option List ─────────────────────────────
+          Horizontal overflow strategy (total > visible columns → horizontal scroll):
+            XS/S  (< md):   flex-col, all cards stacked vertically (no horizontal overflow)
+            M     (md):     flex-row, horizontal scroll when total > 2
+                            Card width: (100% − 2 × 12px gap) / (2 + 1/8)
+                            → 2 full cards + 1/8 of next card peeking on the right
+            L+    (lg+):    3-col grid (currently total = 3, no overflow)
+                            Future iteration: add scroll on L+ when total > 3
+
+          Why calc((100%−24px)/2.125): 2 full cards + 2 gaps + 1/8 card = visible width
+            cardW = (visibleW − 2·gap) / (2 + 1/8)
         */}
-        <div data-card-container className="flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-3 lg:grid-cols-3">
-          <OptionCard opt={OPTIONS[0]} onSelect={() => selectOption(OPTIONS[0])} />
-          <OptionCard opt={OPTIONS[1]} onSelect={() => selectOption(OPTIONS[1])} />
-          {/* Card 3: visible on mobile + desktop, hidden on tablet */}
-          <div className="block md:hidden lg:block">
-            <OptionCard opt={OPTIONS[2]} onSelect={() => selectOption(OPTIONS[2])} />
-          </div>
+        {/*
+          md:overflow-y-hidden is explicit on purpose: the IntersectionObserver
+          spec expands the root's intersection rect to include any axis that
+          has `overflow: visible` (including the default). Without an explicit
+          overflow-y on M, the observer may mistakenly report horizontally-
+          overflowing cards as fully visible.
+        */}
+        <div
+          ref={primaryScrollRef}
+          data-card-container
+          className="flex flex-col gap-4 md:flex-row md:gap-3 md:overflow-x-auto md:overflow-y-hidden scrollbar-none lg:grid lg:grid-cols-3 lg:overflow-visible"
+        >
+          {OPTIONS.map((opt, i) => (
+            <PrimaryOptionSlot
+              key={opt.id}
+              opt={opt}
+              index={i}
+              isFullyVisible={primaryVisibility[i] ?? true}
+              onSelect={() => selectOption(opt)}
+            />
+          ))}
         </div>
+
+        {/* Overflow Navigation — shown only when the All Option List actually
+            overflows horizontally (scrollWidth > clientWidth). Disabled arrows
+            at the scroll edges; indicator merges consecutive fully-visible
+            option dots into a single pill.
+
+            Spacing: total gap between the list and nav = Spacing M
+              Low density (XS/S):   24px  = parent gap-4 (16) + mt-2 (8)
+              Medium density (md+): 16px  = parent gap-3 (12) + md:mt-1 (4) */}
+        {primaryHasOverflow && (
+          <div className="mt-2 md:mt-1">
+            <OverflowNavigation
+              visibility={primaryVisibility}
+              canPrev={primaryCanPrev}
+              canNext={primaryCanNext}
+              onPrev={() => scrollPrimaryByCard(-1)}
+              onNext={() => scrollPrimaryByCard(1)}
+            />
+          </div>
+        )}
 
         {/* ── Back to Top (mobile only, between main cards and need-support) */}
         <div className="flex justify-center md:hidden">
@@ -768,7 +1306,7 @@ export default function OptionsPageResponsive() {
 
           {/* Mobile: full-width bordered button */}
           <button
-            onClick={scrollToComparisonCards}
+            onClick={scrollToCompareArea}
             className="md:hidden w-full h-10 bg-white border border-[#262626] rounded-[4px] text-[14px] text-[rgba(0,0,0,0.85)] flex items-center justify-center gap-0.5 cursor-pointer"
             style={{ fontFamily: 'Segoe UI, sans-serif' }}
           >
@@ -777,7 +1315,7 @@ export default function OptionsPageResponsive() {
 
           {/* Desktop: text link with chevron-down */}
           <button
-            onClick={scrollToComparison}
+            onClick={scrollToCompareArea}
             className="hidden md:flex flex-col items-center gap-3 px-1 py-1.5 rounded-[4px] cursor-pointer"
             style={{ fontFamily: 'Segoe UI Variable, sans-serif', fontWeight: 300 }}
           >
@@ -795,14 +1333,25 @@ export default function OptionsPageResponsive() {
           + Product table
         */}
 
-        {/* Mini cards: XS/S only — hidden on md+ since primary cards are already horizontal */}
-        <div id="comparison-cards" data-card-container className="grid grid-cols-2 gap-4 md:hidden">
-          {comparisonOptions.map((opt, i) => (
-            <div key={opt.id} className={i === 2 ? 'hidden lg:block' : ''}>
-              <OptionCard opt={opt} onSelect={() => selectOption(opt)} />
-            </div>
-          ))}
-        </div>
+        {/*
+          Mini comparison header cards.
+          Show on XS/S/M when there's overflow (total > 2 visible slots);
+          hidden on L+ since the comparison table already shows all options.
+          The card NOT in comparisonPair is hidden via `hidden lg:block`.
+        */}
+        {hasOverflow && (
+          <div id="comparison-cards" data-card-container className="grid grid-cols-2 gap-4 lg:hidden">
+            {comparisonOptions.map((opt) => (
+              <div key={opt.id} className={isInPair(opt.id) ? '' : 'hidden lg:block'}>
+                <OptionCard
+                  opt={opt}
+                  onSelect={() => selectOption(opt)}
+                  onChangeOption={() => openChangeOptionMenu(opt.id)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Parameter Comparison Section */}
         <div
@@ -817,12 +1366,12 @@ export default function OptionsPageResponsive() {
             Schedule and Pricing
           </p>
 
-          {/* Param columns: 2-col on <lg, 3-col on lg+ */}
+          {/* Param columns: 2-col on <lg (shows comparisonPair), 3-col on lg+ (all) */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3">
-            {comparisonOptions.map((opt, i) => (
+            {comparisonOptions.map((opt) => (
               <div
                 key={opt.id}
-                className={`bg-white flex flex-col${i === 2 ? ' hidden lg:flex' : ''}`}
+                className={`bg-white flex flex-col${isInPair(opt.id) ? '' : ' hidden lg:flex'}`}
               >
                 <ComparisonParam label="Contract Total" value={opt.contractTotal} />
                 <ComparisonParam
@@ -850,12 +1399,12 @@ export default function OptionsPageResponsive() {
             Fence Parts
           </p>
 
-          {/* Product columns: 2-col on <lg, 3-col on lg+ */}
+          {/* Product columns: 2-col on <lg (shows comparisonPair), 3-col on lg+ (all) */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3">
-            {comparisonOptions.map((opt, i) => (
+            {comparisonOptions.map((opt) => (
               <div
                 key={opt.id}
-                className={`flex flex-col${i === 2 ? ' hidden lg:flex' : ''}`}
+                className={`flex flex-col${isInPair(opt.id) ? '' : ' hidden lg:flex'}`}
               >
                 {opt.products.map((p) => (
                   <ProductLineItem
@@ -893,11 +1442,19 @@ export default function OptionsPageResponsive() {
           </button>
         </div>
 
-        {/* ── Section 5: Bottom option cards (repeated for easy re-selection) */}
+        {/*
+          Section 5: Bottom option cards (mirror of the comparison header — same pair on < lg, all on lg+).
+          Change Option button exposed only on the two pair-visible cards, matching the header.
+        */}
         <div id="section-5-cards" data-card-container className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3">
-          {comparisonOptions.map((opt, i) => (
-            <div key={opt.id} className={i === 2 ? 'hidden lg:block' : ''}>
-              <OptionCard opt={opt} onSelect={() => selectOption(opt)} />
+          {comparisonOptions.map((opt) => (
+            <div key={opt.id} className={isInPair(opt.id) ? '' : 'hidden lg:block'}>
+              <OptionCard
+                opt={opt}
+                onSelect={() => selectOption(opt)}
+                // Button auto-hidden on lg+ inside OptionCard via `lg:hidden`.
+                onChangeOption={hasOverflow ? () => openChangeOptionMenu(opt.id) : undefined}
+              />
             </div>
           ))}
         </div>
