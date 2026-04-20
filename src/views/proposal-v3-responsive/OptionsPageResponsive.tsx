@@ -10,43 +10,6 @@ import type { FenceOption as SummaryFenceOption } from './SummaryPageResponsive'
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 
-// ── Viewport-width font-size hook ────────────────────────────────────────────
-// Returns a font size in px that updates whenever the window is resized.
-// breakpoints: array of [minWidth, fontSize] pairs, sorted ascending by minWidth.
-function useViewportFontSize(breakpoints: [number, number][]): number {
-  const getSize = () => {
-    const w = typeof window !== 'undefined' ? window.innerWidth : 0;
-    let result = breakpoints[0][1];
-    for (const [minW, size] of breakpoints) {
-      if (w >= minW) result = size;
-    }
-    return result;
-  };
-  // CRITICAL: initial state must be a FIXED SSR-safe value, NOT the result of
-  // getSize(). Reason: getSize() as the useState initializer runs on the client
-  // too (during hydration) and returns the real viewport-matched value (e.g.
-  // 28). But the SSR HTML contains the smallest-breakpoint value (24), because
-  // on the server window is undefined. React 19 hydrates the SSR DOM as-is
-  // without overwriting inline styles, so the DOM keeps `font-size:24px` while
-  // React's internal props record `fontSize:28`. Any subsequent setSize(28)
-  // call is then a no-op (state already 28) — so the DOM never updates until a
-  // resize event triggers a state change to a different number.
-  //
-  // Fix: always start the state at breakpoints[0][1], so SSR and initial client
-  // render truly agree. Then sync to the real viewport size in useLayoutEffect
-  // — this produces a genuine state change (24 → 28) and React commits the new
-  // inline style before paint, so there's no visible flash.
-  const [size, setSize] = useState(breakpoints[0][1]);
-  useBrowserLayoutEffect(() => {
-    setSize(getSize());
-    const handler = () => setSize(getSize());
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return size;
-}
-
 // ── Equal-height hook ─────────────────────────────────────────────────────────
 // For each [data-card-container], finds all [data-card-section="X"] elements,
 // resets their heights, measures the tallest, then applies that height to all.
@@ -667,17 +630,7 @@ function ProductLineItem({
 // Font XXL token: Low Density (<md) = 20px / Medium Density (md+) = 24px
 // Mobile layout  (<md): logo 160×160, stacked CTAs (Valid Until → Explore → Inspection)
 // Desktop layout (md+): logo 320×320, side-by-side CTAs (Inspection | Explore), then Valid Until
-// Title font sizes: XS=24 S=28 M=32 XL=40  (Figma Font XL/XXL per breakpoint)
-const COVER_TITLE_BREAKPOINTS: [number, number][] = [
-  [0,    24],  // XS  <640
-  [640,  28],  // S   640-767
-  [768,  32],  // M   768-1279
-  [1280, 40],  // XL  1280+
-];
-
 function CoverPageContent({ onExplore }: { onExplore: () => void }) {
-  const titleFontSize = useViewportFontSize(COVER_TITLE_BREAKPOINTS);
-
   // ── Token table (from Figma variable defs per breakpoint frame) ──────────────
   // FONTS — viewport-responsive (change at sm and xl):
   //   Font S  : XS=12  S=14  M=14  L=14  XL=16  XXL=16  → text-[12px] sm:text-[14px] xl:text-[16px]
@@ -712,10 +665,15 @@ function CoverPageContent({ onExplore }: { onExplore: () => void }) {
         <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-light text-[#262626] text-center leading-normal">
           1722 Willis Ave NW, Grand Rapids, MI 49504
         </p>
-        {/* Title — XS=24 S=28 M=32 XL=40px, computed via useViewportFontSize */}
+        {/* Title — XS=24 S=28 M=32 XL=40px, via Tailwind responsive classes.
+            Pure CSS (no JS) so the SSR HTML renders at the correct size on
+            first paint — using useState + useLayoutEffect always produces a
+            small-to-large flash because Next.js shows SSR HTML (smallest
+            breakpoint, since window is undefined on server) before React
+            hydrates and can run effects. */}
         <p
-          className="font-light text-[#262626] text-center leading-normal"
-          style={{ fontSize: titleFontSize, letterSpacing: '-0.03em' }}
+          className="font-light text-[#262626] text-center leading-normal text-[24px] sm:text-[28px] md:text-[32px] xl:text-[40px]"
+          style={{ letterSpacing: '-0.03em' }}
         >
           FENCE REPLACEMENT PROPOSAL
         </p>
