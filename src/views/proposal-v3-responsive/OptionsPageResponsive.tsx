@@ -22,8 +22,16 @@ function useViewportFontSize(breakpoints: [number, number][]): number {
     }
     return result;
   };
+  // Initial state uses the smallest breakpoint so SSR and first client render
+  // agree (window is undefined on the server → w=0 → breakpoints[0][1]).
+  // We then sync to the real viewport width synchronously on mount via
+  // useLayoutEffect — this runs before paint, so the user never sees the
+  // SSR-default size flash. Without this, the size only updated on the next
+  // `resize` event, so on first load/refresh the title stayed at XS size
+  // until the user resized the window.
   const [size, setSize] = useState(getSize);
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
+    setSize(getSize());
     const handler = () => setSize(getSize());
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
