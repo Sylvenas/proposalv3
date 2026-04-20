@@ -22,14 +22,21 @@ function useViewportFontSize(breakpoints: [number, number][]): number {
     }
     return result;
   };
-  // Initial state uses the smallest breakpoint so SSR and first client render
-  // agree (window is undefined on the server → w=0 → breakpoints[0][1]).
-  // We then sync to the real viewport width synchronously on mount via
-  // useLayoutEffect — this runs before paint, so the user never sees the
-  // SSR-default size flash. Without this, the size only updated on the next
-  // `resize` event, so on first load/refresh the title stayed at XS size
-  // until the user resized the window.
-  const [size, setSize] = useState(getSize);
+  // CRITICAL: initial state must be a FIXED SSR-safe value, NOT the result of
+  // getSize(). Reason: getSize() as the useState initializer runs on the client
+  // too (during hydration) and returns the real viewport-matched value (e.g.
+  // 28). But the SSR HTML contains the smallest-breakpoint value (24), because
+  // on the server window is undefined. React 19 hydrates the SSR DOM as-is
+  // without overwriting inline styles, so the DOM keeps `font-size:24px` while
+  // React's internal props record `fontSize:28`. Any subsequent setSize(28)
+  // call is then a no-op (state already 28) — so the DOM never updates until a
+  // resize event triggers a state change to a different number.
+  //
+  // Fix: always start the state at breakpoints[0][1], so SSR and initial client
+  // render truly agree. Then sync to the real viewport size in useLayoutEffect
+  // — this produces a genuine state change (24 → 28) and React commits the new
+  // inline style before paint, so there's no visible flash.
+  const [size, setSize] = useState(breakpoints[0][1]);
   useBrowserLayoutEffect(() => {
     setSize(getSize());
     const handler = () => setSize(getSize());
