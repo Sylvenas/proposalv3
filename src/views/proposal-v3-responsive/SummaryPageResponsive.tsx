@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
+import SignatureOverlay from './SignatureOverlay';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -714,10 +715,12 @@ function StickyFooter({
   visible,
   financials,
   onScrollToSummary,
+  onSignApprove,
 }: {
   visible: boolean;
   financials: Financials;
   onScrollToSummary: () => void;
+  onSignApprove: () => void;
 }) {
   return (
     <div
@@ -763,6 +766,7 @@ function StickyFooter({
       {/* Sign & Approve button — XS px=12px, S/M px=32px */}
       <div className="flex items-center self-stretch">
         <button
+          onClick={onSignApprove}
           className="bg-[#d41a32] flex items-center justify-center h-full rounded-[2px] cursor-pointer border-0 px-3 sm:px-8"
           style={{ paddingTop: 4, paddingBottom: 4 }}
         >
@@ -785,10 +789,12 @@ function SummaryContent({
   option,
   ctaRef,
   financials,
+  onSignApprove,
 }: {
   option: FenceOption;
   ctaRef?: React.RefObject<HTMLDivElement | null>;
   financials: Financials;
+  onSignApprove: () => void;
 }) {
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
@@ -871,7 +877,10 @@ function SummaryContent({
         {/* CTAs — ref used to hide sticky footer when Sign & Approve is fully visible */}
         <div ref={ctaRef} className="flex flex-col gap-3 items-start w-full">
           {/* Sign & Approve */}
-          <button className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0">
+          <button
+            onClick={onSignApprove}
+            className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
+          >
             <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
               style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}>
               Sign &amp; Approve
@@ -969,6 +978,9 @@ export default function SummaryPageResponsive({
 
   // ── Addon state (lifted so financials can respond) ─────────────────────────
   const [addons, setAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
+
+  // ── Signature overlay state ────────────────────────────────────────────────
+  const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
 
   function toggleAddon(id: number) {
     setAddons((prev) => prev.map((a) => (a.id === id ? { ...a, selected: !a.selected } : a)));
@@ -1118,7 +1130,12 @@ export default function SummaryPageResponsive({
               <div ref={bottomTitleRef}>
                 <OptionSummaryTitleBlock option={option} showSummaryLabel />
               </div>
-              <SummaryContent option={option} ctaRef={ctaRef} financials={financials} />
+              <SummaryContent
+                option={option}
+                ctaRef={ctaRef}
+                financials={financials}
+                onSignApprove={() => setShowSignatureOverlay(true)}
+              />
             </div>
 
             {/*
@@ -1128,7 +1145,11 @@ export default function SummaryPageResponsive({
             */}
             <div className="hidden lg:flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
               <OptionSummaryTitleBlock option={option} showSummaryLabel />
-              <SummaryContent option={option} financials={financials} />
+              <SummaryContent
+                option={option}
+                financials={financials}
+                onSignApprove={() => setShowSignatureOverlay(true)}
+              />
             </div>
           </div>
         </div>
@@ -1148,7 +1169,16 @@ export default function SummaryPageResponsive({
         onScrollToSummary={() =>
           mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
+        onSignApprove={() => setShowSignatureOverlay(true)}
       />
+
+      {/* Signature Overlay — XS/S/M fullscreen, L+ modal with blurred backdrop */}
+      {showSignatureOverlay && (
+        <SignatureOverlay
+          clientName="Michael Rozier"
+          onClose={() => setShowSignatureOverlay(false)}
+        />
+      )}
     </div>
   );
 }
