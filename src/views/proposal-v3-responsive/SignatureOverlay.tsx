@@ -10,6 +10,9 @@ const EASE_IN  = 'cubic-bezier(0.32, 0, 0.67, 0)';
 // Simulated contract-generation delay. The real integration will replace
 // this with an actual fetch lifecycle.
 const SKELETON_MS = 2000;
+// After the user clicks Sign, we show a "Finishing Signature" state for
+// this many ms before dismissing the overlay and navigating to the hub.
+const SUBMIT_MS = 2000;
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -296,16 +299,27 @@ function Spinner({ size = 16 }: { size?: number }) {
 function SignatureUtility({
   clientName,
   mobileLayout,
-  disabled,
+  loading,
+  submitting,
   onCancel,
   onSign,
 }: {
   clientName: string;
   mobileLayout: boolean;
-  disabled: boolean;
+  /** Contract generation in progress — PDF skeleton is showing. */
+  loading: boolean;
+  /** User has clicked Sign — "Finishing Signature" state. */
+  submitting: boolean;
   onCancel: () => void;
   onSign: () => void;
 }) {
+  const disabled = loading || submitting;
+  // Button label precedence: submitting > loading > idle.
+  const buttonLabel = submitting
+    ? 'Finishing Signature'
+    : loading
+    ? 'Loading Contract'
+    : 'Next Field (3)';
   if (mobileLayout) {
     return (
       <div
@@ -359,7 +373,7 @@ function SignatureUtility({
               className="text-[14px] sm:text-[16px] font-semibold text-white whitespace-nowrap"
               style={{ lineHeight: '18px' }}
             >
-              {disabled ? 'Loading Contract' : 'Next Field (3)'}
+              {buttonLabel}
             </span>
           </button>
         </div>
@@ -401,7 +415,7 @@ function SignatureUtility({
           className="text-[16px] font-semibold text-white whitespace-nowrap"
           style={{ lineHeight: '18px' }}
         >
-          {disabled ? 'Loading Contract' : 'Next Field (3)'}
+          {buttonLabel}
         </span>
       </button>
     </div>
@@ -416,18 +430,26 @@ function SignatureUtility({
 export default function SignatureOverlay({
   clientName,
   onClose,
+  onApproved,
 }: {
   clientName: string;
+  /** User cancelled (Esc / backdrop / X / mobile Cancel). */
   onClose: () => void;
+  /** User successfully signed — called after the "Finishing Signature"
+   *  delay and the exit animation. The parent should navigate to the
+   *  Project Hub in response. */
+  onApproved: () => void;
 }) {
   // `open`: drives CSS transform + opacity. Starts false so the first paint
   //   has translateY(100%), then rAF flips it to true for the slide-in.
   // `closing`: once true, we're animating out; ignore further close triggers.
-  const [open, setOpen]       = useState(false);
-  const [closing, setClosing] = useState(false);
+  const [open, setOpen]             = useState(false);
+  const [closing, setClosing]       = useState(false);
   // Loading state — starts true; simulate a contract-generation delay, then
   // swap the skeleton for real PDF pages and enable the Sign button.
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
+  // Submitting state — true after user clicks Sign, until we call onApproved.
+  const [submitting, setSubmitting] = useState(false);
 
   // Trigger enter animation one frame after mount (so the initial
   // translateY(100%)/opacity:0 state renders first).
@@ -444,11 +466,12 @@ export default function SignatureOverlay({
 
   // Shared close path: start exit animation, then notify parent after it
   // completes. Guarded so rapid clicks don't schedule multiple unmounts.
-  const requestClose = () => {
+  // If approved=true, call onApproved (navigate forward); otherwise onClose.
+  const requestClose = (approved = false) => {
     if (closing) return;
     setClosing(true);
     setOpen(false);
-    window.setTimeout(onClose, ANIM_MS);
+    window.setTimeout(approved ? onApproved : onClose, ANIM_MS);
   };
 
   // Close on Esc + lock body scroll while the overlay is mounted.
@@ -467,8 +490,12 @@ export default function SignatureOverlay({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Simulate signature submission: show "Finishing Signature" + spinner for
+  // SUBMIT_MS, then play the slide-out animation and call onApproved.
   const handleSign = () => {
-    // Placeholder — real signature flow not implemented yet.
+    if (loading || submitting || closing) return;
+    setSubmitting(true);
+    window.setTimeout(() => requestClose(true), SUBMIT_MS);
   };
 
   // Direction-aware easing: enter uses ease-out (decelerate into place),
@@ -518,8 +545,9 @@ export default function SignatureOverlay({
         <SignatureUtility
           clientName={clientName}
           mobileLayout
-          disabled={loading}
-          onCancel={requestClose}
+          loading={loading}
+          submitting={submitting}
+          onCancel={() => requestClose(false)}
           onSign={handleSign}
         />
       </div>
@@ -535,7 +563,7 @@ export default function SignatureOverlay({
           backdropFilter: 'blur(8px)',
           ...fadeStyle,
         }}
-        onClick={requestClose}
+        onClick={() => requestClose(false)}
       >
         {/*
           Outer card — outer margin: L=24, XL=24, XXL=32.
@@ -554,7 +582,7 @@ export default function SignatureOverlay({
         >
           {/* Close (X) — top-right corner */}
           <button
-            onClick={requestClose}
+            onClick={() => requestClose(false)}
             aria-label="Close"
             className="absolute top-3 right-3 z-[3] w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-[#f5f5f5] cursor-pointer border-0"
           >
@@ -572,8 +600,9 @@ export default function SignatureOverlay({
               <SignatureUtility
                 clientName={clientName}
                 mobileLayout={false}
-                disabled={loading}
-                onCancel={requestClose}
+                loading={loading}
+                submitting={submitting}
+                onCancel={() => requestClose(false)}
                 onSign={handleSign}
               />
             </div>

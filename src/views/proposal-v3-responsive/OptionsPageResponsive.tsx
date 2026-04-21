@@ -6,7 +6,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 // Falls back to useEffect on the server to avoid SSR warnings.
 const useBrowserLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import SummaryPageResponsive from './SummaryPageResponsive';
-import type { FenceOption as SummaryFenceOption } from './SummaryPageResponsive';
+import ProjectHubPageResponsive from './ProjectHubPageResponsive';
+import type { FenceOption as SummaryFenceOption, AddonItem } from './SummaryPageResponsive';
+import { DEFAULT_ADDONS } from './SummaryPageResponsive';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 
@@ -933,6 +935,17 @@ export default function OptionsPageResponsive() {
   const stickyVisible = useStickyHeader();
   const [curtainMounted, setCurtainMounted] = useState(true);
   const [selectedOption, setSelectedOption] = useState<FenceOption | null>(null);
+  // Once true, the signed Project Hub replaces the Summary page for the
+  // currently-selected option. Resetting the selection also resets this.
+  const [approved, setApproved] = useState(false);
+  // Timestamp when the proposal was approved. Captured at the moment the
+  // user signs on the Summary page; rendered on the Project Hub title block.
+  const [approvedAt, setApprovedAt] = useState<Date | null>(null);
+  // ── Shared addon state ─────────────────────────────────────────────────────
+  // Owned here so selections made on the Summary page persist when the user
+  // approves and navigates to Project Hub (which renders selected addons as a
+  // new "Add-ons" category in the Included Products list).
+  const [addons, setAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
   // ── Section 1 horizontal-scroll state ──────────────────────────────────────
   // Tracks:
   //   1. Per-option full-visibility (drives OverflowNavigation's indicator
@@ -1171,11 +1184,30 @@ export default function OptionsPageResponsive() {
 
   const comparisonOptions = OPTIONS; // rendered with CSS visibility per column
 
-  // Show Summary page when an option is selected
+  // Once approved, the Project Hub page replaces Summary for the chosen option.
+  if (selectedOption && approved) {
+    return (
+      <ProjectHubPageResponsive
+        option={selectedOption as SummaryFenceOption}
+        addons={addons}
+        approvedAt={approvedAt}
+        onShowCover={() => {
+          setSelectedOption(null);
+          setApproved(false);
+          setApprovedAt(null);
+          setCurtainMounted(true);
+        }}
+      />
+    );
+  }
+
+  // Show Summary page when an option is selected but not yet approved.
   if (selectedOption) {
     return (
       <SummaryPageResponsive
         option={selectedOption as SummaryFenceOption}
+        addons={addons}
+        setAddons={setAddons}
         onBack={() => {
           setSelectedOption(null);
           window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1183,6 +1215,11 @@ export default function OptionsPageResponsive() {
         onShowCover={() => {
           setSelectedOption(null);
           setCurtainMounted(true);
+        }}
+        onApproved={() => {
+          setApproved(true);
+          setApprovedAt(new Date());
+          window.scrollTo({ top: 0, behavior: 'instant' });
         }}
       />
     );

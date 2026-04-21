@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
-import SignatureOverlay from './SignatureOverlay';
+import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -40,7 +40,7 @@ export type FenceOption = {
   baseMaterials: number;
 };
 
-export type AddonItem = {
+type AddonItem = {
   id: number;
   name: string;
   qty: string;
@@ -50,7 +50,7 @@ export type AddonItem = {
 };
 
 // ── Sample data ───────────────────────────────────────────────────────────────
-export const DEFAULT_ADDONS: AddonItem[] = [
+const DEFAULT_ADDONS: AddonItem[] = [
   { id: 1, name: 'Gate Opener – LiftMaster 8500W',     qty: '1',   unit: 'ea.', price: '450',  selected: false },
   { id: 2, name: 'Privacy Slats – Black PVC',          qty: '240', unit: 'lf.', price: '680',  selected: false },
   { id: 3, name: 'Post Lighting – Solar LED',          qty: '6',   unit: 'ea.', price: '320',  selected: false },
@@ -261,6 +261,45 @@ function OptionSummaryTitleBlock({
   );
 }
 
+// ── ProjectHomeTitleBlock ────────────────────────────────────────────────────
+// Title block shown at the top of the Project Home Details area on all
+// breakpoints. Replaces option-level labels with the proposal-level ones:
+//   "CONTRACT DETAIL"          ← section label (was "SUMMARY")
+//   "FENCE REPLACEMENT PROPOSAL" ← proposal name (was option.label)
+//   address
+function ProjectHomeTitleBlock({ approvedAt }: { approvedAt?: Date | null }) {
+  // Formats `approvedAt` as M/D/YYYY (e.g. 3/18/2026) without leading zeros.
+  // Falls back to today's date if the caller didn't capture an approval time
+  // (safety net for direct renders that skipped the Summary → approve flow).
+  const approvalDate = approvedAt ?? new Date();
+  const approvedLabel =
+    `Proposal Approved on ` +
+    `${approvalDate.getMonth() + 1}/${approvalDate.getDate()}/${approvalDate.getFullYear()}`;
+
+  return (
+    <div
+      className="bg-white flex flex-col items-start w-full leading-normal text-[#262626]"
+      style={{ fontFamily: 'Segoe UI, sans-serif' }}
+    >
+      {/* Address — shown above the proposal name (same responsive size
+          steps as the line below, font-normal). */}
+      <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full">
+        1722 Willis Ave NW, Grand Rapids, MI 49504
+      </p>
+      {/* Proposal name */}
+      <p className="text-[16px] sm:text-[20px] xl:text-[24px] font-semibold w-full">
+        FENCE REPLACEMENT PROPOSAL
+      </p>
+      {/* Approval timestamp — replaces the duplicated address line.
+          Extra top padding (Spacing S = 8px) separates it from the
+          proposal name above. */}
+      <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full pt-2">
+        {approvedLabel}
+      </p>
+    </div>
+  );
+}
+
 // ── Section card wrapper ──────────────────────────────────────────────────────
 // Internal px follows the Figma --margin-(component) variable per breakpoint:
 //   XS: 16px  S/M: 32px  L: 24px  XL: 32px  XXL: 48px
@@ -463,12 +502,21 @@ function ProductLineItem({ item }: { item: ProductItem }) {
 }
 
 // ── Included Products section ─────────────────────────────────────────────────
-function ProductsSection({ products }: { products: { name: string; qty: string; unit: string }[] }) {
+// All line items render as plain Type=Product (no Upgrade control, no addon
+// configuration). Selected addons from the Summary page appear as a new
+// "Add-ons" category at the end of the list when any are selected.
+function ProductsSection({
+  products,
+  selectedAddons,
+}: {
+  products: { name: string; qty: string; unit: string }[];
+  selectedAddons: AddonItem[];
+}) {
   // Extra secondary category (always shown as demo data)
   const secondaryItems: ProductItem[] = [
-    { name: 'Gate Hardware Set – Heavy Duty',  qty: '2',   unit: 'set', hasUpgrade: true },
+    { name: 'Gate Hardware Set – Heavy Duty',  qty: '2',   unit: 'set' },
     { name: 'Concrete – Fast-Set 50lb',        qty: '24',  unit: 'bag' },
-    { name: 'Wire Ties – Galvanised 9ga',      qty: '100', unit: 'ea.', hasUpgrade: true },
+    { name: 'Wire Ties – Galvanised 9ga',      qty: '100', unit: 'ea.' },
   ];
 
   return (
@@ -478,7 +526,7 @@ function ProductsSection({ products }: { products: { name: string; qty: string; 
         <div className="flex flex-col items-start overflow-hidden w-full">
           <CategoryLabel name="Category Name" count={products.length} />
           {products.map((p, i) => (
-            <ProductLineItem key={i} item={{ ...p, hasUpgrade: i === 1 }} />
+            <ProductLineItem key={i} item={p} />
           ))}
         </div>
         {/* Category 2 */}
@@ -488,6 +536,20 @@ function ProductsSection({ products }: { products: { name: string; qty: string; 
             <ProductLineItem key={i} item={p} />
           ))}
         </div>
+        {/* Add-ons category — only rendered when the user selected any
+            add-ons on the Summary page. Selected add-ons display as plain
+            Type=Product line items (no configurability here). */}
+        {selectedAddons.length > 0 && (
+          <div className="flex flex-col items-start overflow-hidden w-full">
+            <CategoryLabel name="Add-ons" count={selectedAddons.length} />
+            {selectedAddons.map((a) => (
+              <ProductLineItem
+                key={a.id}
+                item={{ name: a.name, qty: a.qty, unit: a.unit }}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </SectionCard>
   );
@@ -779,147 +841,156 @@ function StickyFooter({
   );
 }
 
-// ── Summary content (financial + CTAs) ───────────────────────────────────────
+// ── Credit Card icon (inline SVG — no separate asset file needed) ─────────────
+function CreditCardIcon() {
+  return (
+    <svg
+      width="20"
+      height="16"
+      viewBox="0 0 20 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      {/* Card outline */}
+      <rect x="1" y="1" width="18" height="14" rx="2" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
+      {/* Magnetic stripe — thin stroke line */}
+      <line x1="1" y1="5.5" x2="19" y2="5.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
+      {/* Chip — outline only */}
+      <rect x="3" y="9" width="4" height="3" rx="0.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1" />
+    </svg>
+  );
+}
+
+// ── Project Home Details ──────────────────────────────────────────────────────
+// The financial summary + Project-Hub–specific action buttons.
+// Used in both the mobile top-of-page slot AND the desktop right column.
+//
 // Low density  (XS/S, < lg): --gutter=8px,  --xs=4px  → py-2, gap-1
-// Med density  (L/XL/XXL, lg+): --gutter=12px, --xs=8px → py-3, gap-2  (fixed, no xl step)
-// Font sizes step at xl+ within Medium density (responsive typography, not a density change).
+// Med density  (L/XL/XXL, lg+): --gutter=12px, --xs=8px → py-3, gap-2
 // Disclaimer: mobile (< lg) truncated single line + inline "Read more";
 //             desktop (lg+) two full paragraphs stacked + "Read more" below.
-function SummaryContent({
+function ProjectHomeDetails({
   option,
-  ctaRef,
   financials,
-  onSignApprove,
 }: {
   option: FenceOption;
-  ctaRef?: React.RefObject<HTMLDivElement | null>;
   financials: Financials;
-  onSignApprove: () => void;
 }) {
+  // ── Payment progress (prototype values) ──────────────────────────────────
+  // Demo: the user has already paid a fixed $5,000 deposit. The contract
+  // total comes from `financials`, which reflects any addons selected on the
+  // Summary page. Remaining = total − paid, clamped ≥ 0. The progress bar
+  // fill is the paid / total ratio (clamped to 100%).
+  const PAID_AMOUNT = 5000;
+  const contractTotal = financials.contractTotal;
+  const remaining     = Math.max(0, contractTotal - PAID_AMOUNT);
+  const progressRatio = contractTotal > 0
+    ? Math.min(1, PAID_AMOUNT / contractTotal)
+    : 0;
+
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
 
       {/* Contract Amount
            Low density  (< lg):  py=Gutter(8px)=py-2,  gap=XS(4px)=gap-1
-           Med density  (lg+):   py=Gutter(12px)=py-3, gap=XS(8px)=gap-2  (uniform across L/XL/XXL) */}
-      <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
-        {/* Total */}
-        <div className="flex flex-col items-start w-full">
-          {/* Label — Font S: 12px (M/L med density) → 14px (xl+ step within med density) */}
+           Med density  (lg+):   py=Gutter(12px)=py-3, gap=XS(8px)=gap-2 */}
+      <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-4 lg:gap-3 items-start py-4 lg:py-3 w-full">
+
+        {/* Payment Progress */}
+        <div className="flex flex-col items-start gap-1 w-full">
           <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
-            <span className="leading-normal">Contact Total </span>
+            <span className="leading-normal">Payment Progress </span>
             <span className="leading-normal" style={{ fontSize: 7.74 }}>1</span>
           </p>
-          {/* Value — Contract Total: XS=20px, S-L=24px, XL-XXL=32px */}
-          <p className="text-[20px] sm:text-[24px] xl:text-[32px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
-            <AnimatedDollar value={financials.contractTotal} decimals={2} />
+          <p
+            className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
+            style={{ fontWeight: 300 }}
+          >
+            {fmtDollars(PAID_AMOUNT)}{' '}
+            <span style={{ color: '#a0a0a0' }}>/ {fmtDollars(contractTotal)}</span>
           </p>
+          {/* Progress bar — ~3/5 width, thin 2px track */}
+          <div className="rounded-full overflow-hidden" style={{ width: '60%', height: 2, background: '#e0e0e0' }}>
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${progressRatio * 100}%`, background: '#262626' }}
+            />
+          </div>
         </div>
-        {/* Monthly */}
+
+        {/* Next Payment */}
         <div className="flex flex-col items-start w-full">
-          {/* Label — Font S: 12px (M/L) → 14px (XL+) */}
           <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
-            <span className="leading-normal">Estimated Monthly Payment </span>
+            <span className="leading-normal">Next Payment </span>
             <span className="leading-normal" style={{ fontSize: 7.74 }}>2</span>
           </p>
-          {/* Value — Monthly Payment: XS=16px, S-L=20px, XL-XXL=24px */}
-          <p
-            className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
-            style={{ fontWeight: 300 }}
-          >
-            <AnimatedDollar value={financials.monthly} decimals={2} suffix=" / mo" />
+          <p className="text-[20px] sm:text-[24px] xl:text-[32px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
+            {fmtDollars(remaining)}
+          </p>
+          <p className="text-[14px] sm:text-[16px] 2xl:text-[20px] font-normal text-[#262626] leading-normal w-full pt-4 lg:pt-3">
+            100% balance due at project completion &lt;5/26/2028&gt;
           </p>
         </div>
+
       </div>
 
-      {/* Breakdowns — same spacing/font logic as Contract Amount */}
-      <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
-        {/* Materials & Installation */}
-        <div className="flex flex-col items-start w-full">
-          <p className="text-[12px] xl:text-[14px] text-[#737373] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
-            Materials &amp; Installation
-          </p>
-          <p
-            className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
-            style={{ fontWeight: 300 }}
-          >
-            <AnimatedDollar value={financials.materials} />
-          </p>
-        </div>
-        {/* Discount */}
-        <div className="flex flex-col items-start w-full">
-          <p className="text-[12px] xl:text-[14px] text-[#737373] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
-            Discount -5%
-          </p>
-          <p
-            className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
-            style={{ fontWeight: 300 }}
-          >
-            <AnimatedDollar value={financials.discount} />
-          </p>
-        </div>
-        {/* Sales Tax */}
-        <div className="flex flex-col items-start w-full">
-          <p className="text-[12px] xl:text-[14px] text-[#737373] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
-            Sales Tax
-          </p>
-          <p
-            className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
-            style={{ fontWeight: 300 }}
-          >
-            <AnimatedDollar value={financials.tax} />
-          </p>
-        </div>
-      </div>
+      {/* Actions */}
+      <div className="flex flex-col gap-2 lg:gap-3 items-start pt-4 lg:pt-6 pb-2 lg:pb-3 w-full">
+        <div className="flex flex-col gap-3 items-start w-full">
 
-      {/* Actions — same Gutter logic: Low density py-2/gap-2, Med density lg:py-3/lg:gap-3 (uniform) */}
-      <div className="flex flex-col gap-2 lg:gap-3 items-start py-2 lg:py-3 w-full">
-        {/* CTAs — ref used to hide sticky footer when Sign & Approve is fully visible */}
-        <div ref={ctaRef} className="flex flex-col gap-3 items-start w-full">
-          {/* Sign & Approve */}
-          <button
-            onClick={onSignApprove}
-            className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
-          >
-            <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
-              style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}>
-              Sign &amp; Approve
+          {/* Make A Payment — primary red */}
+          <button className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer">
+            <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              Make A Payment
             </span>
           </button>
-          {/* Explore Payment & Financing */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
-            <div className="flex h-full items-center px-[5px] shrink-0">
+
+          {/* Financing Service */}
+          <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
+            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
               <img src={IMG_CALCULATOR} alt="" style={{ width: 14.9, height: 20 }} />
             </div>
-            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
-              style={{ lineHeight: '18px' }}>
-              Explore Payment &amp; Financing
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              Financing Service
             </span>
           </button>
+
           {/* Contact Sales */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
-            <img src={IMG_PHONE} alt="" style={{ width: 24, height: 22, flexShrink: 0 }} />
-            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
-              style={{ lineHeight: '18px' }}>
+          <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
+            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+              <img src={IMG_PHONE} alt="" style={{ width: 20, height: 18 }} />
+            </div>
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
               Contact Sales
             </span>
           </button>
-          {/* Download Config PDF */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
-            <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
-              <img src={IMG_DOWNLOAD} alt="" style={{ width: 17, height: 18 }} />
+
+          {/* Download Contract [PDF] */}
+          <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
+            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+              <img src={IMG_DOWNLOAD} alt="" style={{ width: 16, height: 17 }} />
             </div>
-            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
-              style={{ lineHeight: '18px' }}>
-              Download Config [PDF]
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              Download Contract [PDF]
             </span>
           </button>
+
         </div>
 
-        {/* Disclaimers — pt-6 固定 */}
+          {/* Payment Schedule & Records — link-style, gutter gap from bordered buttons */}
+          <button className="bg-transparent border-0 flex gap-[8px] items-center justify-start px-0 py-1 w-full cursor-pointer mt-4 lg:mt-3">
+            <CreditCardIcon />
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              Payment Schedule &amp; Records
+            </span>
+          </button>
+
+        {/* Disclaimers */}
         <div className="flex flex-col items-start pt-6 w-full">
 
-          {/* Mobile (< lg): 仅注释①，单行截断，"Read more" 行内 */}
+          {/* Mobile (< lg): note ① only, single-line truncated + "Read more" inline */}
           <div className="lg:hidden flex gap-3 items-start w-full">
             <p className="flex-[1_0_0] min-w-0 text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] overflow-hidden text-ellipsis whitespace-nowrap"
               style={{ fontWeight: 300 }}>
@@ -934,16 +1005,14 @@ function SummaryContent({
             </div>
           </div>
 
-          {/* Desktop (lg+): 注释①②完整展开 flex-col，"Read more" 在下方 */}
+          {/* Desktop (lg+): notes ①② fully expanded + "Read more" below */}
           <div className="hidden lg:flex flex-col gap-3 items-start w-full">
-            <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
-              style={{ fontWeight: 300 }}>
+            <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]" style={{ fontWeight: 300 }}>
               <span style={{ fontSize: 7.74 }}>1 </span>
               Total project pricing is subject to change based on applicable taxes, fees, payment timing,
               and any final project adjustments. The final amount presented at the time of payment will control.
             </p>
-            <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
-              style={{ fontWeight: 300 }}>
+            <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]" style={{ fontWeight: 300 }}>
               <span style={{ fontSize: 7.74 }}>2 </span>
               Any monthly payment information shown is an estimate only and is not a financing offer.
               Final payment amounts, interest rates, and loan terms are subject to lender review and will
@@ -962,40 +1031,31 @@ function SummaryContent({
   );
 }
 
-// ── Main Summary Page ─────────────────────────────────────────────────────────
-export default function SummaryPageResponsive({
+// ── Main Project Hub Page ────────────────────────────────────────────────────
+export default function ProjectHubPageResponsive({
   option,
-  onBack,
   onShowCover,
-  onApproved,
-  addons: addonsProp,
-  setAddons: setAddonsProp,
+  addons = DEFAULT_ADDONS,
+  approvedAt = null,
 }: {
   option: FenceOption;
-  onBack: () => void;
   onShowCover: () => void;
-  /** User has signed the contract. Parent should navigate to Project Hub. */
-  onApproved: () => void;
-  /** Optional controlled addon state (shared with Project Hub). */
+  /** Shared addon selections from the Summary page. Selected items appear
+   *  as a new "Add-ons" category inside Included Products. */
   addons?: AddonItem[];
-  setAddons?: React.Dispatch<React.SetStateAction<AddonItem[]>>;
+  /** Timestamp the user approved the proposal (set in OptionsPageResponsive
+   *  when the signature flow completes). Shown in the title block. */
+  approvedAt?: Date | null;
 }) {
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Addon state (optionally controlled by parent so selections persist
-  //    into Project Hub) ─────────────────────────────────────────────────────
-  const [localAddons, setLocalAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
-  const addons = addonsProp ?? localAddons;
-  const setAddons = setAddonsProp ?? setLocalAddons;
+  // ── Active hub tab (shared by the sticky header mobile + desktop) ──────────
+  const [activeTab, setActiveTab] = useState<ProjectHubTab>('home');
 
-  // ── Signature overlay state ────────────────────────────────────────────────
-  const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
-
-  function toggleAddon(id: number) {
-    setAddons((prev) => prev.map((a) => (a.id === id ? { ...a, selected: !a.selected } : a)));
-  }
+  // ── Selected addons (read-only on Project Hub) ─────────────────────────────
+  const selectedAddons = addons.filter((a) => a.selected);
 
   // ── Computed financials ────────────────────────────────────────────────────
   const financials = computeFinancials(option.baseMaterials, addons);
@@ -1079,123 +1139,78 @@ export default function SummaryPageResponsive({
     return () => observer.disconnect();
   }, []);
 
+  // Unused here (Project Hub uses tab navigation instead of a sticky
+  // title/footer pair) — reference them to satisfy the lint / unused checks
+  // without removing the state in case we wire them up again later.
+  void showStickyHeader;
+  void showStickyFooter;
+  void topTitleRef;
+  void bottomTitleRef;
+  void ctaRef;
+
   return (
     <div className="bg-white min-h-screen">
       <PageHeader onShowCover={onShowCover} />
 
       {/*
+        Sticky Project Hub header — replaces the "Change Option" action.
+        Mobile: collapsible single-row dropdown; Desktop: horizontal tabs.
+        Both stick to the top beneath the PageHeader.
+      */}
+      <div className="sticky top-0 z-40 bg-white">
+        <div className="mx-auto w-full" style={{ minWidth: 360, maxWidth: 2160 }}>
+          <ProjectHubStickyHeader active={activeTab} onChange={setActiveTab} />
+        </div>
+      </div>
+
+      {/*
         Content container
         XS: px-4 (16px)   S: px-6 (24px)   M: px-6 (24px)
         L: px-6 (24px)   XL: px-6 (24px)  XXL: px-6 (24px)
-        pb dynamically calculated on mobile to prevent sticky footer overlap
       */}
-      <div className="mx-auto flex flex-col gap-4 px-4 sm:px-6" style={{ minWidth: 360, maxWidth: 2160, paddingBottom: contentPb }}>
+      <div className="mx-auto flex flex-col gap-4 px-4 sm:px-6 lg:pt-4" style={{ minWidth: 360, maxWidth: 2160, paddingBottom: contentPb }}>
 
         {/*
-          XS / S / M:
-            Option Header = ActionHeader + OptionSummaryTitleBlock (stacked, no label)
-          L+:
-            ActionHeader spans full width (separate)
+          Mobile (XS/S/M < lg): Project Home Details at the very top of the
+          content area — title + financials + action buttons — above all section
+          cards (Drawing, Products, Add-ons).
         */}
-
-        {/* Mobile Option Header: ActionHeader + brief title (no SUMMARY label) */}
-        <div className="lg:hidden flex flex-col gap-0 w-full">
-          <ActionHeader onBack={onBack} />
-          <div ref={topTitleRef}>
-            <OptionSummaryTitleBlock option={option} showSummaryLabel={false} />
-          </div>
-        </div>
-
-        {/* Desktop ActionHeader (full width) */}
-        <div className="hidden lg:block w-full">
-          <ActionHeader onBack={onBack} />
+        <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-8 sm:pt-12 w-full">
+          <ProjectHomeTitleBlock approvedAt={approvedAt} />
+          <ProjectHomeDetails option={option} financials={financials} />
         </div>
 
         {/*
           Main content area:
-            XS / S / M: flex-col (stacked)
-            L+: flex-row side-by-side, Scope 2/3 + Summary 1/3, gap 12px
+            XS / S / M: flex-col (stacked) — scope cards below Project Home Details
+            L+: flex-row side-by-side, Scope 2/3 + Project Home Details 1/3, gap 12px
         */}
-        <div className="flex flex-col lg:flex-row gap-3 w-full lg:pt-4">
+        <div className="flex flex-col lg:flex-row gap-3 w-full mt-4 lg:mt-0 lg:pt-4">
 
           {/* ── Scope Details column ── */}
           <div className="flex flex-col gap-4 w-full lg:flex-[2_1_0] min-w-0">
             <DrawingSection />
-            <ProductsSection products={option.products} />
-            <AddonsSection addons={addons} onToggle={toggleAddon} />
+            <ProductsSection products={option.products} selectedAddons={selectedAddons} />
             {/* Back to Top — inside Scope Details on L+ */}
             <div className="hidden lg:flex lg:justify-center">
               <BackToTopButton onClick={scrollToTop} />
             </div>
           </div>
 
-          {/* ── Summary column ── sticky on lg+ */}
-          <div className="w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-12 lg:self-start">
-
-            {/*
-              Mobile (< lg):
-                Summary frame with top padding, OptionSummaryTitleBlock WITH label,
-                then SummaryContent with gap
-            */}
-            <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-4 sm:pt-8 px-4 sm:px-8 w-full">
-              <div ref={bottomTitleRef}>
-                <OptionSummaryTitleBlock option={option} showSummaryLabel />
-              </div>
-              <SummaryContent
-                option={option}
-                ctaRef={ctaRef}
-                financials={financials}
-                onSignApprove={() => setShowSignatureOverlay(true)}
-              />
-            </div>
-
-            {/*
-              Desktop (lg+):
-                Summary column content with 12px horizontal inset,
-                OptionSummaryTitleBlock WITH label, then SummaryContent
-            */}
-            <div className="hidden lg:flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
-              <OptionSummaryTitleBlock option={option} showSummaryLabel />
-              <SummaryContent
-                option={option}
-                financials={financials}
-                onSignApprove={() => setShowSignatureOverlay(true)}
-              />
+          {/* ── Project Home Details column — desktop (lg+) only, sticky ── */}
+          <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
+            <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
+              <ProjectHomeTitleBlock approvedAt={approvedAt} />
+              <ProjectHomeDetails option={option} financials={financials} />
             </div>
           </div>
         </div>
 
-        {/* Back to Top — below Summary on mobile (< lg) */}
+        {/* Back to Top — below scope cards on mobile (< lg) */}
         <div className="lg:hidden flex justify-center">
           <BackToTopButton onClick={scrollToTop} />
         </div>
       </div>
-
-      {/* Sticky Header — XS/S/M only, slides in from top */}
-      <StickyHeader option={option} visible={showStickyHeader} />
-      {/* Sticky Footer — XS/S/M only, slides down when CTA block is visible */}
-      <StickyFooter
-        visible={showStickyFooter}
-        financials={financials}
-        onScrollToSummary={() =>
-          mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }
-        onSignApprove={() => setShowSignatureOverlay(true)}
-      />
-
-      {/* Signature Overlay — XS/S/M fullscreen, L+ modal with blurred backdrop */}
-      {showSignatureOverlay && (
-        <SignatureOverlay
-          clientName="Michael Rozier"
-          onClose={() => setShowSignatureOverlay(false)}
-          onApproved={() => {
-            // Overlay has finished its slide-out animation; hand control up
-            // to OptionsPage which will swap us out for ProjectHub.
-            setShowSignatureOverlay(false);
-            onApproved();
-          }}
-        />
-      )}
     </div>
   );
 }
