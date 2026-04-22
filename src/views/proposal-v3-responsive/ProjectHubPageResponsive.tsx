@@ -773,20 +773,23 @@ function InfoDuotoneIcon() {
   );
 }
 
-function StickyFooter({
+// Project Hub sticky footer — XS/S/M only, shown when the top "Make A Payment"
+// button scrolls out of the viewport. Mirrors the next-payment pricing from
+// ProjectHomeDetails so totals stay in sync when addons change.
+function ProjectHubStickyFooter({
   visible,
-  financials,
-  onScrollToSummary,
-  onSignApprove,
+  nextPaymentAmount,
+  dueDate,
+  onMakePayment,
 }: {
   visible: boolean;
-  financials: Financials;
-  onScrollToSummary: () => void;
-  onSignApprove: () => void;
+  nextPaymentAmount: number;
+  dueDate: string;
+  onMakePayment: () => void;
 }) {
   return (
     <div
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white flex gap-1 items-center justify-end w-full p-4 sm:p-6"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white flex gap-4 sm:gap-6 items-center justify-end w-full p-4 sm:p-6"
       style={{
         boxShadow: '0px 2px 4px 0px rgba(0,0,0,0.12), 0px 4px 24px 0px rgba(0,0,0,0.2)',
         fontFamily: 'Segoe UI, sans-serif',
@@ -796,10 +799,10 @@ function StickyFooter({
     >
       {/* Pricing — flex-1 */}
       <div className="flex flex-1 flex-col items-start min-w-0">
-        {/* Contract Total + info icon */}
+        {/* Next payment amount + info icon */}
         <div className="flex gap-1 items-center w-full shrink-0">
           <p className="text-[20px] sm:text-[24px] font-semibold text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            <AnimatedDollar value={financials.contractTotal} decimals={2} />
+            <AnimatedDollar value={nextPaymentAmount} decimals={2} />
           </p>
           <InfoDuotoneIcon />
         </div>
@@ -808,32 +811,19 @@ function StickyFooter({
           className="text-[12px] sm:text-[16px] text-[#737373] leading-normal overflow-hidden text-ellipsis whitespace-nowrap w-full"
           style={{ fontWeight: 400 }}
         >
-          Starting at <AnimatedDollar value={financials.monthly} decimals={2} /> / mo
+          Next Payment - 100% balance due at project completion {dueDate}
         </p>
       </div>
 
-      {/* Summary button — XS px=12px, S/M px=32px */}
+      {/* Make A Payment — XS px=12px, S/M px=32px */}
       <div className="flex items-center self-stretch">
         <button
-          onClick={onScrollToSummary}
-          className="bg-white border-[0.5px] border-solid border-[#262626] flex items-center justify-center h-full rounded-[2px] cursor-pointer px-3 sm:px-8"
-          style={{ paddingTop: 6, paddingBottom: 6 }}
-        >
-          <span className="text-[14px] sm:text-[16px] text-[rgba(0,0,0,0.85)] leading-[18px] whitespace-nowrap">
-            Summary
-          </span>
-        </button>
-      </div>
-
-      {/* Sign & Approve button — XS px=12px, S/M px=32px */}
-      <div className="flex items-center self-stretch">
-        <button
-          onClick={onSignApprove}
+          onClick={onMakePayment}
           className="bg-[#d41a32] flex items-center justify-center h-full rounded-[2px] cursor-pointer border-0 px-3 sm:px-8"
           style={{ paddingTop: 4, paddingBottom: 4 }}
         >
           <span className="text-[14px] sm:text-[16px] font-semibold text-white leading-[16px] whitespace-nowrap tracking-[-0.48px] sm:tracking-[-0.56px]">
-            Sign &amp; Approve
+            Make A Payment
           </span>
         </button>
       </div>
@@ -874,10 +864,20 @@ function CreditCardIcon() {
 function ProjectHomeDetails({
   option,
   financials,
+  approvedAt,
+  paymentBtnRef,
 }: {
   option: FenceOption;
   financials: Financials;
+  approvedAt?: Date | null;
+  paymentBtnRef?: React.RefObject<HTMLButtonElement | null>;
 }) {
+  const dueDate = (() => {
+    const base = approvedAt ?? new Date();
+    const d = new Date(base);
+    d.setDate(d.getDate() + 21);
+    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  })();
   // ── Payment progress (prototype values) ──────────────────────────────────
   // Demo: the user has already paid a fixed $5,000 deposit. The contract
   // total comes from `financials`, which reflects any addons selected on the
@@ -930,7 +930,7 @@ function ProjectHomeDetails({
             {fmtDollars(remaining)}
           </p>
           <p className="text-[14px] sm:text-[16px] 2xl:text-[20px] font-normal text-[#262626] leading-normal w-full pt-4 lg:pt-3">
-            100% balance due at project completion &lt;5/26/2028&gt;
+            100% balance due at project completion {dueDate}
           </p>
         </div>
 
@@ -941,7 +941,7 @@ function ProjectHomeDetails({
         <div className="flex flex-col gap-3 items-start w-full">
 
           {/* Make A Payment — primary red */}
-          <button className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer">
+          <button ref={paymentBtnRef} className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer">
             <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
               Make A Payment
             </span>
@@ -1060,6 +1060,16 @@ export default function ProjectHubPageResponsive({
   // ── Computed financials ────────────────────────────────────────────────────
   const financials = computeFinancials(option.baseMaterials, addons);
 
+  // ── Next payment (mirrors ProjectHomeDetails) — kept in sync with addons ──
+  const PAID_AMOUNT = 5000;
+  const nextPaymentAmount = Math.max(0, financials.contractTotal - PAID_AMOUNT);
+  const dueDate = (() => {
+    const base = approvedAt ?? new Date();
+    const d = new Date(base);
+    d.setDate(d.getDate() + 21);
+    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  })();
+
   // ── Sticky header: show when top title scrolls out; hide when bottom title fully visible ──
   const topTitleRef    = useRef<HTMLDivElement>(null);
   const bottomTitleRef = useRef<HTMLDivElement>(null);
@@ -1086,9 +1096,10 @@ export default function ProjectHubPageResponsive({
     return () => { topObs.disconnect(); bottomObs.disconnect(); };
   }, []);
 
-  // ── Sticky footer: hide when the CTA block scrolls into view ──────────────
-  const ctaRef = useRef<HTMLDivElement>(null);
-  const [showStickyFooter, setShowStickyFooter] = useState(true);
+  // ── Sticky footer: show when the top "Make A Payment" button scrolls off ──
+  const paymentBtnRef = useRef<HTMLButtonElement>(null);
+  const [paymentBtnVisible, setPaymentBtnVisible] = useState(true);
+  const showStickyFooter = activeTab === 'home' && !paymentBtnVisible;
 
   // ── Bottom padding: dynamically calculated so the max scroll position lands
   //    exactly with the mobile Summary section top aligned to the viewport top.
@@ -1129,24 +1140,21 @@ export default function ProjectHubPageResponsive({
   }, []);
 
   useEffect(() => {
-    const el = ctaRef.current;
+    const el = paymentBtnRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => setShowStickyFooter(!entry.isIntersecting),
+      ([entry]) => setPaymentBtnVisible(entry.isIntersecting),
       { threshold: 0 }
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  // Unused here (Project Hub uses tab navigation instead of a sticky
-  // title/footer pair) — reference them to satisfy the lint / unused checks
-  // without removing the state in case we wire them up again later.
+  // Sticky title-block header is not used on Project Hub (tab navigation
+  // replaces it) — reference these to satisfy unused-check lints.
   void showStickyHeader;
-  void showStickyFooter;
   void topTitleRef;
   void bottomTitleRef;
-  void ctaRef;
 
   return (
     <div className="bg-white min-h-screen">
@@ -1177,7 +1185,12 @@ export default function ProjectHubPageResponsive({
         */}
         <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-8 sm:pt-12 w-full">
           <ProjectHomeTitleBlock approvedAt={approvedAt} />
-          <ProjectHomeDetails option={option} financials={financials} />
+          <ProjectHomeDetails
+            option={option}
+            financials={financials}
+            approvedAt={approvedAt}
+            paymentBtnRef={paymentBtnRef}
+          />
         </div>
 
         {/*
@@ -1201,16 +1214,26 @@ export default function ProjectHubPageResponsive({
           <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
             <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
               <ProjectHomeTitleBlock approvedAt={approvedAt} />
-              <ProjectHomeDetails option={option} financials={financials} />
+              <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} />
             </div>
           </div>
         </div>
 
-        {/* Back to Top — below scope cards on mobile (< lg) */}
-        <div className="lg:hidden flex justify-center">
+        {/* Back to Top — below scope cards on mobile (< lg).
+            Bottom padding leaves clearance above the sticky footer (~108–124px)
+            plus breathing room at the page end. */}
+        <div className="lg:hidden flex justify-center pb-36 sm:pb-44">
           <BackToTopButton onClick={scrollToTop} />
         </div>
       </div>
+
+      {/* Sticky Footer — XS/S/M only, appears after top Make-A-Payment scrolls off */}
+      <ProjectHubStickyFooter
+        visible={showStickyFooter}
+        nextPaymentAmount={nextPaymentAmount}
+        dueDate={dueDate}
+        onMakePayment={() => { /* prototype — no-op */ }}
+      />
     </div>
   );
 }
