@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 const useBrowserLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import SummaryPageResponsive from './SummaryPageResponsive';
 import ProjectHubPageResponsive from './ProjectHubPageResponsive';
+import SignatureOverlay from './SignatureOverlay';
 import type { FenceOption as SummaryFenceOption, AddonItem } from './SummaryPageResponsive';
 import { DEFAULT_ADDONS } from './SummaryPageResponsive';
 import PageHeader from './PageHeader';
@@ -941,6 +942,13 @@ export default function OptionsPageResponsive() {
   // Timestamp when the proposal was approved. Captured at the moment the
   // user signs on the Summary page; rendered on the Project Hub title block.
   const [approvedAt, setApprovedAt] = useState<Date | null>(null);
+  // Signature overlay mount state, lifted from Summary so the overlay
+  // persists across the Summary → ProjectHub swap. Flow:
+  //   – button → setShowSignatureOverlay(true) mounts the overlay on top of Summary.
+  //   – overlay.onApproveStart → setApproved(true) swaps Summary for
+  //     ProjectHub behind the still-animating overlay.
+  //   – overlay.onApproved (exit complete) → setShowSignatureOverlay(false) unmounts.
+  const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
   // ── Shared addon state ─────────────────────────────────────────────────────
   // Owned here so selections made on the Summary page persist when the user
   // approves and navigates to Project Hub (which renders selected addons as a
@@ -1184,44 +1192,61 @@ export default function OptionsPageResponsive() {
 
   const comparisonOptions = OPTIONS; // rendered with CSS visibility per column
 
-  // Once approved, the Project Hub page replaces Summary for the chosen option.
-  if (selectedOption && approved) {
-    return (
-      <ProjectHubPageResponsive
-        option={selectedOption as SummaryFenceOption}
-        addons={addons}
-        approvedAt={approvedAt}
-        onShowCover={() => {
-          setSelectedOption(null);
-          setApproved(false);
-          setApprovedAt(null);
-          setCurtainMounted(true);
-        }}
-      />
-    );
-  }
-
-  // Show Summary page when an option is selected but not yet approved.
+  // When an option is selected, render either Summary (pre-approval) or
+  // ProjectHub (post-approval) and overlay the signature sheet on top when
+  // active. The overlay is rendered at THIS level so it stays mounted across
+  // the Summary→ProjectHub swap: on successful sign, onApproveStart flips
+  // `approved`, swapping the page behind the overlay; when the overlay's
+  // slide-out finishes, onApproved unmounts it and the user sees ProjectHub.
   if (selectedOption) {
     return (
-      <SummaryPageResponsive
-        option={selectedOption as SummaryFenceOption}
-        addons={addons}
-        setAddons={setAddons}
-        onBack={() => {
-          setSelectedOption(null);
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        }}
-        onShowCover={() => {
-          setSelectedOption(null);
-          setCurtainMounted(true);
-        }}
-        onApproved={() => {
-          setApproved(true);
-          setApprovedAt(new Date());
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        }}
-      />
+      <>
+        {approved ? (
+          <ProjectHubPageResponsive
+            option={selectedOption as SummaryFenceOption}
+            addons={addons}
+            approvedAt={approvedAt}
+            onShowCover={() => {
+              setSelectedOption(null);
+              setApproved(false);
+              setApprovedAt(null);
+              setCurtainMounted(true);
+            }}
+          />
+        ) : (
+          <SummaryPageResponsive
+            option={selectedOption as SummaryFenceOption}
+            addons={addons}
+            setAddons={setAddons}
+            onBack={() => {
+              setSelectedOption(null);
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            }}
+            onShowCover={() => {
+              setSelectedOption(null);
+              setCurtainMounted(true);
+            }}
+            onRequestSign={() => setShowSignatureOverlay(true)}
+          />
+        )}
+        {showSignatureOverlay && (
+          <SignatureOverlay
+            clientName="Michael Rozier"
+            onClose={() => setShowSignatureOverlay(false)}
+            onApproveStart={() => {
+              // Slide-out has just begun. Swap Summary for ProjectHub behind
+              // the overlay so its exit reveals the destination page.
+              setApproved(true);
+              setApprovedAt(new Date());
+              window.scrollTo({ top: 0, behavior: 'instant' });
+            }}
+            onApproved={() => {
+              // Exit animation complete — tear the overlay down.
+              setShowSignatureOverlay(false);
+            }}
+          />
+        )}
+      </>
     );
   }
 

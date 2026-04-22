@@ -431,14 +431,20 @@ export default function SignatureOverlay({
   clientName,
   onClose,
   onApproved,
+  onApproveStart,
 }: {
   clientName: string;
   /** User cancelled (Esc / backdrop / X / mobile Cancel). */
   onClose: () => void;
   /** User successfully signed — called after the "Finishing Signature"
-   *  delay and the exit animation. The parent should navigate to the
-   *  Project Hub in response. */
+   *  delay and the exit animation. The parent should unmount the overlay
+   *  in response. */
   onApproved: () => void;
+  /** Called at the moment the exit animation begins after a successful
+   *  sign (before `onApproved`). Lets the parent swap the page behind the
+   *  overlay so its slide-out reveals the destination page, not the
+   *  one the user signed from. */
+  onApproveStart?: () => void;
 }) {
   // `open`: drives CSS transform + opacity. Starts false so the first paint
   //   has translateY(100%), then rAF flips it to true for the slide-in.
@@ -471,6 +477,10 @@ export default function SignatureOverlay({
     if (closing) return;
     setClosing(true);
     setOpen(false);
+    // Fire onApproveStart synchronously with the exit animation so the
+    // parent can swap the page behind us. The overlay keeps animating
+    // out on top; when it finishes, onApproved unmounts it.
+    if (approved) onApproveStart?.();
     window.setTimeout(approved ? onApproved : onClose, ANIM_MS);
   };
 
