@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
+import ContractDocSection from './ContractDocSection';
+import WorkInProgressSection from './WorkInProgressSection';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -1175,56 +1177,84 @@ export default function ProjectHubPageResponsive({
         Content container
         XS: px-4 (16px)   S: px-6 (24px)   M: px-6 (24px)
         L: px-6 (24px)   XL: px-6 (24px)  XXL: px-6 (24px)
+
+        Bottom padding:
+         - Home tab (< lg): dynamic `contentPb` so max scroll lands the
+           mobile Summary at viewport top.
+         - Contract tab (< lg): fixed clearance for the sticky download footer
+           (~136px) + a little breathing room.
+         - lg+: small page-bottom margin.
       */}
-      <div className="mx-auto flex flex-col gap-4 px-4 sm:px-6 lg:pt-4" style={{ minWidth: 360, maxWidth: 2160, paddingBottom: contentPb }}>
+      <div
+        className="mx-auto flex flex-col gap-4 px-4 sm:px-6 lg:pt-4"
+        style={{
+          minWidth: 360,
+          maxWidth: 2160,
+          paddingBottom: activeTab === 'contract' ? undefined : contentPb,
+        }}
+      >
 
-        {/*
-          Mobile (XS/S/M < lg): Project Home Details at the very top of the
-          content area — title + financials + action buttons — above all section
-          cards (Drawing, Products, Add-ons).
-        */}
-        <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-8 sm:pt-12 w-full">
-          <ProjectHomeTitleBlock approvedAt={approvedAt} />
-          <ProjectHomeDetails
-            option={option}
-            financials={financials}
-            approvedAt={approvedAt}
-            paymentBtnRef={paymentBtnRef}
-          />
-        </div>
+        {activeTab === 'home' && (
+          <>
+            {/*
+              Mobile (XS/S/M < lg): Project Home Details at the very top of the
+              content area — title + financials + action buttons — above all section
+              cards (Drawing, Products, Add-ons).
+            */}
+            <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-8 sm:pt-12 w-full">
+              <ProjectHomeTitleBlock approvedAt={approvedAt} />
+              <ProjectHomeDetails
+                option={option}
+                financials={financials}
+                approvedAt={approvedAt}
+                paymentBtnRef={paymentBtnRef}
+              />
+            </div>
 
-        {/*
-          Main content area:
-            XS / S / M: flex-col (stacked) — scope cards below Project Home Details
-            L+: flex-row side-by-side, Scope 2/3 + Project Home Details 1/3, gap 12px
-        */}
-        <div className="flex flex-col lg:flex-row gap-3 w-full mt-4 lg:mt-0 lg:pt-4">
+            {/*
+              Main content area:
+                XS / S / M: flex-col (stacked) — scope cards below Project Home Details
+                L+: flex-row side-by-side, Scope 2/3 + Project Home Details 1/3, gap 12px
+            */}
+            <div className="flex flex-col lg:flex-row gap-3 w-full mt-4 lg:mt-0 lg:pt-4">
 
-          {/* ── Scope Details column ── */}
-          <div className="flex flex-col gap-4 w-full lg:flex-[2_1_0] min-w-0">
-            <DrawingSection />
-            <ProductsSection products={option.products} selectedAddons={selectedAddons} />
-            {/* Back to Top — inside Scope Details on L+ */}
-            <div className="hidden lg:flex lg:justify-center">
+              {/* ── Scope Details column ── */}
+              <div className="flex flex-col gap-4 w-full lg:flex-[2_1_0] min-w-0">
+                <DrawingSection />
+                <ProductsSection products={option.products} selectedAddons={selectedAddons} />
+                {/* Back to Top — inside Scope Details on L+ */}
+                <div className="hidden lg:flex lg:justify-center">
+                  <BackToTopButton onClick={scrollToTop} />
+                </div>
+              </div>
+
+              {/* ── Project Home Details column — desktop (lg+) only, sticky ── */}
+              <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
+                <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
+                  <ProjectHomeTitleBlock approvedAt={approvedAt} />
+                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} />
+                </div>
+              </div>
+            </div>
+
+            {/* Back to Top — below scope cards on mobile (< lg).
+                Bottom padding leaves clearance above the sticky footer (~108–124px)
+                plus breathing room at the page end. */}
+            <div className="lg:hidden flex justify-center pb-36 sm:pb-44">
               <BackToTopButton onClick={scrollToTop} />
             </div>
-          </div>
+          </>
+        )}
 
-          {/* ── Project Home Details column — desktop (lg+) only, sticky ── */}
-          <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
-            <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
-              <ProjectHomeTitleBlock approvedAt={approvedAt} />
-              <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} />
-            </div>
+        {activeTab === 'contract' && (
+          <div className="lg:pb-8">
+            <ContractDocSection approvedAt={approvedAt} onScrollToTop={scrollToTop} />
           </div>
-        </div>
+        )}
 
-        {/* Back to Top — below scope cards on mobile (< lg).
-            Bottom padding leaves clearance above the sticky footer (~108–124px)
-            plus breathing room at the page end. */}
-        <div className="lg:hidden flex justify-center pb-36 sm:pb-44">
-          <BackToTopButton onClick={scrollToTop} />
-        </div>
+        {(activeTab === 'invoices' || activeTab === 'changes') && (
+          <WorkInProgressSection />
+        )}
       </div>
 
       {/* Sticky Footer — XS/S/M only, appears after top Make-A-Payment scrolls off */}
