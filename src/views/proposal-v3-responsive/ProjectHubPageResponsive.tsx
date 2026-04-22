@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
@@ -872,7 +872,7 @@ function ProjectHomeDetails({
   option: FenceOption;
   financials: Financials;
   approvedAt?: Date | null;
-  paymentBtnRef?: React.RefObject<HTMLButtonElement | null>;
+  paymentBtnRef?: React.Ref<HTMLButtonElement>;
 }) {
   const dueDate = (() => {
     const base = approvedAt ?? new Date();
@@ -1099,8 +1099,21 @@ export default function ProjectHubPageResponsive({
   }, []);
 
   // ── Sticky footer: show when the top "Make A Payment" button scrolls off ──
-  const paymentBtnRef = useRef<HTMLButtonElement>(null);
+  // The button only renders inside the mobile (lg:hidden) home section, so it
+  // mounts/unmounts when the user switches tabs. A callback ref re-attaches
+  // the IntersectionObserver every time the element changes (React 19 cleanup
+  // return); a plain useRef + mount-only useEffect would keep observing the
+  // stale, detached node after a tab round-trip.
   const [paymentBtnVisible, setPaymentBtnVisible] = useState(true);
+  const paymentBtnRef = useCallback((el: HTMLButtonElement | null) => {
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPaymentBtnVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const showStickyFooter = activeTab === 'home' && !paymentBtnVisible;
 
   // ── Bottom padding: dynamically calculated so the max scroll position lands
@@ -1141,16 +1154,6 @@ export default function ProjectHubPageResponsive({
     };
   }, []);
 
-  useEffect(() => {
-    const el = paymentBtnRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setPaymentBtnVisible(entry.isIntersecting),
-      { threshold: 0 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   // Sticky title-block header is not used on Project Hub (tab navigation
   // replaces it) — reference these to satisfy unused-check lints.
