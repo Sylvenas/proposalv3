@@ -38,7 +38,18 @@ const MENU_TITLE_DELAY   = 140;  // title fades in after the bg has mostly settl
 const MENU_ITEM_MS       = 200;  // each non-active tab fade
 const MENU_ITEM_DELAY_0  = 160;  // first non-active tab starts after title begins
 const MENU_ITEM_STAGGER  = 40;   // per-index delay between tab fades
-const MENU_EXIT_MS       = 260;  // full exit duration (panel + items fade out together)
+
+// Exit: physical "curtain retract" — panel first dips down a few px with
+// ease-out (the curtain loads its spring), then accelerates upward with
+// ease-in (the spring snaps it closed). Backdrop fades across the whole exit.
+const EXIT_OVERSHOOT_PX    = 14;
+const EXIT_OVERSHOOT_MS    = 160;
+const EXIT_RETRACT_MS      = 340;
+const EXIT_TOTAL_MS        = EXIT_OVERSHOOT_MS + EXIT_RETRACT_MS;
+// Overshoot: strong ease-out so it decelerates into the bottom of the dip.
+const EXIT_OVERSHOOT_EASE  = 'cubic-bezier(0.16, 1, 0.3, 1)';
+// Retract: ease-in so it accelerates as it snaps up, like a released spring.
+const EXIT_RETRACT_EASE    = 'cubic-bezier(0.5, 0, 0.75, 0)';
 
 // Layout estimates used to align the expanded-menu active tab with the
 // collapsed-row position at the start of the open animation. These match
@@ -74,12 +85,21 @@ function MobileHeader({
   //     – title block fades in after MENU_TITLE_DELAY
   //     – non-active tabs fade in top-to-bottom with MENU_ITEM_STAGGER
   //
-  // Flow (close): setOpen(false) → panel slides back + content fades out;
-  // after MENU_EXIT_MS the panel unmounts.
+  // Flow (close) — two-phase "curtain retract":
+  //   phase 1 (EXIT_OVERSHOOT_MS, ease-out): panel dips down by
+  //           EXIT_OVERSHOOT_PX (spring loads); content stays fully visible.
+  //   phase 2 (EXIT_RETRACT_MS, ease-in):    panel snaps up to offsetY,
+  //           accelerating as it goes; title + non-active items fade with it.
+  //   backdrop fades + un-blurs linearly across EXIT_TOTAL_MS, reaching
+  //   fully clear exactly as the panel finishes and unmounts.
   const [expanded, setExpanded] = useState(false);
   const [mounted, setMounted]   = useState(false);
   const [open, setOpen]         = useState(false);
   const [offsetY, setOffsetY]   = useState(0);
+  // Exit-only two-phase state. 0: not exiting (or during open). 1: overshoot
+  // dip downward. 2: retract upward. Used to pick the panel's transform + the
+  // transition timing for each leg of the curtain animation.
+  const [exitPhase, setExitPhase] = useState<0 | 1 | 2>(0);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const activeIdx = PROJECT_HUB_TABS.findIndex((t) => t.id === active);
@@ -92,6 +112,7 @@ function MobileHeader({
       const rect = triggerRef.current?.getBoundingClientRect();
       const triggerTop = rect?.top ?? 0;
       setOffsetY(triggerTop - activeTopInMenu);
+      setExitPhase(0);
       setMounted(true);
       // Double rAF so the initial translated paint commits before we flip
       // open=true, otherwise React batching collapses the two renders and
@@ -105,10 +126,26 @@ function MobileHeader({
         if (raf2) cancelAnimationFrame(raf2);
       };
     }
+    // Close: start the two-phase curtain retract. Phase 1 pulls the panel
+    // down EXIT_OVERSHOOT_PX with ease-out; phase 2 snaps it up to offsetY
+    // with ease-in. Backdrop fades across the full EXIT_TOTAL_MS.
+    // Guard: only run when the panel is actually mounted. Without this, the
+    // effect's close branch fires on every initial render (expanded starts
+    // false) and on every `active`-prop change while closed, scheduling
+    // phantom timers and churning state for a panel that doesn't exist.
+    if (!mounted) return;
     setOpen(false);
-    const t = window.setTimeout(() => setMounted(false), MENU_EXIT_MS);
-    return () => window.clearTimeout(t);
-  }, [expanded, activeTopInMenu]);
+    setExitPhase(1);
+    const tPhase2 = window.setTimeout(() => setExitPhase(2), EXIT_OVERSHOOT_MS);
+    const tUnmount = window.setTimeout(() => {
+      setMounted(false);
+      setExitPhase(0);
+    }, EXIT_TOTAL_MS);
+    return () => {
+      window.clearTimeout(tPhase2);
+      window.clearTimeout(tUnmount);
+    };
+  }, [expanded, activeTopInMenu, mounted]);
 
   // Close on Esc while expanded.
   useEffect(() => {
@@ -161,10 +198,16 @@ function MobileHeader({
             onClick={() => setExpanded(false)}
             className="fixed inset-0 z-[60]"
             style={{
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(8px)',
+              background: open ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0)',
+              // Blur clears to 0px across the full exit so the page behind
+              // sharpens gradually, reaching crisp exactly as the panel
+              // finishes retracting.
+              backdropFilter: open ? 'blur(8px)' : 'blur(0px)',
+              WebkitBackdropFilter: open ? 'blur(8px)' : 'blur(0px)',
               opacity: open ? 1 : 0,
-              transition: `opacity ${MENU_SLIDE_MS}ms ${open ? MENU_EASE_OUT : MENU_EASE_IN}`,
+              transition: open
+                ? `opacity ${MENU_SLIDE_MS}ms ${MENU_EASE_OUT}, background-color ${MENU_SLIDE_MS}ms ${MENU_EASE_OUT}, backdrop-filter ${MENU_SLIDE_MS}ms ${MENU_EASE_OUT}, -webkit-backdrop-filter ${MENU_SLIDE_MS}ms ${MENU_EASE_OUT}`
+                : `opacity ${EXIT_TOTAL_MS}ms linear, background-color ${EXIT_TOTAL_MS}ms linear, backdrop-filter ${EXIT_TOTAL_MS}ms linear, -webkit-backdrop-filter ${EXIT_TOTAL_MS}ms linear`,
             }}
           />
 
@@ -174,11 +217,27 @@ function MobileHeader({
               translateY(0), which visually moves the active label down into
               its expanded-menu position while extending the bg to page top. */}
           <div
-            className="fixed top-0 left-0 right-0 z-[61] bg-white flex flex-col pb-3"
+            className="fixed left-0 right-0 z-[61] bg-white flex flex-col pb-3"
             style={{
+              // Extend the panel EXIT_OVERSHOOT_PX above the viewport and pad
+              // the content down by the same amount. When the panel dips
+              // downward during phase 1, the white background's top edge
+              // stays at (or above) y=0, so the backdrop is never exposed
+              // along the top. Content visually starts at y=0 when open, the
+              // same as before the extension.
+              top: -EXIT_OVERSHOOT_PX,
+              paddingTop: EXIT_OVERSHOOT_PX,
               boxShadow: '0px 4px 3px 0px rgba(123,123,123,0.1)',
-              transform: open ? 'translateY(0)' : `translateY(${offsetY}px)`,
-              transition: `transform ${open ? MENU_SLIDE_MS : MENU_EXIT_MS}ms ${open ? MENU_EASE_OUT : MENU_EASE_IN}`,
+              transform: open
+                ? 'translateY(0)'
+                : exitPhase === 1
+                  ? `translateY(${EXIT_OVERSHOOT_PX}px)`
+                  : `translateY(${offsetY}px)`,
+              transition: open
+                ? `transform ${MENU_SLIDE_MS}ms ${MENU_EASE_OUT}`
+                : exitPhase === 1
+                  ? `transform ${EXIT_OVERSHOOT_MS}ms ${EXIT_OVERSHOOT_EASE}`
+                  : `transform ${EXIT_RETRACT_MS}ms ${EXIT_RETRACT_EASE}`,
               willChange: 'transform',
             }}
           >
@@ -188,8 +247,13 @@ function MobileHeader({
               className="flex flex-col px-4 sm:px-6 pt-2 pb-2 w-full"
               style={{
                 height: TITLE_BLOCK_HEIGHT_PX,
-                opacity: open ? 1 : 0,
-                transition: `opacity ${MENU_TITLE_MS}ms ease-out ${open ? MENU_TITLE_DELAY : 0}ms`,
+                // During the overshoot (phase 1) the title stays fully
+                // visible; it only fades while the panel is retracting
+                // upward (phase 2), so the copy rolls up with the curtain.
+                opacity: open || exitPhase === 1 ? 1 : 0,
+                transition: open
+                  ? `opacity ${MENU_TITLE_MS}ms ease-out ${MENU_TITLE_DELAY}ms`
+                  : `opacity ${EXIT_RETRACT_MS}ms ease-in`,
               }}
             >
               <div className="flex items-center justify-between w-full">
@@ -231,10 +295,12 @@ function MobileHeader({
                     className="w-full text-left px-4 sm:px-6 flex items-center bg-white border-0 cursor-pointer"
                     style={{
                       height: ROW_HEIGHT_PX,
-                      opacity: isActive ? 1 : open ? 1 : 0,
+                      opacity: isActive ? 1 : open || exitPhase === 1 ? 1 : 0,
                       transition: isActive
                         ? undefined
-                        : `opacity ${MENU_ITEM_MS}ms ease-out ${itemDelay}ms`,
+                        : open
+                          ? `opacity ${MENU_ITEM_MS}ms ease-out ${itemDelay}ms`
+                          : `opacity ${EXIT_RETRACT_MS}ms ease-in`,
                     }}
                   >
                     <span
@@ -373,7 +439,10 @@ function DesktopHeader({
           style={{
             left:   underline.left,
             width:  underline.width,
-            bottom: 0,
+            // Pull the underline down by the container's 0.5px bottom border
+            // so its 2px bar sits flush with (and covers) the divider line,
+            // instead of stacking above it.
+            bottom: -0.5,
             height: 2,
             background: '#262626',
             transition: animateUnderline

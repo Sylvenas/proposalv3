@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
-import SignatureOverlay from './SignatureOverlay';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -967,15 +966,17 @@ export default function SummaryPageResponsive({
   option,
   onBack,
   onShowCover,
-  onApproved,
+  onRequestSign,
   addons: addonsProp,
   setAddons: setAddonsProp,
 }: {
   option: FenceOption;
   onBack: () => void;
   onShowCover: () => void;
-  /** User has signed the contract. Parent should navigate to Project Hub. */
-  onApproved: () => void;
+  /** User pressed a Sign & Approve button. Parent opens the signature
+   *  overlay (lifted here so it can persist across the Summary →
+   *  ProjectHub swap when the user signs). */
+  onRequestSign: () => void;
   /** Optional controlled addon state (shared with Project Hub). */
   addons?: AddonItem[];
   setAddons?: React.Dispatch<React.SetStateAction<AddonItem[]>>;
@@ -989,9 +990,6 @@ export default function SummaryPageResponsive({
   const [localAddons, setLocalAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
   const addons = addonsProp ?? localAddons;
   const setAddons = setAddonsProp ?? setLocalAddons;
-
-  // ── Signature overlay state ────────────────────────────────────────────────
-  const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
 
   function toggleAddon(id: number) {
     setAddons((prev) => prev.map((a) => (a.id === id ? { ...a, selected: !a.selected } : a)));
@@ -1145,7 +1143,7 @@ export default function SummaryPageResponsive({
                 option={option}
                 ctaRef={ctaRef}
                 financials={financials}
-                onSignApprove={() => setShowSignatureOverlay(true)}
+                onSignApprove={onRequestSign}
               />
             </div>
 
@@ -1159,7 +1157,7 @@ export default function SummaryPageResponsive({
               <SummaryContent
                 option={option}
                 financials={financials}
-                onSignApprove={() => setShowSignatureOverlay(true)}
+                onSignApprove={onRequestSign}
               />
             </div>
           </div>
@@ -1180,22 +1178,8 @@ export default function SummaryPageResponsive({
         onScrollToSummary={() =>
           mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
-        onSignApprove={() => setShowSignatureOverlay(true)}
+        onSignApprove={onRequestSign}
       />
-
-      {/* Signature Overlay — XS/S/M fullscreen, L+ modal with blurred backdrop */}
-      {showSignatureOverlay && (
-        <SignatureOverlay
-          clientName="Michael Rozier"
-          onClose={() => setShowSignatureOverlay(false)}
-          onApproved={() => {
-            // Overlay has finished its slide-out animation; hand control up
-            // to OptionsPage which will swap us out for ProjectHub.
-            setShowSignatureOverlay(false);
-            onApproved();
-          }}
-        />
-      )}
     </div>
   );
 }
