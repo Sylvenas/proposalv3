@@ -17,7 +17,8 @@ export const PROJECT_HUB_TABS: { id: ProjectHubTab; label: string; mobileMenuLab
   { id: 'home',      label: 'Project Home' },
   { id: 'contract',  label: 'Contract Doc' },
   { id: 'invoices',  label: 'Invoices & Payments' },
-  { id: 'changes',   label: 'Change History' },
+  // Change History — hidden for now until the tab is built out.
+  // { id: 'changes',   label: 'Change History' },
 ];
 
 const TAB_LABEL = (id: ProjectHubTab) =>
