@@ -5,6 +5,7 @@ import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
 import ContractDocSection from './ContractDocSection';
+import InvoicesPaymentsSection from './InvoicesPaymentsSection';
 import WorkInProgressSection from './WorkInProgressSection';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
@@ -1114,7 +1115,10 @@ export default function ProjectHubPageResponsive({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const showStickyFooter = activeTab === 'home' && !paymentBtnVisible;
+  // Invoices tab has no inline "Make A Payment" button to observe, so the
+  // sticky footer is always shown there (XS/S/M only via lg:hidden inside).
+  const showStickyFooter =
+    (activeTab === 'home' && !paymentBtnVisible) || activeTab === 'invoices';
 
   // ── Bottom padding: dynamically calculated so the max scroll position lands
   //    exactly with the mobile Summary section top aligned to the viewport top.
@@ -1193,7 +1197,10 @@ export default function ProjectHubPageResponsive({
         style={{
           minWidth: 360,
           maxWidth: 2160,
-          paddingBottom: activeTab === 'contract' ? undefined : contentPb,
+          paddingBottom:
+            activeTab === 'contract' || activeTab === 'invoices'
+              ? undefined
+              : contentPb,
         }}
       >
 
@@ -1255,7 +1262,11 @@ export default function ProjectHubPageResponsive({
           </div>
         )}
 
-        {(activeTab === 'invoices' || activeTab === 'changes') && (
+        {activeTab === 'invoices' && (
+          <InvoicesPaymentsSection onScrollToTop={scrollToTop} />
+        )}
+
+        {activeTab === 'changes' && (
           <WorkInProgressSection />
         )}
       </div>
