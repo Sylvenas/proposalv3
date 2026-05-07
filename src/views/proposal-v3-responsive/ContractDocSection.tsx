@@ -175,6 +175,11 @@ function ContractDocStickyFooter({
       style={{
         boxShadow: '0px -4px 24px rgba(0,0,0,0.18)',
         fontFamily: 'Segoe UI, sans-serif',
+        // Force a compositor layer so iOS Safari renders the bg + box-shadow
+        // on its own layer instead of bleeding the URL-bar's edge shadow into
+        // the footer's bottom. Mirrors the Make A Payment sheet, which gets
+        // its own layer "for free" via translateY transition.
+        transform: 'translateZ(0)',
       }}
     >
       <DownloadContractButton />
