@@ -171,15 +171,15 @@ function ContractDocStickyFooter({
   return (
     <div
       ref={ref}
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white flex flex-col gap-4 items-end justify-center p-4 sm:p-6 w-full"
+      // z-51 (above the sibling ProjectHubStickyFooter at z-50). When the hub
+      // footer is translated off-screen via translateY(100%), its downward
+      // box-shadow's blur halo still renders ~20px above its rect — without
+      // this z bump, that halo would bleed onto the ContractDoc footer's
+      // bottom edge and tint it gray.
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-[51] bg-white flex flex-col gap-4 items-end justify-center p-4 sm:p-6 w-full"
       style={{
         boxShadow: '0px -4px 24px rgba(0,0,0,0.18)',
         fontFamily: 'Segoe UI, sans-serif',
-        // Force a compositor layer so iOS Safari renders the bg + box-shadow
-        // on its own layer instead of bleeding the URL-bar's edge shadow into
-        // the footer's bottom. Mirrors the Make A Payment sheet, which gets
-        // its own layer "for free" via translateY transition.
-        transform: 'translateZ(0)',
       }}
     >
       <DownloadContractButton />
