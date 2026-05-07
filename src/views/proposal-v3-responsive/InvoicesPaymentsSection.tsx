@@ -291,7 +291,13 @@ function MobilePaymentRecordCard({ rec, onOpen }: { rec: PaymentRecord; onOpen: 
 //   The Label column is flex, so it absorbs the leftover space.
 // ─────────────────────────────────────────────────────────────────────────────
 const cs = (px: number) => `calc(${px}px * var(--cs))`;
-function DesktopInvoicesTable({ onOpenInvoice }: { onOpenInvoice: (inv: Invoice) => void }) {
+function DesktopInvoicesTable({
+  onOpenInvoice,
+  onMakePayment,
+}: {
+  onOpenInvoice: (inv: Invoice) => void;
+  onMakePayment?: () => void;
+}) {
   return (
     <div className="hidden lg:flex flex-col items-start gap-1 w-full">
       <p className="text-[14px] xl:text-[16px] font-semibold text-[#262626] whitespace-nowrap leading-normal">
@@ -308,33 +314,33 @@ function DesktopInvoicesTable({ onOpenInvoice }: { onOpenInvoice: (inv: Invoice)
           paddingRight: cs(24),
         }}
       >
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] leading-[14px]" style={{ width: cs(100) }}>
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] leading-[14px]" style={{ width: cs(100) }}>
           Invoice
         </p>
         {/* Invisible spacer matching the label flex column */}
-        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#262626] opacity-0 whitespace-nowrap" aria-hidden="true">
+        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#737373] opacity-0 whitespace-nowrap leading-[14px]" aria-hidden="true">
           Invoices
         </p>
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] text-right leading-[14px]" style={{ width: cs(72) }}>
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] text-right leading-[14px]" style={{ width: cs(72) }}>
           Amount
         </p>
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] text-right leading-[14px]" style={{ width: cs(72) }}>
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] text-right leading-[14px]" style={{ width: cs(72) }}>
           Received
         </p>
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] text-right leading-[14px]" style={{ width: cs(72) }}>
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] text-right leading-[14px]" style={{ width: cs(72) }}>
           Remaining
         </p>
         <div className="shrink-0" style={{ width: cs(24) }} />
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] whitespace-nowrap" style={{ width: cs(128) }}>
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] whitespace-nowrap leading-[14px]" style={{ width: cs(128) }}>
           Status
         </p>
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] whitespace-nowrap" style={{ width: cs(230) }}>
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] whitespace-nowrap leading-[14px]" style={{ width: cs(230) }}>
           Due Date
         </p>
       </div>
 
       {INVOICES.map((inv) => (
-        <DesktopInvoiceRow key={inv.number} inv={inv} onOpen={onOpenInvoice} />
+        <DesktopInvoiceRow key={inv.number} inv={inv} onOpen={onOpenInvoice} onMakePayment={onMakePayment} />
       ))}
     </div>
   );
@@ -343,9 +349,11 @@ function DesktopInvoicesTable({ onOpenInvoice }: { onOpenInvoice: (inv: Invoice)
 function DesktopInvoiceRow({
   inv,
   onOpen,
+  onMakePayment,
 }: {
   inv: Invoice;
   onOpen: (inv: Invoice) => void;
+  onMakePayment?: () => void;
 }) {
   const barColor = STATUS_BAR_COLOR_DESKTOP[inv.status];
   const labelColor = STATUS_LABEL_COLOR[inv.status];
@@ -438,7 +446,10 @@ function DesktopInvoiceRow({
             </p>
             {isInvoicePayable(inv.number) ? (
               <button
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMakePayment?.();
+                }}
                 className="bg-[#d41a32] flex items-center justify-center rounded-[4px] cursor-pointer border-0 shrink-0"
                 style={{ height: 32, paddingLeft: 12, paddingRight: 12, paddingTop: 6, paddingBottom: 6 }}
               >
@@ -500,28 +511,28 @@ function DesktopPaymentRecordsTable({
           (Paid By is intentionally absent here — it lives on the detail
           modal/sheet only.) */}
       <div
-        className="flex gap-3 items-end w-full pb-1 pr-6 xl:pr-8 2xl:pr-12"
+        className="flex gap-3 items-end w-full pb-1 pr-8 xl:pr-12 2xl:pr-20"
         style={{ height: 36, fontFamily: 'Segoe UI, sans-serif' }}
       >
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] leading-[14px] w-[124px] xl:w-[176px]">
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] leading-[14px] w-[124px] xl:w-[176px]">
           Payment ID
         </p>
-        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#262626] whitespace-nowrap">
+        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#737373] whitespace-nowrap leading-[14px]">
           Paid On
         </p>
-        <p className="font-semibold text-[12px] xl:text-[14px] text-[#262626] whitespace-nowrap w-[160px] xl:w-[200px]">
+        <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] whitespace-nowrap leading-[14px] w-[160px] xl:w-[200px]">
           Method
         </p>
         {/* Spacer between left-aligned text columns and the right-aligned
             amount columns — scales with viewport via --cs. */}
         <div className="shrink-0" style={{ width: cs(16) }} />
-        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#262626] text-right whitespace-nowrap">
+        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#737373] text-right whitespace-nowrap leading-[14px]">
           Amount Applied
         </p>
-        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#262626] text-right whitespace-nowrap">
+        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#737373] text-right whitespace-nowrap leading-[14px]">
           Platform Fee
         </p>
-        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#262626] text-right whitespace-nowrap">
+        <p className="flex-1 min-w-0 font-semibold text-[12px] xl:text-[14px] text-[#737373] text-right whitespace-nowrap leading-[14px]">
           Amount Paid
         </p>
       </div>
@@ -551,7 +562,7 @@ function DesktopPaymentRecordRow({
           onOpen(rec);
         }
       }}
-      className="bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors border-l-4 border-solid border-[#04b50b] flex gap-3 items-center w-full px-6 xl:px-8 2xl:px-12 cursor-pointer"
+      className="bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors border-l-4 border-solid border-[#04b50b] flex gap-3 items-center w-full pl-6 pr-8 xl:pl-8 xl:pr-12 2xl:pl-12 2xl:pr-20 cursor-pointer"
       style={{ height: 48, fontFamily: 'Segoe UI, sans-serif' }}
     >
       <p className="text-[14px] xl:text-[16px] text-[#262626] whitespace-nowrap leading-normal w-[100px] xl:w-[144px] overflow-hidden text-ellipsis">
@@ -599,8 +610,11 @@ function DesktopPaymentRecordRow({
 // don't render that button, matching Figma).
 export default function InvoicesPaymentsSection({
   onScrollToTop,
+  onMakePayment,
 }: {
   onScrollToTop: () => void;
+  /** Open the Make-A-Payment utility (managed by ProjectHubPageResponsive). */
+  onMakePayment?: () => void;
 }) {
   // Currently-open detail (null = closed). Drives the bottom-sheet (XS/S/M)
   // and centered modal (L+) inside InvoicePaymentDetailDialog.
@@ -661,7 +675,7 @@ export default function InvoicesPaymentsSection({
         className="hidden lg:flex flex-col gap-8 xl:gap-12 2xl:gap-16 w-full pt-8 pb-6"
         style={{ '--cs': 'clamp(1, calc(100vw / 1024px), 2.109375)' } as React.CSSProperties}
       >
-        <DesktopInvoicesTable onOpenInvoice={openInvoice} />
+        <DesktopInvoicesTable onOpenInvoice={openInvoice} onMakePayment={onMakePayment} />
         <DesktopPaymentRecordsTable onOpenPayment={openPayment} />
       </div>
 
@@ -675,7 +689,10 @@ export default function InvoicesPaymentsSection({
         onClose={() => setDetail(null)}
         onMakePayment={
           detail?.type === 'invoice' && isInvoicePayable(detail.invoice.number)
-            ? () => setDetail(null) // prototype: just close the dialog
+            ? () => {
+                setDetail(null);
+                onMakePayment?.();
+              }
             : undefined
         }
         onOpenPayment={(paymentId) => {
