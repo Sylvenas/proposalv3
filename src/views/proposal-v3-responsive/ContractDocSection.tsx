@@ -173,7 +173,7 @@ function ContractDocStickyFooter({
       ref={ref}
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white flex flex-col gap-4 items-end justify-center p-4 sm:p-6 w-full"
       style={{
-        boxShadow: '0px -2px 4px 0px rgba(0,0,0,0.12), 0px -4px 24px 0px rgba(0,0,0,0.2)',
+        borderTop: '0.5px solid rgba(0,0,0,0.08)',
         fontFamily: 'Segoe UI, sans-serif',
       }}
     >

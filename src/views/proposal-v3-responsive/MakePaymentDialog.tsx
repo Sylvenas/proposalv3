@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ScrollHintArrows from './ScrollHintArrows';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PaymentTarget = {
@@ -925,7 +926,7 @@ function MobileSheetFooter({
 }) {
   return (
     <div
-      className="bg-white flex flex-col gap-3 sm:gap-4 items-start w-full shrink-0 px-3 sm:px-6 pt-3 sm:pt-4 pb-8 sm:pb-12"
+      className="bg-white flex flex-col gap-3 sm:gap-4 items-start w-full shrink-0 px-3 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6"
       style={{ borderTop: '0.5px solid rgba(0,0,0,0.08)' }}
     >
       <div className="flex flex-col gap-1 sm:gap-2 items-start w-full">
@@ -985,6 +986,9 @@ export default function MakePaymentDialog({
   const [open, setOpen] = useState(false);
   // Keep last non-null target so the dialog can keep rendering during exit.
   const [last, setLast] = useState<PaymentTarget | null>(null);
+
+  // Scroll viewport for the mobile bottom-sheet — observed by ScrollHintArrows.
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
 
   // Form state lives at the dialog root so the mobile sheet and desktop modal
   // share a single source of truth. Switching viewports across the lg
@@ -1103,19 +1107,26 @@ export default function MakePaymentDialog({
         }}
       >
         {/* Scrollable content area — header, summary, method tiles, form, auth.
-            Scrollbar is fully hidden (even while scrolling) per UX request. */}
-        <div
-          className="flex-1 min-h-0 overflow-y-auto make-payment-sheet-scroll"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          <MobileSheetScrollContent
-            target={last}
-            fee={fee}
-            total={total}
-            state={formState}
-            setField={setField}
-            submitAttempted={submitAttempted}
-          />
+            Scrollbar is fully hidden (even while scrolling) per UX request.
+            Wrapped in a `relative flex flex-col` container so the bouncing
+            scroll-hint arrows can anchor to the scroll viewport's edges
+            without affecting the sheet's natural height. */}
+        <div className="relative flex flex-col flex-1 min-h-0">
+          <div
+            ref={mobileScrollRef}
+            className="flex-1 min-h-0 overflow-y-auto make-payment-sheet-scroll"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <MobileSheetScrollContent
+              target={last}
+              fee={fee}
+              total={total}
+              state={formState}
+              setField={setField}
+              submitAttempted={submitAttempted}
+            />
+          </div>
+          <ScrollHintArrows targetRef={mobileScrollRef} />
         </div>
         <style>{`
           .make-payment-sheet-scroll::-webkit-scrollbar { display: none; }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import ScrollHintArrows from './ScrollHintArrows';
 
 // useLayoutEffect on the server is a noop and triggers a warning during SSR;
 // fall back to useEffect for the SSR pass to keep the console clean. The
@@ -599,6 +600,12 @@ export default function InvoicePaymentDetailDialog({
   const modalRef   = useRef<HTMLDivElement>(null);
   const lastSheetH = useRef<number>(0);
   const lastModalH = useRef<number>(0);
+  // Scroll viewports for the active (incoming) panel — observed by
+  // ScrollHintArrows. Re-assigned on every swap because the keyed wrapper
+  // remounts; ScrollHintArrows lives inside the same keyed wrapper so its
+  // effect re-runs in lockstep.
+  const sheetScrollRef = useRef<HTMLDivElement>(null);
+  const modalScrollRef = useRef<HTMLDivElement>(null);
   // True for the duration of a swap. Drives `overflow: hidden` on the scroll
   // areas so a scrollbar doesn't briefly appear while the box grows past the
   // content's intrinsic height (and vice versa).
@@ -837,18 +844,23 @@ export default function InvoicePaymentDetailDialog({
                 : 'none',
             }}
           >
-            {/* Scrollable content */}
-            <div
-              data-swap-scroll
-              onScroll={onScroll}
-              className={`detail-scroll flex-1 min-h-0 px-4 sm:px-6 pt-6${isScrolling ? ' is-scrolling' : ''}`}
-              style={{ overflowY: swapping ? 'hidden' : 'auto' }}
-            >
-              {last.type === 'invoice' ? (
-                <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
-              ) : (
-                <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
-              )}
+            {/* Scrollable content — wrapped in a relative container so the
+                bouncing scroll-hint arrows can anchor to the viewport edges. */}
+            <div className="relative flex flex-col flex-1 min-h-0">
+              <div
+                ref={sheetScrollRef}
+                data-swap-scroll
+                onScroll={onScroll}
+                className={`detail-scroll flex-1 min-h-0 px-4 sm:px-6 pt-6${isScrolling ? ' is-scrolling' : ''}`}
+                style={{ overflowY: swapping ? 'hidden' : 'auto' }}
+              >
+                {last.type === 'invoice' ? (
+                  <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
+                ) : (
+                  <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                )}
+              </div>
+              <ScrollHintArrows targetRef={sheetScrollRef} />
             </div>
 
             {/* Footer actions — separated from content by spacing only (no rule) */}
@@ -948,23 +960,29 @@ export default function InvoicePaymentDetailDialog({
                     clearance so first-row text never tucks under the [X].
                     The scrollbar itself (6px wide) sits 10px to the right
                     of the X button, so they don't visually collide. */}
-              <div
-                data-swap-scroll
-                onScroll={onScroll}
-                className={`detail-scroll flex-1 min-h-0 pl-8${isScrolling ? ' is-scrolling' : ''}`}
-                style={{
-                  marginTop: 32,
-                  paddingRight: 64,
-                  marginRight: 16,
-                  paddingBottom: desktopHasFooter ? 0 : 32,
-                  overflowY: swapping ? 'hidden' : 'auto',
-                }}
-              >
-                {last.type === 'invoice' ? (
-                  <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
-                ) : (
-                  <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
-                )}
+              {/* Wrapper is `relative` so the bouncing scroll-hint arrows
+                  anchor to the scroll viewport's edges. */}
+              <div className="relative flex flex-col flex-1 min-h-0">
+                <div
+                  ref={modalScrollRef}
+                  data-swap-scroll
+                  onScroll={onScroll}
+                  className={`detail-scroll flex-1 min-h-0 pl-8${isScrolling ? ' is-scrolling' : ''}`}
+                  style={{
+                    marginTop: 32,
+                    paddingRight: 64,
+                    marginRight: 16,
+                    paddingBottom: desktopHasFooter ? 0 : 32,
+                    overflowY: swapping ? 'hidden' : 'auto',
+                  }}
+                >
+                  {last.type === 'invoice' ? (
+                    <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
+                  ) : (
+                    <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                  )}
+                </div>
+                <ScrollHintArrows targetRef={modalScrollRef} topInset={40} bottomInset={16} />
               </div>
 
               {/* Footer actions — only rendered when there's a contextual
