@@ -7,6 +7,7 @@ import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHe
 import ContractDocSection from './ContractDocSection';
 import InvoicesPaymentsSection from './InvoicesPaymentsSection';
 import WorkInProgressSection from './WorkInProgressSection';
+import MakePaymentDialog, { type PaymentTarget } from './MakePaymentDialog';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -869,11 +870,13 @@ function ProjectHomeDetails({
   financials,
   approvedAt,
   paymentBtnRef,
+  onMakePayment,
 }: {
   option: FenceOption;
   financials: Financials;
   approvedAt?: Date | null;
   paymentBtnRef?: React.Ref<HTMLButtonElement>;
+  onMakePayment?: () => void;
 }) {
   const dueDate = (() => {
     const base = approvedAt ?? new Date();
@@ -944,7 +947,7 @@ function ProjectHomeDetails({
         <div className="flex flex-col gap-3 items-start w-full">
 
           {/* Make A Payment — primary red */}
-          <button ref={paymentBtnRef} className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer">
+          <button ref={paymentBtnRef} onClick={onMakePayment} className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer">
             <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
               Make A Payment
             </span>
@@ -1066,6 +1069,17 @@ export default function ProjectHubPageResponsive({
   // ── Next payment (mirrors ProjectHomeDetails) — kept in sync with addons ──
   const PAID_AMOUNT = 5000;
   const nextPaymentAmount = Math.max(0, financials.contractTotal - PAID_AMOUNT);
+
+  // ── Make-A-Payment dialog state ───────────────────────────────────────────
+  // Non-null = open. The next payable invoice in the prototype is
+  // INVOICE #2 (Balance 60% — $4,999 outstanding on Henderson Backyard Fence).
+  const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
+  const openMakePayment = useCallback(() => {
+    setPaymentTarget({
+      amount: 4999,
+      description: 'Balance (60%) · Henderson Backyard Fence',
+    });
+  }, []);
   const dueDate = (() => {
     const base = approvedAt ?? new Date();
     const d = new Date(base);
@@ -1218,6 +1232,7 @@ export default function ProjectHubPageResponsive({
                 financials={financials}
                 approvedAt={approvedAt}
                 paymentBtnRef={paymentBtnRef}
+                onMakePayment={openMakePayment}
               />
             </div>
 
@@ -1242,7 +1257,7 @@ export default function ProjectHubPageResponsive({
               <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
                 <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
                   <ProjectHomeTitleBlock approvedAt={approvedAt} />
-                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} />
+                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} />
                 </div>
               </div>
             </div>
@@ -1263,7 +1278,7 @@ export default function ProjectHubPageResponsive({
         )}
 
         {activeTab === 'invoices' && (
-          <InvoicesPaymentsSection onScrollToTop={scrollToTop} />
+          <InvoicesPaymentsSection onScrollToTop={scrollToTop} onMakePayment={openMakePayment} />
         )}
 
         {activeTab === 'changes' && (
@@ -1276,7 +1291,13 @@ export default function ProjectHubPageResponsive({
         visible={showStickyFooter}
         nextPaymentAmount={nextPaymentAmount}
         dueDate={dueDate}
-        onMakePayment={() => { /* prototype — no-op */ }}
+        onMakePayment={openMakePayment}
+      />
+
+      {/* Make-A-Payment utility dialog — sheet on XS/S/M, centered modal on L+ */}
+      <MakePaymentDialog
+        target={paymentTarget}
+        onClose={() => setPaymentTarget(null)}
       />
     </div>
   );
