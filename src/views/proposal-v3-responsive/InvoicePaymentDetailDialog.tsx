@@ -11,7 +11,7 @@ const useIsoLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type InvoiceStatus = 'paid' | 'partial' | 'unpaid';
+type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'returned';
 
 export type InvoiceDetail = {
   number: number;
@@ -48,15 +48,17 @@ export type DetailContent =
 
 // ─── Status palette ──────────────────────────────────────────────────────────
 const STATUS_LABEL: Record<InvoiceStatus, string> = {
-  paid:    'PAID',
-  partial: 'PARTIALLY PAID',
-  unpaid:  'UNPAID',
+  paid:     'PAID',
+  partial:  'PARTIALLY PAID',
+  unpaid:   'UNPAID',
+  returned: 'PAYMENT RETURNED',
 };
 
 const STATUS_COLOR: Record<InvoiceStatus, string> = {
-  paid:    '#04b50b',
-  partial: '#398ae7',
-  unpaid:  '#737373',
+  paid:     '#04b50b',
+  partial:  '#398ae7',
+  unpaid:   '#737373',
+  returned: '#d41a32',
 };
 
 // ─── Format helpers ──────────────────────────────────────────────────────────

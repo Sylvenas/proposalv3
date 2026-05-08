@@ -48,6 +48,24 @@ const INITIAL_FORM_STATE: FormState = {
   repeatAccountNumber: '',
 };
 
+// Mock data used when DevConsole → Project Hub → Payment Info Input is set
+// to "Prefilled". Test card / ACH details only — fills both the card and
+// bank branches so toggling the method tile finds populated fields on
+// either side. Card number is the standard ***4242 test PAN.
+const PREFILLED_FORM_STATE: FormState = {
+  method: 'card',
+  cardholderName:      'Junyu Zhang',
+  cardNumber:          '4242 4242 4242 4242',
+  cvv:                 '123',
+  expiration:          '12 / 30',
+  zip:                 '49504',
+  accountHolderName:   'Junyu Zhang',
+  accountType:         'Checking',
+  routingNumber:       '021000021',
+  accountNumber:       '000123456789',
+  repeatAccountNumber: '000123456789',
+};
+
 // ─── Animation tuning (mirrors InvoicePaymentDetailDialog) ───────────────────
 const ANIM_MS = 280;
 const EASE_OUT = 'cubic-bezier(0.32, 0.72, 0, 1)';
@@ -157,6 +175,7 @@ function TextInput({
   value,
   onChange,
   error,
+  shakeKey = 0,
 }: {
   placeholder: string;
   leadingIcon?: React.ReactNode;
@@ -165,7 +184,17 @@ function TextInput({
   onChange?: (next: string) => void;
   /** When true, draws a red 1px outline. Clears once value is non-empty. */
   error?: boolean;
+  /** Increments each time the user tries to submit with invalid input.
+   *  When `error` is true, a horizontal shake animation re-fires on every
+   *  increment (so a second click on Confirm and Pay re-shakes the same
+   *  empty field). The keyframe name alternates by parity to force the CSS
+   *  animation to restart without remounting the input (which would drop
+   *  focus / typed value). */
+  shakeKey?: number;
 }) {
+  const shakeAnim = error && shakeKey > 0
+    ? `errorShake${shakeKey % 2 === 0 ? 'A' : 'B'} 360ms ease-out`
+    : undefined;
   return (
     <div
       className={`flex items-center h-10 w-full rounded-[4px] border border-solid gap-1 ${
@@ -175,6 +204,10 @@ function TextInput({
         borderWidth: error ? 1 : 0.5,
         borderColor: error ? '#d41a32' : '#d9d9d9',
         backgroundColor: error ? 'rgba(212,26,50,0.04)' : undefined,
+        // Smooth color transitions so the red ring fades in rather than
+        // snapping when the user clicks Confirm and Pay with empty fields.
+        transition: 'border-color 200ms ease-out, background-color 200ms ease-out',
+        animation: shakeAnim,
       }}
     >
       {leadingIcon}
@@ -205,6 +238,7 @@ function Select({
   value,
   onChange,
   error,
+  shakeKey = 0,
 }: {
   placeholder: string;
   options: string[];
@@ -213,7 +247,12 @@ function Select({
   onChange?: (next: string) => void;
   /** When true, draws a red 1px outline. Clears once value is non-empty. */
   error?: boolean;
+  /** See `TextInput.shakeKey` — increments retrigger the shake animation. */
+  shakeKey?: number;
 }) {
+  const shakeAnim = error && shakeKey > 0
+    ? `errorShake${shakeKey % 2 === 0 ? 'A' : 'B'} 360ms ease-out`
+    : undefined;
   const current = value ?? '';
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -252,6 +291,8 @@ function Select({
           borderWidth: error ? 1 : 0.5,
           borderColor: error ? '#d41a32' : '#d9d9d9',
           backgroundColor: error ? 'rgba(212,26,50,0.04)' : '#ffffff',
+          transition: 'border-color 200ms ease-out, background-color 200ms ease-out',
+          animation: shakeAnim,
         }}
       >
         <span
@@ -388,16 +429,16 @@ function CardFormFields({
   mobile,
   state,
   setField,
-  submitAttempted,
+  submitAttemptCount,
 }: {
   mobile?: boolean;
   state: FormState;
   setField: SetField;
   /** True once the user has tried to submit with missing fields — empty
    *  fields render with a red outline until they're filled. */
-  submitAttempted?: boolean;
+  submitAttemptCount?: number;
 }) {
-  const errFor = (v: string) => Boolean(submitAttempted && v.trim() === '');
+  const errFor = (v: string) => (submitAttemptCount ?? 0) > 0 && v.trim() === '';
   // Inner-row gap mirrors the column's section gap so the rhythm matches.
   const rowGap = mobile
     ? 'gap-4 sm:gap-6 xl:gap-6 2xl:gap-8'
@@ -412,6 +453,7 @@ function CardFormFields({
           value={state.cardholderName}
           onChange={(v) => setField('cardholderName', v)}
           error={errFor(state.cardholderName)}
+          shakeKey={submitAttemptCount}
         />
       </div>
       <div className={`flex ${rowGap} items-start w-full`}>
@@ -424,6 +466,7 @@ function CardFormFields({
             value={state.cardNumber}
             onChange={(v) => setField('cardNumber', v)}
             error={errFor(state.cardNumber)}
+            shakeKey={submitAttemptCount}
           />
         </div>
         <div className="flex flex-col gap-1 items-start min-w-0" style={{ flex: '129 1 0' }}>
@@ -434,6 +477,7 @@ function CardFormFields({
             value={state.cvv}
             onChange={(v) => setField('cvv', v)}
             error={errFor(state.cvv)}
+            shakeKey={submitAttemptCount}
           />
         </div>
       </div>
@@ -446,6 +490,7 @@ function CardFormFields({
             value={state.expiration}
             onChange={(v) => setField('expiration', v)}
             error={errFor(state.expiration)}
+            shakeKey={submitAttemptCount}
           />
         </div>
         <div className="flex flex-col gap-1 items-start flex-1 min-w-0">
@@ -456,6 +501,7 @@ function CardFormFields({
             value={state.zip}
             onChange={(v) => setField('zip', v)}
             error={errFor(state.zip)}
+            shakeKey={submitAttemptCount}
           />
         </div>
       </div>
@@ -475,14 +521,14 @@ function BankFormFields({
   mobile,
   state,
   setField,
-  submitAttempted,
+  submitAttemptCount,
 }: {
   mobile?: boolean;
   state: FormState;
   setField: SetField;
-  submitAttempted?: boolean;
+  submitAttemptCount?: number;
 }) {
-  const errFor = (v: string) => Boolean(submitAttempted && v.trim() === '');
+  const errFor = (v: string) => (submitAttemptCount ?? 0) > 0 && v.trim() === '';
   const rowGap = mobile
     ? 'gap-4 sm:gap-6 xl:gap-6 2xl:gap-8'
     : 'gap-4 xl:gap-6 2xl:gap-8';
@@ -496,6 +542,7 @@ function BankFormFields({
           value={state.accountHolderName}
           onChange={(v) => setField('accountHolderName', v)}
           error={errFor(state.accountHolderName)}
+          shakeKey={submitAttemptCount}
         />
       </div>
       <div className={`flex ${rowGap} items-start w-full`}>
@@ -507,6 +554,7 @@ function BankFormFields({
             value={state.routingNumber}
             onChange={(v) => setField('routingNumber', v)}
             error={errFor(state.routingNumber)}
+            shakeKey={submitAttemptCount}
           />
         </div>
         <div className="flex flex-col gap-1 items-start flex-1 min-w-0">
@@ -518,6 +566,7 @@ function BankFormFields({
             value={state.accountType}
             onChange={(v) => setField('accountType', v)}
             error={errFor(state.accountType)}
+            shakeKey={submitAttemptCount}
           />
         </div>
       </div>
@@ -531,6 +580,7 @@ function BankFormFields({
               value={state.accountNumber}
               onChange={(v) => setField('accountNumber', v)}
               error={errFor(state.accountNumber)}
+              shakeKey={submitAttemptCount}
             />
           </div>
           <div className="flex flex-col gap-1 items-start w-full">
@@ -541,6 +591,7 @@ function BankFormFields({
               value={state.repeatAccountNumber}
               onChange={(v) => setField('repeatAccountNumber', v)}
               error={errFor(state.repeatAccountNumber)}
+              shakeKey={submitAttemptCount}
             />
           </div>
         </>
@@ -553,6 +604,7 @@ function BankFormFields({
               value={state.accountNumber}
               onChange={(v) => setField('accountNumber', v)}
               error={errFor(state.accountNumber)}
+              shakeKey={submitAttemptCount}
             />
           </div>
           <div className="flex flex-col gap-1 items-start flex-1 min-w-0">
@@ -562,6 +614,7 @@ function BankFormFields({
               value={state.repeatAccountNumber}
               onChange={(v) => setField('repeatAccountNumber', v)}
               error={errFor(state.repeatAccountNumber)}
+              shakeKey={submitAttemptCount}
             />
           </div>
         </div>
@@ -575,17 +628,29 @@ function DesktopFormColumn({
   target,
   state,
   setField,
-  submitAttempted,
+  submitAttemptCount,
+  disabled = false,
 }: {
   target: PaymentTarget;
   state: FormState;
   setField: SetField;
-  submitAttempted: boolean;
+  submitAttemptCount: number;
+  /** True while the payment is processing or has failed — the whole column
+   *  becomes inert (no clicks, no focus) and fades to read-only opacity so
+   *  the user can still see what they entered. */
+  disabled?: boolean;
 }) {
   return (
     <div
       className="flex flex-col gap-4 xl:gap-6 2xl:gap-8 items-start p-6 xl:p-8 2xl:p-10 min-w-0"
-      style={{ flex: '6 1 0' }}
+      style={{
+        flex: '6 1 0',
+        opacity: disabled ? 0.55 : 1,
+        transition: 'opacity 200ms ease-out',
+      }}
+      // `inert` (React 19) blocks pointer + focus events for the entire
+      // subtree without us having to thread `disabled` to every input.
+      inert={disabled}
     >
       {/* Header — MAKE A PAYMENT, big amount, subtitle */}
       <div className="flex flex-col gap-1 items-start w-full">
@@ -623,9 +688,9 @@ function DesktopFormColumn({
 
       {/* Method-specific form fields */}
       {state.method === 'card' ? (
-        <CardFormFields state={state} setField={setField} submitAttempted={submitAttempted} />
+        <CardFormFields state={state} setField={setField} submitAttemptCount={submitAttemptCount} />
       ) : (
-        <BankFormFields state={state} setField={setField} submitAttempted={submitAttempted} />
+        <BankFormFields state={state} setField={setField} submitAttemptCount={submitAttemptCount} />
       )}
     </div>
   );
@@ -639,6 +704,8 @@ function DesktopSummaryColumn({
   onClose,
   onConfirm,
   isValid,
+  submitting = false,
+  recoveryKey = 0,
 }: {
   target: PaymentTarget;
   fee: number;
@@ -648,14 +715,35 @@ function DesktopSummaryColumn({
   /** Drives the visual disabled state on Confirm and Pay. The button still
    *  receives clicks so we can flip the highlight on missing fields. */
   isValid: boolean;
+  /** True while the payment is being processed — the button locks, swaps
+   *  its label to "Processing", and shows a circular spinner. */
+  submitting?: boolean;
+  /** Bumped each time the user clicks Try Again on the failure panel. When
+   *  > 0 the summary column animates in (slide-in from left + staggered
+   *  children) — mirrors the failure panel's entrance so the round-trip
+   *  feels symmetrical. Stays 0 on first dialog open so we don't compete
+   *  with the modal's own scale-in. */
+  recoveryKey?: number;
 }) {
+  const recovering = recoveryKey > 0;
   return (
     <div
       className="flex flex-col gap-4 xl:gap-6 2xl:gap-8 items-start p-6 xl:p-8 2xl:p-10 bg-[#fafafa] relative min-w-0"
-      style={{ flex: '4 1 0', borderLeft: '0.5px solid rgba(0,0,0,0.1)' }}
+      style={{
+        flex: '4 1 0',
+        borderLeft: '0.5px solid rgba(0,0,0,0.1)',
+        animation: recovering
+          ? 'psPanelEnter 380ms cubic-bezier(0.32, 0.72, 0, 1) both'
+          : undefined,
+      }}
     >
       {/* Header row with X */}
-      <div className="flex items-start justify-between w-full pb-3">
+      <div
+        className="flex items-start justify-between w-full pb-3"
+        style={{
+          animation: recovering ? 'pfTextRise 320ms ease-out 120ms both' : undefined,
+        }}
+      >
         <p className="text-[12px] xl:text-[14px] font-semibold text-[#737373] leading-normal whitespace-nowrap">
           PAYMENT SUMMARY
         </p>
@@ -673,7 +761,12 @@ function DesktopSummaryColumn({
       {/* Amount due + Platform fee — one-step tighter than the column gap so
           the two subtotal rows read as a paired unit (better visual rhythm).
           Bank transfers carry no fee, so the row is omitted entirely. */}
-      <div className="flex flex-col gap-2 xl:gap-3 2xl:gap-4 items-start w-full">
+      <div
+        className="flex flex-col gap-2 xl:gap-3 2xl:gap-4 items-start w-full"
+        style={{
+          animation: recovering ? 'pfTextRise 320ms ease-out 220ms both' : undefined,
+        }}
+      >
         <div className="flex items-start w-full">
           <p className="flex-1 min-w-0 text-[14px] text-[#737373] leading-normal whitespace-nowrap">
             Amount due
@@ -697,7 +790,10 @@ function DesktopSummaryColumn({
       {/* You'll be charged */}
       <div
         className="flex items-start w-full pt-2"
-        style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)' }}
+        style={{
+          borderTop: '0.5px solid rgba(0,0,0,0.1)',
+          animation: recovering ? 'pfTextRise 320ms ease-out 320ms both' : undefined,
+        }}
       >
         <p className="flex-1 min-w-0 text-[14px] text-[#262626] leading-normal whitespace-nowrap">
           You&rsquo;ll be charged
@@ -709,7 +805,13 @@ function DesktopSummaryColumn({
 
       {/* Authorization copy — extra top margin gives breathing room from the
           "You'll be charged" total above. */}
-      <p className="text-[10px] xl:text-[12px] text-[#737373] leading-normal" style={{ marginTop: 8 }}>
+      <p
+        className="text-[10px] xl:text-[12px] text-[#737373] leading-normal"
+        style={{
+          marginTop: 8,
+          animation: recovering ? 'pfTextRise 320ms ease-out 420ms both' : undefined,
+        }}
+      >
         By clicking &lsquo;Confirm and Pay,&rsquo; you authorize ArcSite to initiate a one-time
         debit from your provided account for{' '}
         <span className="font-semibold"><AnimatedDollar value={total} decimals={2} /></span>, and acknowledge your
@@ -717,21 +819,30 @@ function DesktopSummaryColumn({
       </p>
 
       {/* Spacer + button + secured-by row, pushed to bottom */}
-      <div className="flex flex-col gap-2 items-center justify-end flex-1 min-h-0 w-full">
+      <div
+        className="flex flex-col gap-2 items-center justify-end flex-1 min-h-0 w-full"
+        style={{
+          animation: recovering ? 'pfTextRise 320ms ease-out 520ms both' : undefined,
+        }}
+      >
         <button
           type="button"
           onClick={onConfirm}
-          aria-disabled={!isValid}
-          className={`bg-[#d41a32] border-0 flex items-center justify-center h-10 px-2 py-1 rounded-[2px] w-full ${
-            isValid ? 'cursor-pointer' : 'cursor-not-allowed'
+          aria-disabled={!isValid || submitting}
+          disabled={submitting}
+          className={`bg-[#d41a32] border-0 flex items-center justify-center gap-2 h-10 px-2 py-1 rounded-[2px] w-full ${
+            isValid && !submitting ? 'cursor-pointer' : 'cursor-not-allowed'
           }`}
-          style={{ opacity: isValid ? 1 : 0.5 }}
+          style={{ opacity: !isValid || submitting ? 0.5 : 1 }}
         >
+          {submitting && <PaymentSpinner />}
           <span
             className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
             style={{ letterSpacing: '-0.56px', lineHeight: '16px' }}
           >
-            Confirm and Pay <AnimatedDollar value={total} decimals={2} />
+            {submitting
+              ? 'Processing'
+              : <>Confirm and Pay <AnimatedDollar value={total} decimals={2} /></>}
           </span>
         </button>
         <div className="flex gap-1.5 items-center justify-center w-full">
@@ -757,16 +868,16 @@ function MobileSheetScrollContent({
   total,
   state,
   setField,
-  submitAttempted,
+  submitAttemptCount,
 }: {
   target: PaymentTarget;
   fee: number;
   total: number;
   state: FormState;
   setField: SetField;
-  submitAttempted: boolean;
+  submitAttemptCount: number;
 }) {
-  const errFor = (v: string) => Boolean(submitAttempted && v.trim() === '');
+  const errFor = (v: string) => (submitAttemptCount ?? 0) > 0 && v.trim() === '';
   return (
     <div className="flex flex-col gap-6 sm:gap-8 items-start w-full px-3 sm:px-6 pt-6 pb-8 sm:pb-12">
       {/* Header — sizes scale up at sm+ to take advantage of larger tablet
@@ -851,6 +962,7 @@ function MobileSheetScrollContent({
               value={state.cardholderName}
               onChange={(v) => setField('cardholderName', v)}
               error={errFor(state.cardholderName)}
+              shakeKey={submitAttemptCount}
             />
           </div>
 
@@ -864,6 +976,7 @@ function MobileSheetScrollContent({
               value={state.cardNumber}
               onChange={(v) => setField('cardNumber', v)}
               error={errFor(state.cardNumber)}
+              shakeKey={submitAttemptCount}
             />
           </div>
 
@@ -877,6 +990,7 @@ function MobileSheetScrollContent({
                 value={state.expiration}
                 onChange={(v) => setField('expiration', v)}
                 error={errFor(state.expiration)}
+                shakeKey={submitAttemptCount}
               />
             </div>
             <div className="flex flex-col gap-1 items-start flex-1 min-w-0">
@@ -887,6 +1001,7 @@ function MobileSheetScrollContent({
                 value={state.cvv}
                 onChange={(v) => setField('cvv', v)}
                 error={errFor(state.cvv)}
+                shakeKey={submitAttemptCount}
               />
             </div>
           </div>
@@ -900,11 +1015,12 @@ function MobileSheetScrollContent({
               value={state.zip}
               onChange={(v) => setField('zip', v)}
               error={errFor(state.zip)}
+              shakeKey={submitAttemptCount}
             />
           </div>
         </>
       ) : (
-        <BankFormFields mobile state={state} setField={setField} submitAttempted={submitAttempted} />
+        <BankFormFields mobile state={state} setField={setField} submitAttemptCount={submitAttemptCount} />
       )}
 
       {/* Authorization copy */}
@@ -925,11 +1041,15 @@ function MobileSheetFooter({
   onClose,
   onConfirm,
   isValid,
+  submitting = false,
 }: {
   total: number;
   onClose: () => void;
   onConfirm: () => void;
   isValid: boolean;
+  /** Mirror of the desktop submitting state — locks the button, swaps the
+   *  label to "Processing", and shows a spinner. */
+  submitting?: boolean;
 }) {
   return (
     <div
@@ -940,17 +1060,21 @@ function MobileSheetFooter({
         <button
           type="button"
           onClick={onConfirm}
-          aria-disabled={!isValid}
-          className={`bg-[#d41a32] border-0 flex items-center justify-center h-10 rounded-[2px] w-full ${
-            isValid ? 'cursor-pointer' : 'cursor-not-allowed'
+          aria-disabled={!isValid || submitting}
+          disabled={submitting}
+          className={`bg-[#d41a32] border-0 flex items-center justify-center gap-2 h-10 rounded-[2px] w-full ${
+            isValid && !submitting ? 'cursor-pointer' : 'cursor-not-allowed'
           }`}
-          style={{ paddingLeft: 16, paddingRight: 16, opacity: isValid ? 1 : 0.5 }}
+          style={{ paddingLeft: 16, paddingRight: 16, opacity: !isValid || submitting ? 0.5 : 1 }}
         >
+          {submitting && <PaymentSpinner />}
           <span
             className="text-[14px] sm:text-[16px] font-semibold text-white text-center whitespace-nowrap"
             style={{ lineHeight: '18px' }}
           >
-            Confirm and Pay <AnimatedDollar value={total} decimals={2} />
+            {submitting
+              ? 'Processing'
+              : <>Confirm and Pay <AnimatedDollar value={total} decimals={2} /></>}
           </span>
         </button>
         <button
@@ -988,6 +1112,27 @@ export type ConfirmedPaymentInfo = {
   methodLabel:   string;
 };
 
+// ─── Spinner ─────────────────────────────────────────────────────────────────
+// White-stroke circular spinner used inside Confirm and Pay while the payment
+// is processing. Mirrors the SignatureOverlay spinner so the two flows feel
+// the same — but defines its own keyframe locally so this dialog doesn't
+// depend on the signature overlay being mounted.
+function PaymentSpinner({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      style={{ animation: 'paymentSpinnerRotate 0.9s linear infinite', flexShrink: 0 }}
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" stroke="white" strokeOpacity="0.35" strokeWidth="1.75" />
+      <path d="M14 8a6 6 0 0 0-6-6" stroke="white" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // ─── Payment Failed result panel ─────────────────────────────────────────────
 // Rendered in place of the form when the DevConsole has Payment Result set
 // to 'failure'. Shows a simple error icon + message, with two CTAs:
@@ -1004,51 +1149,376 @@ function PaymentFailedPanel({
   onClose: () => void;
   variant: 'mobile' | 'desktop';
 }) {
-  const titleSize = variant === 'mobile' ? 'text-[20px] sm:text-[24px]' : 'text-[20px] xl:text-[24px]';
+  // Desktop variant mirrors DesktopSummaryColumn — same outer container
+  // (bg, border-left, flex, padding), a uppercase header label + X close,
+  // body content stacked at the top, and the primary action pinned to the
+  // bottom. This swaps cleanly into the right column when payment fails so
+  // the form column on the left stays mounted.
+  if (variant === 'desktop') {
+    // Staggered entrance — container fades + scales in, then the icon pops
+    // with a slight overshoot, then the heading / description / Try Again
+    // button rise in sequence. Mirrors what Stripe / Linear do for result
+    // panels: fast enough to feel responsive, slow enough to read as a
+    // deliberate transition rather than a hard cut. `both` fill-mode
+    // ensures each child sits at its starting state until its delay
+    // elapses (no flash of finished content).
+    return (
+      <div
+        className="flex flex-col items-start p-6 xl:p-8 2xl:p-10 bg-[#fafafa] relative min-w-0"
+        style={{
+          flex: '4 1 0',
+          borderLeft: '0.5px solid rgba(0,0,0,0.1)',
+          animation: 'pfPanelEnter 380ms cubic-bezier(0.32, 0.72, 0, 1) both',
+        }}
+      >
+        {/* Header row with X — matches PAYMENT SUMMARY header */}
+        <div
+          className="flex items-start justify-between w-full pb-3"
+          style={{ animation: 'pfTextRise 320ms ease-out 120ms both' }}
+        >
+          <p className="text-[12px] xl:text-[14px] font-semibold text-[#d41a32] leading-normal whitespace-nowrap">
+            PAYMENT FAILED
+          </p>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="bg-transparent border-0 cursor-pointer p-0 flex items-center justify-center"
+            style={{ width: 16, height: 16 }}
+          >
+            <CloseIcon size={16} />
+          </button>
+        </div>
+
+        {/* Body — vertically AND horizontally centered between the header
+            and the Try Again button so a short message floats in the column
+            rather than hugging the header. */}
+        <div className="flex flex-col gap-4 xl:gap-6 items-center justify-center flex-1 min-h-0 w-full">
+          {/* Red X icon in a soft red circle — pops with a subtle overshoot
+              right after the panel finishes its enter animation. */}
+          <div
+            className="flex items-center justify-center rounded-full"
+            style={{
+              width: 48,
+              height: 48,
+              background: 'rgba(212, 26, 50, 0.1)',
+              animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 240ms both',
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+              <path
+                d="M7 7L21 21M21 7L7 21"
+                stroke="#d41a32"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                style={{
+                  // Stroke-draw effect: the X strokes draw themselves in
+                  // right after the circle is in place.
+                  strokeDasharray: 24,
+                  animation: 'pfIconStroke 360ms ease-out 480ms both',
+                }}
+              />
+            </svg>
+          </div>
+
+          <p
+            className="text-[16px] xl:text-[18px] font-semibold text-[#262626] text-center leading-normal"
+            style={{ animation: 'pfTextRise 360ms ease-out 420ms both' }}
+          >
+            We couldn&rsquo;t process your payment
+          </p>
+          <p
+            className="text-[12px] xl:text-[13px] text-[#737373] text-center leading-normal"
+            style={{ animation: 'pfTextRise 360ms ease-out 540ms both' }}
+          >
+            Your <span className="font-semibold text-[#262626]"><AnimatedDollar value={amount} decimals={2} /></span> payment
+            could not be completed. Please review your payment method and try
+            again, or contact support if the issue persists.
+          </p>
+        </div>
+
+        {/* Try Again — same slot as Confirm and Pay. */}
+        <button
+          type="button"
+          onClick={onTryAgain}
+          className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-2 py-1 rounded-[2px] w-full cursor-pointer"
+          style={{ animation: 'pfTextRise 360ms ease-out 660ms both' }}
+        >
+          <span
+            className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
+            style={{ letterSpacing: '-0.56px', lineHeight: '16px' }}
+          >
+            Try Again
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  // Mobile variant — same staggered entrance as desktop. Container slides
+  // up + fades in (matches the bottom-sheet's vertical orientation), icon
+  // pops with overshoot, then text + buttons rise in sequence.
+  //
+  // Sheet height itself transitions in the parent (60vh failed → 92vh
+  // form), so this panel only needs flex-1 to fill the height the sheet
+  // gives it. Body stays vertically centered, buttons pinned to the
+  // bottom — Try Again on top, Close below — matching the form footer.
   return (
     <div
-      className="flex flex-col items-center justify-center gap-4 w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12"
-      style={{ fontFamily: 'Segoe UI, sans-serif' }}
+      className="flex flex-col flex-1 min-h-0 w-full px-3 sm:px-6 pt-6 sm:pt-8 pb-4 sm:pb-6"
+      style={{
+        fontFamily: 'Segoe UI, sans-serif',
+        animation: 'pfPanelEnterMobile 360ms cubic-bezier(0.32, 0.72, 0, 1) both',
+      }}
     >
-      {/* Red X icon in a soft red circle */}
-      <div
-        className="flex items-center justify-center rounded-full"
-        style={{ width: 64, height: 64, background: 'rgba(212, 26, 50, 0.1)' }}
-      >
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <path
-            d="M7 7L21 21M21 7L7 21"
-            stroke="#d41a32"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-        </svg>
+      {/* Centered body — icon, heading, description. flex-1 absorbs the
+          extra vertical space so the buttons stay pinned to the bottom. */}
+      <div className="flex flex-col items-center justify-center gap-4 flex-1 min-h-0 w-full">
+        <div
+          className="flex items-center justify-center rounded-full"
+          style={{
+            width: 64,
+            height: 64,
+            background: 'rgba(212, 26, 50, 0.1)',
+            animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 220ms both',
+          }}
+        >
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path
+              d="M7 7L21 21M21 7L7 21"
+              stroke="#d41a32"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              style={{
+                strokeDasharray: 24,
+                animation: 'pfIconStroke 360ms ease-out 460ms both',
+              }}
+            />
+          </svg>
+        </div>
+
+        <p
+          className="text-[20px] sm:text-[24px] font-semibold text-[#262626] text-center leading-normal"
+          style={{ animation: 'pfTextRise 320ms ease-out 380ms both' }}
+        >
+          Payment Failed
+        </p>
+        <p
+          className="text-[14px] sm:text-[16px] text-[#737373] text-center leading-normal max-w-[420px]"
+          style={{ animation: 'pfTextRise 320ms ease-out 480ms both' }}
+        >
+          We couldn&rsquo;t process your <AnimatedDollar value={amount} decimals={2} /> payment.
+          Please review your payment method and try again, or contact support if
+          the issue persists.
+        </p>
       </div>
 
-      <p className={`${titleSize} font-semibold text-[#262626] text-center leading-normal`}>
-        Payment Failed
-      </p>
-      <p className="text-[14px] xl:text-[16px] text-[#737373] text-center leading-normal max-w-[420px]">
-        We couldn&rsquo;t process your <AnimatedDollar value={amount} decimals={2} /> payment.
-        Please review your payment method and try again, or contact support if
-        the issue persists.
-      </p>
-
-      <div className="flex gap-2 sm:gap-3 w-full max-w-[420px] pt-2">
+      {/* Bottom-pinned button stack — Try Again on top (primary, mirrors
+          Confirm and Pay), Close below (secondary, mirrors Cancel). */}
+      <div
+        className="flex flex-col gap-1 sm:gap-2 items-start w-full pt-4"
+        style={{ animation: 'pfTextRise 320ms ease-out 580ms both' }}
+      >
         <button
-          onClick={onClose}
-          className="flex-1 h-10 bg-white border border-solid border-[#262626] rounded-[2px] cursor-pointer"
+          onClick={onTryAgain}
+          className="bg-[#d41a32] border-0 flex items-center justify-center h-10 rounded-[2px] w-full cursor-pointer"
+          style={{ paddingLeft: 16, paddingRight: 16 }}
         >
-          <span className="text-[14px] sm:text-[16px] text-[rgba(0,0,0,0.85)]">
-            Close
+          <span
+            className="text-[14px] sm:text-[16px] font-semibold text-white text-center whitespace-nowrap"
+            style={{ lineHeight: '18px' }}
+          >
+            Try Again
           </span>
         </button>
         <button
-          onClick={onTryAgain}
-          className="flex-1 h-10 bg-[#d41a32] border-0 rounded-[2px] cursor-pointer"
+          onClick={onClose}
+          className="bg-white border border-solid border-[#262626] flex items-center justify-center h-10 rounded-[2px] cursor-pointer w-full"
+          style={{ borderWidth: 0.5, paddingLeft: 16, paddingRight: 16 }}
         >
-          <span className="text-[14px] sm:text-[16px] font-semibold text-white">
-            Try Again
+          <span
+            className="text-[14px] sm:text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
+            style={{ lineHeight: '18px' }}
+          >
+            Close
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Payment Success result panel ────────────────────────────────────────────
+// Mirror of PaymentFailedPanel but with a green check + success palette.
+// Appears after the simulated processing delay when paymentResult='success'.
+// Single primary CTA (Done) — there's nothing to retry, and X / Esc do the
+// same thing. Reuses the same staggered keyframes (pfPanelEnter / pfIconPop /
+// pfTextRise) so the success swap-in feels visually identical to failure.
+function PaymentSuccessPanel({
+  amount,
+  onDone,
+  variant,
+}: {
+  amount: number;
+  onDone: () => void;
+  variant: 'mobile' | 'desktop';
+}) {
+  if (variant === 'desktop') {
+    return (
+      <div
+        className="flex flex-col items-start p-6 xl:p-8 2xl:p-10 bg-[#fafafa] relative min-w-0"
+        style={{
+          flex: '4 1 0',
+          borderLeft: '0.5px solid rgba(0,0,0,0.1)',
+          animation: 'pfPanelEnter 380ms cubic-bezier(0.32, 0.72, 0, 1) both',
+        }}
+      >
+        {/* Header — green PAYMENT SUCCESSFUL label + X close */}
+        <div
+          className="flex items-start justify-between w-full pb-3"
+          style={{ animation: 'pfTextRise 320ms ease-out 120ms both' }}
+        >
+          <p className="text-[12px] xl:text-[14px] font-semibold text-[#04b50b] leading-normal whitespace-nowrap">
+            PAYMENT SUCCESSFUL
+          </p>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onDone}
+            className="bg-transparent border-0 cursor-pointer p-0 flex items-center justify-center"
+            style={{ width: 16, height: 16 }}
+          >
+            <CloseIcon size={16} />
+          </button>
+        </div>
+
+        {/* Body — vertically + horizontally centered */}
+        <div className="flex flex-col gap-4 xl:gap-6 items-center justify-center flex-1 min-h-0 w-full">
+          {/* Green check in a soft green circle — same pop+stroke-draw as
+              the failure X but using the success palette. */}
+          <div
+            className="flex items-center justify-center rounded-full"
+            style={{
+              width: 48,
+              height: 48,
+              background: 'rgba(4, 181, 11, 0.1)',
+              animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 240ms both',
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+              <path
+                d="M7 14L12 19L21 9"
+                stroke="#04b50b"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  // Path length ~21 (roughly the sum of the two segments).
+                  strokeDasharray: 24,
+                  animation: 'pfIconStroke 360ms ease-out 480ms both',
+                }}
+              />
+            </svg>
+          </div>
+
+          <p
+            className="text-[16px] xl:text-[18px] font-semibold text-[#262626] text-center leading-normal"
+            style={{ animation: 'pfTextRise 360ms ease-out 420ms both' }}
+          >
+            Payment received
+          </p>
+          <p
+            className="text-[12px] xl:text-[13px] text-[#737373] text-center leading-normal"
+            style={{ animation: 'pfTextRise 360ms ease-out 540ms both' }}
+          >
+            Your <span className="font-semibold text-[#262626]"><AnimatedDollar value={amount} decimals={2} /></span> payment
+            has been processed and added to the project&rsquo;s payment records.
+          </p>
+        </div>
+
+        {/* Done — green primary, mirrors the Try Again slot. */}
+        <button
+          type="button"
+          onClick={onDone}
+          className="bg-[#04b50b] border-0 flex items-center justify-center h-10 px-2 py-1 rounded-[2px] w-full cursor-pointer"
+          style={{ animation: 'pfTextRise 360ms ease-out 660ms both' }}
+        >
+          <span
+            className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
+            style={{ letterSpacing: '-0.56px', lineHeight: '16px' }}
+          >
+            Done
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  // Mobile variant — slides up + staggered cascade. Single Done button at
+  // the bottom (no secondary "Close" since there's nothing else to do once
+  // the payment is recorded).
+  return (
+    <div
+      className="flex flex-col flex-1 min-h-0 w-full px-3 sm:px-6 pt-6 sm:pt-8 pb-4 sm:pb-6"
+      style={{
+        fontFamily: 'Segoe UI, sans-serif',
+        animation: 'pfPanelEnterMobile 360ms cubic-bezier(0.32, 0.72, 0, 1) both',
+      }}
+    >
+      <div className="flex flex-col items-center justify-center gap-4 flex-1 min-h-0 w-full">
+        <div
+          className="flex items-center justify-center rounded-full"
+          style={{
+            width: 64,
+            height: 64,
+            background: 'rgba(4, 181, 11, 0.1)',
+            animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 220ms both',
+          }}
+        >
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path
+              d="M7 14L12 19L21 9"
+              stroke="#04b50b"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                strokeDasharray: 24,
+                animation: 'pfIconStroke 360ms ease-out 460ms both',
+              }}
+            />
+          </svg>
+        </div>
+
+        <p
+          className="text-[20px] sm:text-[24px] font-semibold text-[#262626] text-center leading-normal"
+          style={{ animation: 'pfTextRise 320ms ease-out 380ms both' }}
+        >
+          Payment received
+        </p>
+        <p
+          className="text-[14px] sm:text-[16px] text-[#737373] text-center leading-normal max-w-[420px]"
+          style={{ animation: 'pfTextRise 320ms ease-out 480ms both' }}
+        >
+          Your <AnimatedDollar value={amount} decimals={2} /> payment has been processed and added
+          to the project&rsquo;s payment records.
+        </p>
+      </div>
+
+      <div
+        className="flex flex-col items-start w-full pt-4"
+        style={{ animation: 'pfTextRise 320ms ease-out 580ms both' }}
+      >
+        <button
+          onClick={onDone}
+          className="bg-[#04b50b] border-0 flex items-center justify-center h-10 rounded-[2px] w-full cursor-pointer"
+          style={{ paddingLeft: 16, paddingRight: 16 }}
+        >
+          <span
+            className="text-[14px] sm:text-[16px] font-semibold text-white text-center whitespace-nowrap"
+            style={{ lineHeight: '18px' }}
+          >
+            Done
           </span>
         </button>
       </div>
@@ -1062,6 +1532,7 @@ export default function MakePaymentDialog({
   onClose,
   onConfirm,
   paymentResult = 'success',
+  paymentInfoInput = 'prefilled',
 }: {
   /** Non-null = open. Null = closed. */
   target: PaymentTarget | null;
@@ -1073,6 +1544,9 @@ export default function MakePaymentDialog({
   /** Outcome the prototype simulates after the user clicks Confirm and Pay.
    *  Driven by the DevConsole. */
   paymentResult?: 'success' | 'failure';
+  /** Whether the form opens with mock card/bank values prefilled or empty.
+   *  Driven by DevConsole → Project Hub → Payment Info Input. */
+  paymentInfoInput?: 'prefilled' | 'blank';
 }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -1084,8 +1558,12 @@ export default function MakePaymentDialog({
 
   // Form state lives at the dialog root so the mobile sheet and desktop modal
   // share a single source of truth. Switching viewports across the lg
-  // breakpoint preserves whatever the user has typed.
-  const [formState, setFormState] = useState<FormState>(INITIAL_FORM_STATE);
+  // breakpoint preserves whatever the user has typed. Initialized from the
+  // DevConsole "Payment Info Input" toggle so the first open already
+  // reflects the current preset.
+  const [formState, setFormState] = useState<FormState>(
+    paymentInfoInput === 'prefilled' ? PREFILLED_FORM_STATE : INITIAL_FORM_STATE,
+  );
   const setField = useCallback<SetField>((key, value) => {
     setFormState((s) => ({ ...s, [key]: value }));
   }, []);
@@ -1093,7 +1571,17 @@ export default function MakePaymentDialog({
   // Tracks whether the user has tried to confirm with missing fields. Once
   // true, empty required fields render with a red outline. Reset whenever
   // the dialog closes so a re-open starts clean.
-  const [submitAttempted, setSubmitAttempted] = useState(false);
+  // Counter rather than a boolean so each invalid-submit click retriggers
+  // the shake animation on empty fields (the prior boolean only distinguished
+  // first-attempt from never-attempted, so a second click was visually a
+  // no-op). Reset to 0 on every fresh dialog open.
+  const [submitAttemptCount, setSubmitAttemptCount] = useState(0);
+  // Counter bumped each time the user clicks Try Again on the failure panel.
+  // When > 0 the summary column animates in (slide from left + staggered
+  // children) — mirrors the failure panel's entrance for visual symmetry.
+  // Reset to 0 on every fresh dialog open so the first open never animates
+  // the summary (the modal's own scale-in carries that beat).
+  const [recoveryKey, setRecoveryKey] = useState(0);
 
   // Required keys per method — keep in lockstep with what the form renders.
   const requiredKeys: ReadonlyArray<keyof FormState> =
@@ -1112,8 +1600,12 @@ export default function MakePaymentDialog({
     if (target) {
       setLast(target);
       setMounted(true);
-      // Fresh open — clear any prior submit-attempt highlight.
-      setSubmitAttempted(false);
+      // Fresh open — clear any prior submit-attempt highlight and reset
+      // the form to whatever the DevConsole "Payment Info Input" toggle
+      // currently selects.
+      setSubmitAttemptCount(0);
+      setRecoveryKey(0);
+      setFormState(paymentInfoInput === 'prefilled' ? PREFILLED_FORM_STATE : INITIAL_FORM_STATE);
       const r1 = requestAnimationFrame(() => {
         const r2 = requestAnimationFrame(() => setOpen(true));
         (r1 as unknown as { _r2: number })._r2 = r2;
@@ -1146,14 +1638,30 @@ export default function MakePaymentDialog({
     return () => window.removeEventListener('keydown', onKey);
   }, [mounted, onClose]);
 
-  // Result panel state: when paymentResult='failure' the Confirm and Pay
-  // button doesn't close the dialog — instead it flips this to 'failed' so
-  // the dialog body is replaced with a payment-failed result screen with a
-  // Try Again / Close pair. Reset every time the dialog opens fresh.
-  const [resultState, setResultState] = useState<'idle' | 'failed'>('idle');
+  // Payment submission state machine:
+  //   idle       — form editable, Confirm and Pay enabled.
+  //   submitting — user clicked Confirm and Pay, simulating processing:
+  //                form fields read-only via `inert`, button shows spinner.
+  //   failed     — paymentResult='failure' simulation finished: form stays
+  //                read-only and the right column swaps in PaymentFailedPanel
+  //                (fades in). Try Again returns to 'idle'.
+  //   succeeded  — paymentResult='success' simulation finished: form stays
+  //                read-only and the right column swaps in PaymentSuccessPanel.
+  //                Done dismisses the dialog. The payment is recorded on
+  //                entering this state so a subsequent X / Esc still keeps
+  //                it in the records list.
+  // Reset every time the dialog opens fresh.
+  const [resultState, setResultState] = useState<
+    'idle' | 'submitting' | 'failed' | 'succeeded'
+  >('idle');
   useEffect(() => {
     if (target) setResultState('idle');
   }, [target]);
+  // Stable timer ref so a fast close doesn't fire a stale transition.
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+  }, []);
 
   if (!mounted || !last) return null;
 
@@ -1167,34 +1675,112 @@ export default function MakePaymentDialog({
     ? 'Credit Card (***4242)'
     : 'Bank Transfer (ACH)';
 
+  // Simulated processing duration so the spinner + locked-form state is
+  // visible long enough to read. Mirrors the approve flow's "Approving" beat.
+  const SUBMIT_DELAY_MS = 1500;
+
   const handleConfirm = () => {
-    if (paymentResult === 'failure') {
-      setResultState('failed');
-      return;
-    }
-    onConfirm?.({
-      amountApplied: last.amount,
-      platformFee:   fee,
-      amountPaid:    total,
-      method:        formState.method,
-      methodLabel,
-    });
-    onClose();
+    setResultState('submitting');
+    if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+    submitTimerRef.current = setTimeout(() => {
+      submitTimerRef.current = null;
+      if (paymentResult === 'failure') {
+        setResultState('failed');
+        return;
+      }
+      // Success: record the payment so the Invoices & Payments tab is
+      // already in lock-step by the time the user dismisses the success
+      // panel — even via X / Esc. The dialog stays open showing the
+      // confirmation; Done closes it.
+      onConfirm?.({
+        amountApplied: last.amount,
+        platformFee:   fee,
+        amountPaid:    total,
+        method:        formState.method,
+        methodLabel,
+      });
+      setResultState('succeeded');
+    }, SUBMIT_DELAY_MS);
   };
 
   // Wired to the Confirm and Pay button. When the form is valid we go through
   // the normal close-and-confirm flow; when it's not, we flip the
-  // submit-attempted flag so empty fields surface their red outline.
+  // submit-attempted flag so empty fields surface their red outline. While
+  // submitting/failed the click is a no-op (button is disabled too).
   const attemptSubmit = () => {
+    if (resultState !== 'idle') return;
     if (isValid) {
       handleConfirm();
     } else {
-      setSubmitAttempted(true);
+      setSubmitAttemptCount((n) => n + 1);
     }
   };
 
   return (
     <>
+      {/* Keyframes used by the dialog body — must live OUTSIDE the
+          `resultState`-conditional branches in the mobile sheet so the
+          keyframes stay registered while the failure panel is mounted (it
+          replaces the form body, which previously hosted this style block). */}
+      <style>{`
+        .make-payment-sheet-scroll::-webkit-scrollbar { display: none; }
+        @keyframes paymentSpinnerRotate { to { transform: rotate(360deg); } }
+        @keyframes pfPanelEnter {
+          from { opacity: 0; transform: translateX(32px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        /* Mobile failure panel — slides UP (the bottom sheet's natural axis)
+           rather than horizontally, so the swap reads correctly inside the
+           narrow column. Sheet-height growth is handled by the parent
+           transitioning its height, so we only handle opacity + slide
+           here. */
+        @keyframes pfPanelEnterMobile {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        /* Mirror of pfPanelEnter — used when recovering from failure
+           (Try Again click). Slides in from the LEFT so the round-trip
+           (summary → failed → summary) reads as forward-then-back. On
+           mobile we reuse this since the form column slides in horizontally
+           from the same direction as desktop. */
+        @keyframes psPanelEnter {
+          from { opacity: 0; transform: translateX(-32px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pfIconPop {
+          0%   { opacity: 0; transform: scale(0.2); }
+          60%  { opacity: 1; transform: scale(1.18); }
+          80%  { transform: scale(0.96); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pfIconStroke {
+          from { stroke-dashoffset: 24; }
+          to   { stroke-dashoffset: 0; }
+        }
+        @keyframes pfTextRise {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes errorShakeA {
+          0%, 100% { transform: translateX(0); }
+          15%      { transform: translateX(-5px); }
+          30%      { transform: translateX(5px); }
+          45%      { transform: translateX(-3px); }
+          60%      { transform: translateX(3px); }
+          75%      { transform: translateX(-1.5px); }
+          90%      { transform: translateX(1.5px); }
+        }
+        @keyframes errorShakeB {
+          0%, 100% { transform: translateX(0); }
+          15%      { transform: translateX(-5px); }
+          30%      { transform: translateX(5px); }
+          45%      { transform: translateX(-3px); }
+          60%      { transform: translateX(3px); }
+          75%      { transform: translateX(-1.5px); }
+          90%      { transform: translateX(1.5px); }
+        }
+      `}</style>
+
       {/* Backdrop */}
       <div
         onClick={onClose}
@@ -1216,12 +1802,17 @@ export default function MakePaymentDialog({
           fontFamily: 'Segoe UI, sans-serif',
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,
-          maxHeight: '92vh',
+          // Explicit height drives a smooth grow / shrink between the
+          // failure result (60vh) and the form (92vh). Without this, the
+          // sheet would snap from 60vh back up to its content height the
+          // moment Try Again unmounts the failure panel. Success uses the
+          // same 60vh sizing.
+          height: resultState === 'failed' || resultState === 'succeeded' ? '60vh' : '92vh',
           boxShadow: '0px -4px 24px rgba(0,0,0,0.18)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: open
-            ? `transform ${ANIM_MS}ms ${EASE_OUT}`
-            : `transform ${ANIM_MS}ms ${EASE_IN}`,
+            ? `transform ${ANIM_MS}ms ${EASE_OUT}, height 380ms cubic-bezier(0.32, 0.72, 0, 1)`
+            : `transform ${ANIM_MS}ms ${EASE_IN}, height 380ms cubic-bezier(0.32, 0.72, 0, 1)`,
         }}
       >
         {/* Drag-handle pill — matches the Invoice/Payment Detail sheet for a
@@ -1239,13 +1830,41 @@ export default function MakePaymentDialog({
         {resultState === 'failed' ? (
           <PaymentFailedPanel
             amount={total}
-            onTryAgain={() => setResultState('idle')}
+            onTryAgain={() => {
+              setRecoveryKey((k) => k + 1);
+              setResultState('idle');
+            }}
             onClose={onClose}
             variant="mobile"
           />
+        ) : resultState === 'succeeded' ? (
+          <PaymentSuccessPanel
+            amount={total}
+            onDone={onClose}
+            variant="mobile"
+          />
         ) : (
-          <>
-            <div className="relative flex flex-col flex-1 min-h-0">
+          <div
+            // Group wrapper so the form + footer can animate in together
+            // when recovering from failure (Try Again click). Mirrors the
+            // desktop summary column's slide-from-left + stagger.
+            className="flex flex-col flex-1 min-h-0"
+            style={{
+              animation: recoveryKey > 0
+                ? 'psPanelEnter 380ms cubic-bezier(0.32, 0.72, 0, 1) both'
+                : undefined,
+            }}
+          >
+            {/* Form column becomes inert + dims to read-only while the
+                payment is processing (matches desktop). */}
+            <div
+              className="relative flex flex-col flex-1 min-h-0"
+              style={{
+                opacity: resultState === 'submitting' ? 0.55 : 1,
+                transition: 'opacity 200ms ease-out',
+              }}
+              inert={resultState === 'submitting'}
+            >
               <div
                 ref={mobileScrollRef}
                 className="flex-1 min-h-0 overflow-y-auto make-payment-sheet-scroll"
@@ -1257,22 +1876,20 @@ export default function MakePaymentDialog({
                   total={total}
                   state={formState}
                   setField={setField}
-                  submitAttempted={submitAttempted}
+                  submitAttemptCount={submitAttemptCount}
                 />
               </div>
               <ScrollHintArrows targetRef={mobileScrollRef} />
             </div>
-            <style>{`
-              .make-payment-sheet-scroll::-webkit-scrollbar { display: none; }
-            `}</style>
             {/* Sticky footer — Confirm/Cancel + Secured-by, pinned to sheet bottom */}
             <MobileSheetFooter
               total={total}
               onClose={onClose}
               onConfirm={attemptSubmit}
               isValid={isValid}
+              submitting={resultState === 'submitting'}
             />
-          </>
+          </div>
         )}
       </div>
 
@@ -1299,30 +1916,45 @@ export default function MakePaymentDialog({
               : `transform ${ANIM_MS}ms ${EASE_IN}, opacity ${ANIM_MS}ms ${EASE_IN}`,
           }}
         >
+          {/* Form column stays mounted while the failure panel takes over
+              the right (summary) column — keeps the user's filled-in payment
+              details on screen so "Try Again" doesn't feel like starting
+              over. While submitting/failed the column becomes inert and
+              fades down to read-only. */}
+          <DesktopFormColumn
+            target={last}
+            state={formState}
+            setField={setField}
+            submitAttemptCount={submitAttemptCount}
+            disabled={resultState !== 'idle'}
+          />
           {resultState === 'failed' ? (
             <PaymentFailedPanel
               amount={total}
-              onTryAgain={() => setResultState('idle')}
+              onTryAgain={() => {
+              setRecoveryKey((k) => k + 1);
+              setResultState('idle');
+            }}
               onClose={onClose}
               variant="desktop"
             />
+          ) : resultState === 'succeeded' ? (
+            <PaymentSuccessPanel
+              amount={total}
+              onDone={onClose}
+              variant="desktop"
+            />
           ) : (
-            <>
-              <DesktopFormColumn
-                target={last}
-                state={formState}
-                setField={setField}
-                submitAttempted={submitAttempted}
-              />
-              <DesktopSummaryColumn
-                target={last}
-                fee={fee}
-                total={total}
-                onClose={onClose}
-                onConfirm={attemptSubmit}
-                isValid={isValid}
-              />
-            </>
+            <DesktopSummaryColumn
+              target={last}
+              fee={fee}
+              total={total}
+              onClose={onClose}
+              onConfirm={attemptSubmit}
+              isValid={isValid}
+              submitting={resultState === 'submitting'}
+              recoveryKey={recoveryKey}
+            />
           )}
         </div>
       </div>

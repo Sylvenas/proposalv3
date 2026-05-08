@@ -890,6 +890,7 @@ function ProjectHomeDetails({
   onShowPaymentRecords,
   extraPayments = [],
   paymentCompletionIndication = 'seal',
+  invoiceMode = 'happyPath',
 }: {
   option: FenceOption;
   financials: Financials;
@@ -903,6 +904,10 @@ function ProjectHomeDetails({
   extraPayments?: ExtraPaymentSpec[];
   /** Visual treatment for the all-paid state — inline green check or seal. */
   paymentCompletionIndication?: 'check' | 'seal';
+  /** Invoice list mode from DevConsole — same flag plumbed into the
+   *  Invoices & Payments tab; keeps Payment Progress / Next Payment in
+   *  sync with the synthetic enumerate-mode invoices. */
+  invoiceMode?: 'happyPath' | 'enumerate';
 }) {
   // ── Payment progress ─────────────────────────────────────────────────────
   // Paid amount = sum of `amountApplied` across all payment records (single
@@ -912,12 +917,12 @@ function ProjectHomeDetails({
   // total comes from `financials`, which reflects any addons selected on the
   // Summary page.
   const contractTotal = financials.contractTotal;
-  const PAID_AMOUNT   = computeTotalAmountApplied(contractTotal, extraPayments);
+  const PAID_AMOUNT   = computeTotalAmountApplied(contractTotal, extraPayments, invoiceMode);
   // "Next Payment" reflects the FIRST invoice that isn't fully paid: the
   // remaining dollars, the invoice's percent share of the contract, and its
   // due date all read from the same invoice so the subtitle always matches
   // the amount above it.
-  const nextDue       = getNextDueInvoice(contractTotal, extraPayments);
+  const nextDue       = getNextDueInvoice(contractTotal, extraPayments, invoiceMode);
   const remaining     = nextDue?.remaining ?? 0;
   // Subtitle date — falls back to approvedAt + 21d if every invoice is
   // already paid, just so the line still renders something sensible.
@@ -930,7 +935,7 @@ function ProjectHomeDetails({
   const subtitlePercent = nextDue?.percent ?? 100;
   // When fully paid, "Fully paid on …" reads off the most recent payment in
   // the chronology — that's the moment the last outstanding balance cleared.
-  const fullyPaidOn = nextDue ? null : getLastPaymentDate(contractTotal, extraPayments);
+  const fullyPaidOn = nextDue ? null : getLastPaymentDate(contractTotal, extraPayments, invoiceMode);
   const progressRatio = contractTotal > 0
     ? Math.min(1, PAID_AMOUNT / contractTotal)
     : 0;
@@ -990,6 +995,10 @@ function ProjectHomeDetails({
                 top: '50%',
                 transform: 'translateY(-50%) rotate(-15deg)',
                 transformOrigin: 'center',
+                // 50% opacity + multiply blend so the seal absorbs the
+                // background tint instead of sitting opaquely on top.
+                opacity: 0.5,
+                mixBlendMode: 'multiply',
               }}
             />
           )}
@@ -1195,13 +1204,13 @@ export default function ProjectHubPageResponsive({
   // Appended chronologically; cascade through invoices via buildInvoicesData.
   const [extraPayments, setExtraPayments] = useState<ExtraPaymentSpec[]>([]);
 
+  // ── DevConsole "Project Hub → Payment Result / Invoice Mode" toggles ──────
+  const { config: devConfig } = useDevConsole();
+
   // ── Next payment (mirrors ProjectHomeDetails) — kept in sync with addons
   //    AND any user-confirmed payments ─────────────────────────────────────
-  const nextDueInvoice    = getNextDueInvoice(financials.contractTotal, extraPayments);
+  const nextDueInvoice    = getNextDueInvoice(financials.contractTotal, extraPayments, devConfig.invoiceMode);
   const nextPaymentAmount = nextDueInvoice?.remaining ?? 0;
-
-  // ── DevConsole "Project Hub → Payment Result" toggle ──────────────────────
-  const { config: devConfig } = useDevConsole();
 
   // ── Make-A-Payment dialog state ───────────────────────────────────────────
   // Non-null = open. Targets the FIRST not-fully-paid invoice — its
@@ -1405,6 +1414,7 @@ export default function ProjectHubPageResponsive({
                 onShowPaymentRecords={() => setActiveTab('invoices')}
                 extraPayments={extraPayments}
                 paymentCompletionIndication={devConfig.paymentCompletionIndication}
+                invoiceMode={devConfig.invoiceMode}
               />
             </div>
 
@@ -1429,7 +1439,7 @@ export default function ProjectHubPageResponsive({
               <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
                 <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
                   <ProjectHomeTitleBlock approvedAt={approvedAt} />
-                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} onShowPaymentRecords={() => setActiveTab('invoices')} extraPayments={extraPayments} paymentCompletionIndication={devConfig.paymentCompletionIndication} />
+                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} onShowPaymentRecords={() => setActiveTab('invoices')} extraPayments={extraPayments} paymentCompletionIndication={devConfig.paymentCompletionIndication} invoiceMode={devConfig.invoiceMode} />
                 </div>
               </div>
             </div>
@@ -1455,6 +1465,7 @@ export default function ProjectHubPageResponsive({
             onMakePayment={openMakePayment}
             contractTotal={financials.contractTotal}
             extraPayments={extraPayments}
+            invoiceMode={devConfig.invoiceMode}
           />
         )}
 
@@ -1478,6 +1489,7 @@ export default function ProjectHubPageResponsive({
         onClose={() => setPaymentTarget(null)}
         onConfirm={handlePaymentConfirmed}
         paymentResult={devConfig.paymentResult}
+        paymentInfoInput={devConfig.paymentInfoInput}
       />
     </div>
   );
