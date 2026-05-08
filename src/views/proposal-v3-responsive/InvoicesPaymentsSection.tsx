@@ -13,7 +13,12 @@ import InvoicePaymentDetailDialog, {
 // invoice is back outstanding. Renders in the same red palette as a returned
 // payment record. Treated as a payable state (sequential cascade still
 // applies — it's effectively unpaid with extra context).
-type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'returned';
+// 'processing' = at least some of the invoice's received amount came from an
+// in-flight ACH bank transfer. Takes precedence over paid / partial — as
+// soon as any portion is in processing, the whole invoice surfaces in this
+// state until the funds clear. Treated as paid for the sequential-payment
+// rule so the next invoice becomes payable immediately.
+type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'returned' | 'processing';
 
 /** Sub-state of the Due Date column for unpaid/partial invoices.
  *  - normal:  due date is in the future, render as plain date.
@@ -31,7 +36,7 @@ type Invoice = {
   number: number;
   label: string;       // e.g. "Deposit (20%)" / "Balance (60%)"
   amount: number;      // total invoice amount
-  received: number;    // amount paid so far (≥ 0)
+  received: number;    // amount paid so far (≥ 0) — includes processing money
   status: InvoiceStatus;
   dueDate: string;     // displayed string e.g. "May 2, 2026"
   /** Due-date sub-state — drives the "Due Today" / "Overdue" badge. */
@@ -77,31 +82,35 @@ const PAYMENT_STATUS_LABEL: Record<PaymentRecordStatus, string> = {
 
 // ── Status colors / labels ────────────────────────────────────────────────────
 const STATUS_BAR_COLOR: Record<InvoiceStatus, string> = {
-  paid:     '#04b50b', // success/primary
-  partial:  '#398ae7', // action/primary
-  unpaid:   '#737373', // secondary (mobile bar) — desktop uses #bfbfbf
-  returned: '#d41a32', // error — payment was reversed
+  paid:       '#04b50b', // success/primary
+  processing: '#04b50b', // ACH in-flight — same green as paid; the label says PROCESSING
+  partial:    '#398ae7', // action/primary
+  unpaid:     '#737373', // secondary (mobile bar) — desktop uses #bfbfbf
+  returned:   '#d41a32', // error — payment was reversed
 };
 
 const STATUS_BAR_COLOR_DESKTOP: Record<InvoiceStatus, string> = {
-  paid:     '#04b50b',
-  partial:  '#398ae7',
-  unpaid:   '#bfbfbf', // tertiary
-  returned: '#d41a32',
+  paid:       '#04b50b',
+  processing: '#04b50b',
+  partial:    '#398ae7',
+  unpaid:     '#bfbfbf', // tertiary
+  returned:   '#d41a32',
 };
 
 const STATUS_LABEL: Record<InvoiceStatus, string> = {
-  paid:     'PAID',
-  partial:  'PARTIALLY PAID',
-  unpaid:   'UNPAID',
-  returned: 'PAYMENT RETURNED',
+  paid:       'PAID',
+  processing: 'PROCESSING',
+  partial:    'PARTIALLY PAID',
+  unpaid:     'UNPAID',
+  returned:   'PAYMENT RETURNED',
 };
 
 const STATUS_LABEL_COLOR: Record<InvoiceStatus, string> = {
-  paid:     '#04b50b',
-  partial:  '#398ae7',
-  unpaid:   '#737373',
-  returned: '#d41a32',
+  paid:       '#04b50b',
+  processing: '#04b50b',
+  partial:    '#398ae7',
+  unpaid:     '#737373',
+  returned:   '#d41a32',
 };
 
 // ── Sample data (matches Figma) ───────────────────────────────────────────────
@@ -136,6 +145,12 @@ export type ExtraPaymentSpec = {
   paidBy: string;
   method: string;        // e.g. "Credit Card (***4242)" or "Bank Transfer (ACH)"
   processedWith: string; // e.g. "ArcSite Payment"
+  /** Settlement status. Defaults to 'completed' for the static chronology;
+   *  Make-A-Payment passes 'processing' for ACH bank transfers awaiting the
+   *  1-3 business day clearance window. Processing payments DO cascade onto
+   *  invoices and DO count toward the Payment Progress total — the invoice
+   *  they cover is marked PAID · PROCESSING (blue) until the funds clear. */
+  status?: 'completed' | 'processing';
 };
 
 // Total money applied against invoices, derived from the live contract total
@@ -247,7 +262,10 @@ type InvoicesData = {
 // Synthetic payment records are generated for each Paid + Partial invoice
 // (one record per partial slice, plus one for the fully-paid invoice) and
 // returned newest-first.
-function buildEnumeratedInvoicesData(contractTotal: number): InvoicesData {
+function buildEnumeratedInvoicesData(
+  contractTotal: number,
+  extraPayments: ExtraPaymentSpec[] = [],
+): InvoicesData {
   // CLAUDE.md anchors "today" at 2026-05-08; we hardcode the same so the
   // dates we render visibly match Due Today / Overdue intent.
   const TODAY        = 'May 8, 2026';
@@ -263,62 +281,88 @@ function buildEnumeratedInvoicesData(contractTotal: number): InvoicesData {
     dueState: DueState;
     dueDate: string;
     /** When set, the invoice has already received some money even though
-     *  its status isn't 'partial'. Used for the first returned invoice —
-     *  one half settled, the other was returned by the bank. */
+     *  its status isn't 'partial'. Used for the first returned invoice
+     *  (one half settled, the other was returned by the bank) and for the
+     *  blue PROCESSING rows (an in-flight ACH covers half the invoice with
+     *  the rest still owed). */
     halfReceived?: boolean;
   };
   // Labels mirror the happy-path schedule's "Deposit (X%)" / "Balance (X%)"
   // convention — first invoice is the Deposit, the rest are Balance. Percent
-  // is ~7% per invoice (1/14) since enumerate mode splits evenly across all
+  // is ~5% per invoice (1/19) since enumerate mode splits evenly across all
   // status × due-state combinations.
-  // Order: Paid → Payment Returned → Partially Paid → Unpaid. Inside each
-  // status group the rows sort by Due Date urgency:
+  // Order: Paid → Processing → Payment Returned → Partially Paid → Unpaid.
+  // Inside each status group the rows sort by Due Date urgency:
   //   Overdue → Due Today → Future (normal) → No due date.
+  // PROCESSING splits the same way the row palette does:
+  //   green = fully covered (received ≥ amount; due-date column shows
+  //           "Paid on {payment date}").
+  //   blue  = half covered (received = ½ amount; same four due-date variants
+  //           as the rest of the matrix).
   const specs: Spec[] = [
-    { number: 1,  label: 'Deposit (7%)', status: 'paid',     dueState: 'normal',  dueDate: PAID_ON_DATE },
-    { number: 2,  label: 'Balance (7%)', status: 'paid',     dueState: 'none',    dueDate: '' },
-    { number: 3,  label: 'Balance (7%)', status: 'returned', dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },
-    { number: 4,  label: 'Balance (7%)', status: 'returned', dueState: 'today',   dueDate: TODAY },
-    { number: 5,  label: 'Balance (7%)', status: 'returned', dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 6,  label: 'Balance (7%)', status: 'returned', dueState: 'none',    dueDate: '' },
-    { number: 7,  label: 'Balance (7%)', status: 'partial',  dueState: 'overdue', dueDate: OVERDUE_DATE },
-    { number: 8,  label: 'Balance (7%)', status: 'partial',  dueState: 'today',   dueDate: TODAY },
-    { number: 9,  label: 'Balance (7%)', status: 'partial',  dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 10, label: 'Balance (7%)', status: 'partial',  dueState: 'none',    dueDate: '' },
-    { number: 11, label: 'Balance (7%)', status: 'unpaid',   dueState: 'overdue', dueDate: OVERDUE_DATE },
-    { number: 12, label: 'Balance (7%)', status: 'unpaid',   dueState: 'today',   dueDate: TODAY },
-    { number: 13, label: 'Balance (7%)', status: 'unpaid',   dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 14, label: 'Balance (7%)', status: 'unpaid',   dueState: 'none',    dueDate: '' },
+    { number: 1,  label: 'Deposit (5%)', status: 'paid',       dueState: 'normal',  dueDate: PAID_ON_DATE },
+    { number: 2,  label: 'Balance (5%)', status: 'paid',       dueState: 'none',    dueDate: '' },
+    { number: 3,  label: 'Balance (5%)', status: 'processing', dueState: 'normal',  dueDate: FUTURE_DATE },                          // green — fully covered
+    { number: 4,  label: 'Balance (5%)', status: 'processing', dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },     // blue — half covered
+    { number: 5,  label: 'Balance (5%)', status: 'processing', dueState: 'today',   dueDate: TODAY,        halfReceived: true },     // blue
+    { number: 6,  label: 'Balance (5%)', status: 'processing', dueState: 'normal',  dueDate: FUTURE_DATE,  halfReceived: true },     // blue
+    { number: 7,  label: 'Balance (5%)', status: 'processing', dueState: 'none',    dueDate: '',           halfReceived: true },     // blue
+    { number: 8,  label: 'Balance (5%)', status: 'returned',   dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },
+    { number: 9,  label: 'Balance (5%)', status: 'returned',   dueState: 'today',   dueDate: TODAY },
+    { number: 10, label: 'Balance (5%)', status: 'returned',   dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 11, label: 'Balance (5%)', status: 'returned',   dueState: 'none',    dueDate: '' },
+    { number: 12, label: 'Balance (5%)', status: 'partial',    dueState: 'overdue', dueDate: OVERDUE_DATE },
+    { number: 13, label: 'Balance (5%)', status: 'partial',    dueState: 'today',   dueDate: TODAY },
+    { number: 14, label: 'Balance (5%)', status: 'partial',    dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 15, label: 'Balance (5%)', status: 'partial',    dueState: 'none',    dueDate: '' },
+    { number: 16, label: 'Balance (5%)', status: 'unpaid',     dueState: 'overdue', dueDate: OVERDUE_DATE },
+    { number: 17, label: 'Balance (5%)', status: 'unpaid',     dueState: 'today',   dueDate: TODAY },
+    { number: 18, label: 'Balance (5%)', status: 'unpaid',     dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 19, label: 'Balance (5%)', status: 'unpaid',     dueState: 'none',    dueDate: '' },
   ];
 
   // Even split with the remainder folded into invoice #1.
   const baseAmount    = Math.round(contractTotal / specs.length);
   const remainder     = contractTotal - baseAmount * specs.length;
   const amountFor     = (i: number) => baseAmount + (i === 0 ? remainder : 0);
-  // Returned: a payment was applied then reversed, so the net `received`
-  // is normally back to 0 — but the row's red palette + "PAYMENT RETURNED"
-  // label tell the user the bank bounced an attempt. When `halfReceived`
-  // is set on the spec, half of the amount did settle and the other half
-  // was returned (the row's Received/Remaining columns will show the
-  // split, with the matching Returned payment record below).
-  const receivedFor   = (s: Spec, amt: number) =>
-    s.status === 'paid'    ? amt
-    : s.status === 'partial' ? Math.round(amt / 2)
-    : s.halfReceived         ? Math.round(amt / 2)
-    : 0;
+  // Per-status received amount:
+  //   paid       → full amount (closed out).
+  //   processing → halfReceived ? half (blue, still owed) : full (green).
+  //   partial    → half.
+  //   returned   → 0 by default (full reversal); halfReceived=true means
+  //                the bank settled one attempt and bounced the other.
+  //   unpaid     → 0.
+  const receivedFor = (s: Spec, amt: number): number => {
+    if (s.status === 'paid') return amt;
+    if (s.status === 'processing') return s.halfReceived ? Math.round(amt / 2) : amt;
+    if (s.status === 'partial') return Math.round(amt / 2);
+    if (s.halfReceived) return Math.round(amt / 2);
+    return 0;
+  };
 
-  const INVOICES: Invoice[] = specs.map((s, i) => {
-    const amount = amountFor(i);
-    return {
-      number:   s.number,
-      label:    s.label,
-      amount,
-      received: receivedFor(s, amount),
-      status:   s.status,
-      dueDate:  s.dueDate,
-      dueState: s.dueState,
-    };
-  });
+  // Per-invoice running state. `received` starts from the spec; the
+  // cascade below adds user-confirmed extra payments on top. `processingApplied`
+  // tracks how much of `received` came from in-flight ACH (initial spec
+  // contribution + later extras with status='processing'), which keeps the
+  // PAID · PROCESSING split working after extras land.
+  const received = specs.map((s, i) => receivedFor(s, amountFor(i)));
+  const processingApplied = specs.map((s, i) =>
+    s.status === 'processing' ? received[i] : 0,
+  );
+  const extraTouched = specs.map(() => false);
+
+  // INVOICES_INITIAL captures the spec-derived state — the synthetic seed
+  // loop below reads from it so each existing seed's amountApplied stays
+  // anchored to the original demo amounts even after extraPayments cascade.
+  const INVOICES_INITIAL: Invoice[] = specs.map((s, i) => ({
+    number:   s.number,
+    label:    s.label,
+    amount:   amountFor(i),
+    received: received[i],
+    status:   s.status,
+    dueDate:  s.dueDate,
+    dueState: s.dueState,
+  }));
 
   // Synthetic payment records — one per invoice that has any received funds,
   // ordered newest-first by paymentId. We tag each payment with the matching
@@ -347,15 +391,26 @@ function buildEnumeratedInvoicesData(contractTotal: number): InvoicesData {
   // Newest first; IDs descend with realistic non-uniform gaps (as if other
   // customers' payments slot between ours in a global sequence).
   const paymentSeeds: PaymentSeed[] = [
+    // Processing demos — one ACH per new processing invoice so the records
+    // list mirrors the invoice list. Invoice #3 (green / fully covered)
+    // gets the full-amount transfer; #4-#7 (blue / half covered) each get
+    // a half-amount transfer. The invoice's PROCESSING status follows from
+    // the spec; these seeds drive the matching Records rows + the Paid On
+    // date that the green row falls back to.
+    { paymentId: '2204', paidOn: 'May 8, 2026',  paidOnFull: 'May 8, 2026, 9:12:33 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 3 },
+    { paymentId: '2203', paidOn: 'May 7, 2026',  paidOnFull: 'May 7, 2026, 4:38:51 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 4 },
+    { paymentId: '2202', paidOn: 'May 7, 2026',  paidOnFull: 'May 7, 2026, 2:04:18 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 5 },
+    { paymentId: '2201', paidOn: 'May 6, 2026',  paidOnFull: 'May 6, 2026, 11:47:09 a.m.',    method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 6 },
+    { paymentId: '2200', paidOn: 'May 6, 2026',  paidOnFull: 'May 6, 2026, 10:21:42 a.m.',    method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 7 },
     { paymentId: '2167', paidOn: 'May 7, 2026',  paidOnFull: 'May 7, 2026, 8:42:11 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', amount: 800 },
-    // Invoice #3 (Returned, Overdue): one ACH transfer settled (#2151),
+    // Invoice #8 (Returned, Overdue): one ACH transfer settled (#2151),
     // the other (#2155) was returned by the bank. The pair leaves the
     // invoice half-received with PAYMENT RETURNED status.
-    { paymentId: '2155', paidOn: 'May 5, 2026',  paidOnFull: 'May 5, 2026, 3:18:54 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 3 },
-    { paymentId: '2151', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 9:11:04 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 3 },
-    { paymentId: '2143', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 11:02:14 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 9 },
-    { paymentId: '2129', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:48:09 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 8 },
-    { paymentId: '2118', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:31:22 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 7 },
+    { paymentId: '2155', paidOn: 'May 5, 2026',  paidOnFull: 'May 5, 2026, 3:18:54 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 8 },
+    { paymentId: '2151', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 9:11:04 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 8 },
+    { paymentId: '2143', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 11:02:14 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 14 },
+    { paymentId: '2129', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:48:09 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 13 },
+    { paymentId: '2118', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:31:22 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 12 },
     { paymentId: '2094', paidOn: PAID_ON_DATE,    paidOnFull: 'May 1, 2026, 9:14:00 a.m.',   method: 'Check',                 processedWith: 'Manual Entry',    status: 'completed', appliedToInvoice: 1 },
   ];
 
@@ -368,11 +423,16 @@ function buildEnumeratedInvoicesData(contractTotal: number): InvoicesData {
       let amountApplied = 0;
       let appliedTo: PaymentDetailExtras['appliedTo'] = [];
       if (seed.appliedToInvoice != null) {
-        const inv = INVOICES.find((i) => i.number === seed.appliedToInvoice);
+        const inv = INVOICES_INITIAL.find((i) => i.number === seed.appliedToInvoice);
         if (inv) {
-          // For a returned attempt, the relevant amount is the unsettled
-          // remainder of the target invoice — i.e. the half that bounced.
-          amountApplied = Math.max(0, inv.amount - inv.received);
+          // Processing: the in-flight ACH that's still landing on the
+          //   invoice — its amount equals what we've already credited as
+          //   `received` (full for a green row, half for a blue row).
+          // Returned: the bounced half of a paired settled+returned pair —
+          //   its amount is the still-unsettled remainder of the invoice.
+          amountApplied = seed.status === 'processing'
+            ? inv.received
+            : Math.max(0, inv.amount - inv.received);
           appliedTo = [{
             amount:        amountApplied,
             invoiceNumber: inv.number,
@@ -398,7 +458,7 @@ function buildEnumeratedInvoicesData(contractTotal: number): InvoicesData {
         status:        seed.status,
       }];
     }
-    const inv = INVOICES.find((i) => i.number === seed.appliedToInvoice);
+    const inv = INVOICES_INITIAL.find((i) => i.number === seed.appliedToInvoice);
     if (!inv || inv.received <= 0) return [];
     const amountApplied = inv.received;
     const isCard        = seed.method.startsWith('Credit Card');
@@ -424,16 +484,80 @@ function buildEnumeratedInvoicesData(contractTotal: number): InvoicesData {
     }];
   });
 
-  // Only completed payments roll up into the contract's paid total —
-  // processing / returned amounts haven't actually settled.
+  // Apply user-confirmed extra payments (e.g. a Make-A-Payment bank transfer)
+  // on top of the seed-derived state. Each extra cascades onto the lowest
+  // invoice that still has remaining balance, mirroring the happy-path
+  // sequential rule, and gets appended to the records list (newest first)
+  // with its own appliedTo entries.
+  for (const p of extraPayments) {
+    let remainingFunds = p.amountApplied;
+    const appliedTo: PaymentDetailExtras['appliedTo'] = [];
+    for (let i = 0; i < specs.length && remainingFunds > 0; i++) {
+      const owed = amountFor(i) - received[i];
+      if (owed <= 0) continue;
+      const apply = Math.min(remainingFunds, owed);
+      received[i] += apply;
+      extraTouched[i] = true;
+      if (p.status === 'processing') processingApplied[i] += apply;
+      appliedTo.push({
+        amount:        apply,
+        invoiceNumber: specs[i].number,
+        invoiceLabel:  `INVOICE #${specs[i].number} - ${specs[i].label}`,
+      });
+      remainingFunds -= apply;
+    }
+    PAYMENT_DETAIL_EXTRAS[p.paymentId] = {
+      paidOnFull:    p.paidOnFull,
+      processedWith: p.processedWith,
+      appliedTo,
+    };
+    PAYMENT_RECORDS.unshift({
+      paymentId:     p.paymentId,
+      paidOn:        p.paidOn,
+      amountApplied: p.amountApplied,
+      platformFee:   p.platformFee,
+      amountPaid:    p.amountApplied + p.platformFee,
+      paidBy:        p.paidBy,
+      method:        p.method,
+      status:        p.status ?? 'completed',
+    });
+  }
+
+  // Final INVOICES — same shape as INVOICES_INITIAL but with cascade-updated
+  // received and a recomputed status for any row an extraPayment touched.
+  // Untouched rows keep their spec status (preserves the historical demo
+  // states like 'returned' even when later invoices receive extras).
+  const INVOICES: Invoice[] = specs.map((s, i) => {
+    const amount = amountFor(i);
+    let status: InvoiceStatus = s.status;
+    if (extraTouched[i]) {
+      status = processingApplied[i] > 0 ? 'processing'
+        : received[i] >= amount ? 'paid'
+        : received[i] > 0 ? 'partial'
+        : 'unpaid';
+    }
+    return {
+      number:   s.number,
+      label:    s.label,
+      amount,
+      received: received[i],
+      status,
+      dueDate:  s.dueDate,
+      dueState: s.dueState,
+    };
+  });
+
+  // Both completed and processing payments roll up into the contract's
+  // paid total — same rule as happy-path mode.
   const totalAmountApplied = PAYMENT_RECORDS
-    .filter((r) => r.status === 'completed')
     .reduce((sum, r) => sum + r.amountApplied, 0);
 
-  // Sequential rule: the next payable invoice is the first non-paid one.
-  // In enumerate mode that's invoice #2.
+  // Sequential rule: an invoice is payable once every prior invoice is
+  // fully covered (received ≥ amount). Mirrors the happy-path rule, so
+  // green PROCESSING (received = amount) unlocks the next row, while blue
+  // PROCESSING (received < amount) still blocks subsequent invoices.
   function isInvoicePayable(invNumber: number): boolean {
-    return INVOICES.filter((i) => i.number < invNumber).every((i) => i.status === 'paid');
+    return INVOICES.filter((i) => i.number < invNumber).every((i) => i.received >= i.amount);
   }
 
   function paymentsForInvoice(invNumber: number) {
@@ -502,7 +626,7 @@ function buildInvoicesData(
   mode: InvoiceMode = 'happyPath',
 ): InvoicesData {
   if (mode === 'enumerate') {
-    return buildEnumeratedInvoicesData(contractTotal);
+    return buildEnumeratedInvoicesData(contractTotal, extraPayments);
   }
   // Invoice amounts: precise percentages of the contract total — sums to
   // contractTotal up to ±$1 rounding.
@@ -551,9 +675,13 @@ function buildInvoicesData(
 
   // Walk every payment in chronological order, cascading dollars onto the
   // lowest unpaid invoice first (sequential payment rule). Builds up
-  // received-per-invoice + a per-payment `appliedTo` map.
+  // received-per-invoice + a per-payment `appliedTo` map. Processing
+  // (in-flight ACH) payments cascade exactly like completed ones — the
+  // invoice they cover is marked PAID · PROCESSING via `processingApplied`
+  // until the funds clear.
   const allPaymentsChronological = [...staticChronology, ...extraPayments];
-  const received = invSpecs.map(() => 0);
+  const received           = invSpecs.map(() => 0);
+  const processingApplied  = invSpecs.map(() => 0);
   const PAYMENT_DETAIL_EXTRAS: Record<string, PaymentDetailExtras> = {};
 
   for (const p of allPaymentsChronological) {
@@ -564,6 +692,7 @@ function buildInvoicesData(
       if (owed <= 0) continue;
       const apply = Math.min(remainingFunds, owed);
       received[i] += apply;
+      if (p.status === 'processing') processingApplied[i] += apply;
       appliedTo.push({
         amount:        apply,
         invoiceNumber: invSpecs[i].number,
@@ -578,21 +707,29 @@ function buildInvoicesData(
     };
   }
 
-  const statusFor = (amount: number, rec: number): InvoiceStatus =>
-    rec >= amount ? 'paid' : rec > 0 ? 'partial' : 'unpaid';
+  // Any in-flight ACH money against the invoice promotes its status to
+  // 'processing' regardless of whether the funds fully cover it. This takes
+  // precedence over paid / partial — once a portion is in transit, the
+  // whole invoice surfaces as PROCESSING until the bank clears it.
+  const statusFor = (amount: number, rec: number, proc: number): InvoiceStatus =>
+    proc > 0 ? 'processing'
+    : rec >= amount ? 'paid'
+    : rec > 0 ? 'partial'
+    : 'unpaid';
 
   const INVOICES: Invoice[] = invSpecs.map((s, i) => ({
     number:   s.number,
     label:    s.label,
     amount:   s.amount,
     received: received[i],
-    status:   statusFor(s.amount, received[i]),
+    status:   statusFor(s.amount, received[i], processingApplied[i]),
     dueDate:  s.dueDate,
     dueState: 'normal',
   }));
 
   // PAYMENT_RECORDS is newest-first, so reverse the chronological list.
-  // Happy-path mode only ever produces completed payments.
+  // Static chronology entries are completed; user-confirmed extras may be
+  // 'processing' (in-flight ACH).
   const PAYMENT_RECORDS: PaymentRecord[] = allPaymentsChronological
     .slice()
     .reverse()
@@ -604,21 +741,25 @@ function buildInvoicesData(
       amountPaid:    p.amountApplied + p.platformFee,
       paidBy:        p.paidBy,
       method:        p.method,
-      status:        'completed' as const,
+      status:        p.status ?? 'completed',
     }));
 
-  const totalAmountApplied = PAYMENT_RECORDS.reduce(
-    (sum, rec) => sum + rec.amountApplied,
-    0,
-  );
+  // Both completed and processing payments roll up into the contract's
+  // paid total — once the user confirms a bank transfer, the dollars are
+  // earmarked against the invoice (PAID · PROCESSING) and counted toward
+  // payment progress, even though the funds haven't fully cleared yet.
+  const totalAmountApplied = PAYMENT_RECORDS
+    .reduce((sum, rec) => sum + rec.amountApplied, 0);
 
   // Sequential payment rule: a non-paid invoice can only be paid once every
-  // invoice before it (lower number) is fully paid. So Invoice #N gets the
-  // "Make A Payment" CTA only when invoices #1..#N-1 are all `paid`.
+  // invoice before it (lower number) has been fully covered (received ≥
+  // amount). Fully-covered green PROCESSING invoices unlock the next
+  // invoice immediately — but a half-covered blue PROCESSING invoice still
+  // owes money, so the chain stops there until the user pays the rest.
   function isInvoicePayable(invNumber: number): boolean {
     return INVOICES
       .filter((i) => i.number < invNumber)
-      .every((i) => i.status === 'paid');
+      .every((i) => i.received >= i.amount);
   }
 
   // Inverse mapping of PAYMENT_DETAIL_EXTRAS.appliedTo: for a given invoice
@@ -740,16 +881,20 @@ function DueDateText({
 // ─────────────────────────────────────────────────────────────────────────────
 function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }) {
   const { paidOnDate } = useInvoicesData();
-  const barColor = STATUS_BAR_COLOR[inv.status];
-  const labelColor = STATUS_LABEL_COLOR[inv.status];
+  // PROCESSING with a remaining balance still pending the user's next
+  // payment renders in the same blue as PARTIAL, since the invoice isn't
+  // fully covered yet. Fully-covered PROCESSING uses the green PAID palette.
+  const isPartlyProcessing = inv.status === 'processing' && inv.received < inv.amount;
+  const barColor   = isPartlyProcessing ? '#398ae7' : STATUS_BAR_COLOR[inv.status];
+  const labelColor = isPartlyProcessing ? '#398ae7' : STATUS_LABEL_COLOR[inv.status];
 
   // Amount / received presentation:
-  //   PAID                   → green amount, no fraction
-  //   PARTIAL or RETURNED w/  → green received + black "/ total" (also
-  //     received>0              covers the half-paid Returned case)
+  //   PAID / PROCESSING fully  → green amount, no fraction
+  //   PARTIAL / PROCESSING partly / RETURNED w/ received>0 → green received +
+  //     black "/ total" (covers the half-paid Returned case too)
   //   UNPAID / RETURNED w/0   → black amount
   const amountNode = (() => {
-    if (inv.status === 'paid') {
+    if (inv.received >= inv.amount && inv.received > 0) {
       return (
         <span style={{ color: '#04b50b' }}>{fmtDollars(inv.amount)}</span>
       );
@@ -770,10 +915,14 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
   // surfaces the same information the desktop badge does. Today is amber
   // (warning); Overdue is red (error). When the invoice has no due date
   // ('none'), render a dash regardless of status.
+  // Both fully-paid and fully-covered-but-still-processing invoices read as
+  // "Paid on {date}" on the date line — the status pill ("PAID" vs.
+  // "PROCESSING") carries the clearance distinction.
+  const isFullyCovered = inv.received >= inv.amount && inv.received > 0;
   const dateText =
     inv.dueState === 'none'
       ? '—'
-      : inv.status === 'paid'
+      : isFullyCovered
       ? `Paid on ${paidOnDate(inv.number) ?? inv.dueDate}`
       : inv.dueState === 'overdue'
       ? `Overdue · Due on ${inv.dueDate}`
@@ -782,7 +931,7 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
       : `Due on ${inv.dueDate}`;
   const dateColor =
     inv.dueState === 'none' ? '#737373'
-    : inv.status === 'paid' ? '#262626'
+    : isFullyCovered ? '#262626'
     : inv.dueState === 'overdue' ? '#d41a32'
     : inv.dueState === 'today'   ? '#d97706'
     : '#262626';
@@ -948,9 +1097,15 @@ function DesktopInvoiceRow({
   onMakePayment?: () => void;
 }) {
   const { paidOnDate, isInvoicePayable, isEnumerate } = useInvoicesData();
-  const barColor = STATUS_BAR_COLOR_DESKTOP[inv.status];
-  const labelColor = STATUS_LABEL_COLOR[inv.status];
   const remaining = Math.max(0, inv.amount - inv.received);
+  // Fully-covered invoices (paid OR processing-with-received≥amount) render
+  // a "Paid on {date}" line in the Due Date column instead of a due date.
+  const isFullyCovered = inv.received >= inv.amount && inv.received > 0;
+  // PROCESSING palette splits on remaining balance: fully covered → green
+  // (matches PAID); some still owed → blue (matches PARTIAL).
+  const isPartlyProcessing = inv.status === 'processing' && !isFullyCovered;
+  const barColor   = isPartlyProcessing ? '#398ae7' : STATUS_BAR_COLOR_DESKTOP[inv.status];
+  const labelColor = isPartlyProcessing ? '#398ae7' : STATUS_LABEL_COLOR[inv.status];
 
   return (
     <div
@@ -1016,13 +1171,12 @@ function DesktopInvoiceRow({
       </p>
       {/* Spacer between Status and Due Date — mirrors the header row. */}
       <div className="shrink-0" style={{ width: cs(24) }} />
-      {/* Due Date column — paid: green "Paid on …" (no hover hint);
-          partial: date + button when payable, or date with "Pay previous
-          invoices first" hint centered on hover; unpaid: plain date with
-          the same hint on hover when not payable. The date fades out as
-          the hint fades in so they don't visually overlap. */}
+      {/* Due Date column — fully-covered (paid OR processing-with-received≥
+          amount): green "Paid on …" (no hover hint); partial / partly-
+          processing: date + "Pay previous invoices first" hint on hover;
+          unpaid: plain date with the same hint on hover when not payable. */}
       <div className="relative flex items-center" style={{ width: cs(155), gap: cs(12) }}>
-        {inv.status === 'paid' && (
+        {isFullyCovered && (
           inv.dueState === 'none' ? (
             <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal" style={{ color: '#737373' }}>
               —
@@ -1033,35 +1187,17 @@ function DesktopInvoiceRow({
             </p>
           )
         )}
-        {inv.status === 'partial' && (
+        {(inv.status === 'partial' || (inv.status === 'processing' && !isFullyCovered)) && (
           <>
             <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] whitespace-nowrap leading-normal overflow-hidden text-ellipsis">
               <DueDateText dueState={inv.dueState} dueDate={inv.dueDate} mutedColor="#262626" />
             </p>
-            {!isEnumerate && (
-              isInvoicePayable(inv.number) ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMakePayment?.();
-                  }}
-                  className="bg-[#d41a32] flex items-center justify-center rounded-[4px] cursor-pointer border-0 shrink-0"
-                  style={{ height: 32, paddingLeft: 12, paddingRight: 12, paddingTop: 6, paddingBottom: 6 }}
-                >
-                  <span
-                    className="text-[10px] xl:text-[12px] font-semibold text-white text-center whitespace-nowrap"
-                    style={{ lineHeight: '14px' }}
-                  >
-                    Make A Payment
-                  </span>
-                </button>
-              ) : (
-                <span
-                  className="absolute top-1/2 -translate-y-1/2 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-[12px] xl:text-[14px] text-[#737373] italic whitespace-nowrap"
-                >
-                  Pay previous invoices first
-                </span>
-              )
+            {!isEnumerate && !isInvoicePayable(inv.number) && (
+              <span
+                className="absolute top-1/2 -translate-y-1/2 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-[12px] xl:text-[14px] text-[#737373] italic whitespace-nowrap"
+              >
+                Pay previous invoices first
+              </span>
             )}
           </>
         )}

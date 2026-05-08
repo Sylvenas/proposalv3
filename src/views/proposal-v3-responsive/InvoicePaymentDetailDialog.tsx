@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ScrollHintArrows from './ScrollHintArrows';
+import { useBodyScrollLock } from './useBodyScrollLock';
 
 // useLayoutEffect on the server is a noop and triggers a warning during SSR;
 // fall back to useEffect for the SSR pass to keep the console clean. The
@@ -11,7 +12,7 @@ const useIsoLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'returned';
+type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'returned' | 'processing';
 
 export type InvoiceDetail = {
   number: number;
@@ -48,17 +49,19 @@ export type DetailContent =
 
 // ─── Status palette ──────────────────────────────────────────────────────────
 const STATUS_LABEL: Record<InvoiceStatus, string> = {
-  paid:     'PAID',
-  partial:  'PARTIALLY PAID',
-  unpaid:   'UNPAID',
-  returned: 'PAYMENT RETURNED',
+  paid:       'PAID',
+  processing: 'PROCESSING',
+  partial:    'PARTIALLY PAID',
+  unpaid:     'UNPAID',
+  returned:   'PAYMENT RETURNED',
 };
 
 const STATUS_COLOR: Record<InvoiceStatus, string> = {
-  paid:     '#04b50b',
-  partial:  '#398ae7',
-  unpaid:   '#737373',
-  returned: '#d41a32',
+  paid:       '#04b50b',
+  processing: '#04b50b',
+  partial:    '#398ae7',
+  unpaid:     '#737373',
+  returned:   '#d41a32',
 };
 
 // ─── Format helpers ──────────────────────────────────────────────────────────
@@ -268,7 +271,17 @@ function InvoiceContent({
       </div>
 
       <FieldRow label="Status">
-        <span className="text-[14px] sm:text-[16px] font-semibold" style={{ color: STATUS_COLOR[invoice.status] }}>
+        <span
+          className="text-[14px] sm:text-[16px] font-semibold"
+          style={{
+            // PROCESSING flips to the blue PARTIAL palette when there's
+            // still a remaining balance the user owes; fully covered keeps
+            // the green PAID palette.
+            color: invoice.status === 'processing' && invoice.received < invoice.amount
+              ? '#398ae7'
+              : STATUS_COLOR[invoice.status],
+          }}
+        >
           {STATUS_LABEL[invoice.status]}
         </span>
       </FieldRow>
@@ -288,7 +301,7 @@ function InvoiceContent({
         </p>
       </FieldRow>
 
-      {invoice.status !== 'paid' && (
+      {remaining > 0 && (
         <FieldRow label="Amount Remaining">
           <p className="text-[20px] sm:text-[24px] font-semibold" style={{ color: '#398ae7' }}>
             {fmtDollars(remaining)}
@@ -296,11 +309,11 @@ function InvoiceContent({
         </FieldRow>
       )}
 
-      {/* Date row — fully-paid invoices show the closing payment's date
-          (`payments` is newest-first, so payments[0] is what tipped the
-          invoice into PAID); everything else shows the upcoming due date.
-          Placed last so the amounts read top-down before the date footer. */}
-      {invoice.status === 'paid' && invoice.payments.length > 0 ? (
+      {/* Date row — fully-covered invoices (paid OR processing-with-received≥
+          amount) show the closing payment's date (`payments` is newest-first,
+          so payments[0] is what tipped the invoice over); everything else
+          shows the upcoming due date. */}
+      {remaining === 0 && invoice.payments.length > 0 ? (
         <FieldRow label="Paid On">
           <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
             {invoice.payments[0].paidOn}
@@ -563,15 +576,10 @@ export default function InvoicePaymentDetailDialog({
     return () => window.clearTimeout(t);
   }, [outgoing]);
 
-  // Body scroll lock while open
-  useEffect(() => {
-    if (!mounted) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [mounted]);
+  // Body scroll lock while open — ref-counted so nested locks (e.g.
+  // tapping Make A Payment, which opens MakePaymentDialog on top of this
+  // one) don't leave the page un-scrollable after both close.
+  useBodyScrollLock(mounted);
 
   // Esc to close
   useEffect(() => {
@@ -721,7 +729,10 @@ export default function InvoicePaymentDetailDialog({
         </OutlineButton>
       );
     }
-    if (c.invoice.status === 'paid') return null;
+    // Already paid — or fully covered by an in-flight ACH transfer (green
+    // PROCESSING) — so there's nothing left to pay. Blue PROCESSING still
+    // has a remaining balance, so the button stays visible for it.
+    if (c.invoice.received >= c.invoice.amount) return null;
     if (onMakePayment) {
       return <PrimaryButton onClick={onMakePayment}>Make A Payment</PrimaryButton>;
     }

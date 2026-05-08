@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ScrollHintArrows from './ScrollHintArrows';
 import { AnimatedDollar } from './AnimatedDollar';
+import { useBodyScrollLock } from './useBodyScrollLock';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PaymentTarget = {
@@ -1110,6 +1111,10 @@ export type ConfirmedPaymentInfo = {
   method:        'card' | 'bank';
   /** Display label like "Credit Card (***4242)" or "Bank Transfer (ACH)". */
   methodLabel:   string;
+  /** 'completed' = funds cleared and applied to invoices.
+   *  'processing' = ACH bank transfer awaiting 1-3 business day clearance —
+   *  the parent should record it but NOT cascade dollars onto invoices yet. */
+  status:        'completed' | 'processing';
 };
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
@@ -1348,21 +1353,66 @@ function PaymentFailedPanel({
   );
 }
 
-// ─── Payment Success result panel ────────────────────────────────────────────
-// Mirror of PaymentFailedPanel but with a green check + success palette.
-// Appears after the simulated processing delay when paymentResult='success'.
+// ─── Payment Success / Pending result panel ─────────────────────────────────
+// Mirror of PaymentFailedPanel. Two visual variants share the same layout +
+// staggered keyframes (pfPanelEnter / pfIconPop / pfTextRise / pfIconStroke):
+//   kind='success' — card / cleared funds. Green check + "Payment received".
+//   kind='pending' — bank-transfer (ACH) awaiting clearance. Blue clock +
+//     "Payment info received" with copy explaining the 1-3 business day wait.
 // Single primary CTA (Done) — there's nothing to retry, and X / Esc do the
-// same thing. Reuses the same staggered keyframes (pfPanelEnter / pfIconPop /
-// pfTextRise) so the success swap-in feels visually identical to failure.
+// same thing.
 function PaymentSuccessPanel({
   amount,
   onDone,
   variant,
+  kind = 'success',
 }: {
   amount: number;
   onDone: () => void;
   variant: 'mobile' | 'desktop';
+  kind?: 'success' | 'pending';
 }) {
+  // Palette + copy keyed off `kind`. `pending` uses the same blue as the
+  // 'Processing' status pill in the Payment Records list (#398ae7) so the
+  // dialog's accent matches the row the user will see afterwards.
+  const palette = kind === 'pending'
+    ? { color: '#398ae7', tint: 'rgba(57, 138, 231, 0.1)' }
+    : { color: '#04b50b', tint: 'rgba(4, 181, 11, 0.1)' };
+  const headerLabel = kind === 'pending' ? 'PAYMENT PROCESSING' : 'PAYMENT SUCCESSFUL';
+  const titleText   = kind === 'pending' ? 'Payment info received' : 'Payment received';
+  const renderIcon = (size: number) =>
+    kind === 'pending' ? (
+      // Clock face: outline circle + hour/minute hands. Hands stroke-draw
+      // via pfIconStroke so the beat matches the success check.
+      <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="9" stroke={palette.color} strokeWidth="2.5" />
+        <path
+          d="M14 9V14L17.5 16"
+          stroke={palette.color}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            strokeDasharray: 24,
+            animation: 'pfIconStroke 360ms ease-out 480ms both',
+          }}
+        />
+      </svg>
+    ) : (
+      <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+        <path
+          d="M7 14L12 19L21 9"
+          stroke={palette.color}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            strokeDasharray: 24,
+            animation: 'pfIconStroke 360ms ease-out 480ms both',
+          }}
+        />
+      </svg>
+    );
   if (variant === 'desktop') {
     return (
       <div
@@ -1373,13 +1423,16 @@ function PaymentSuccessPanel({
           animation: 'pfPanelEnter 380ms cubic-bezier(0.32, 0.72, 0, 1) both',
         }}
       >
-        {/* Header — green PAYMENT SUCCESSFUL label + X close */}
+        {/* Header — accent label + X close */}
         <div
           className="flex items-start justify-between w-full pb-3"
           style={{ animation: 'pfTextRise 320ms ease-out 120ms both' }}
         >
-          <p className="text-[12px] xl:text-[14px] font-semibold text-[#04b50b] leading-normal whitespace-nowrap">
-            PAYMENT SUCCESSFUL
+          <p
+            className="text-[12px] xl:text-[14px] font-semibold leading-normal whitespace-nowrap"
+            style={{ color: palette.color }}
+          >
+            {headerLabel}
           </p>
           <button
             type="button"
@@ -1394,54 +1447,53 @@ function PaymentSuccessPanel({
 
         {/* Body — vertically + horizontally centered */}
         <div className="flex flex-col gap-4 xl:gap-6 items-center justify-center flex-1 min-h-0 w-full">
-          {/* Green check in a soft green circle — same pop+stroke-draw as
-              the failure X but using the success palette. */}
+          {/* Accent icon in a soft tinted circle — pop + stroke-draw. */}
           <div
             className="flex items-center justify-center rounded-full"
             style={{
               width: 48,
               height: 48,
-              background: 'rgba(4, 181, 11, 0.1)',
+              background: palette.tint,
               animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 240ms both',
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-              <path
-                d="M7 14L12 19L21 9"
-                stroke="#04b50b"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  // Path length ~21 (roughly the sum of the two segments).
-                  strokeDasharray: 24,
-                  animation: 'pfIconStroke 360ms ease-out 480ms both',
-                }}
-              />
-            </svg>
+            {renderIcon(24)}
           </div>
 
           <p
             className="text-[16px] xl:text-[18px] font-semibold text-[#262626] text-center leading-normal"
             style={{ animation: 'pfTextRise 360ms ease-out 420ms both' }}
           >
-            Payment received
+            {titleText}
           </p>
           <p
             className="text-[12px] xl:text-[13px] text-[#737373] text-center leading-normal"
             style={{ animation: 'pfTextRise 360ms ease-out 540ms both' }}
           >
-            Your <span className="font-semibold text-[#262626]"><AnimatedDollar value={amount} decimals={2} /></span> payment
-            has been processed and added to the project&rsquo;s payment records.
+            {kind === 'pending' ? (
+              <>
+                We&rsquo;ve received your <span className="font-semibold text-[#262626]"><AnimatedDollar value={amount} decimals={2} /></span> bank
+                transfer request. ACH transfers typically clear in 1&ndash;3 business days &mdash;
+                we&rsquo;ll add it to the project&rsquo;s payment records once the funds settle.
+              </>
+            ) : (
+              <>
+                Your <span className="font-semibold text-[#262626]"><AnimatedDollar value={amount} decimals={2} /></span> payment
+                has been processed and added to the project&rsquo;s payment records.
+              </>
+            )}
           </p>
         </div>
 
-        {/* Done — green primary, mirrors the Try Again slot. */}
+        {/* Done — accent primary, mirrors the Try Again slot. */}
         <button
           type="button"
           onClick={onDone}
-          className="bg-[#04b50b] border-0 flex items-center justify-center h-10 px-2 py-1 rounded-[2px] w-full cursor-pointer"
-          style={{ animation: 'pfTextRise 360ms ease-out 660ms both' }}
+          className="border-0 flex items-center justify-center h-10 px-2 py-1 rounded-[2px] w-full cursor-pointer"
+          style={{
+            background: palette.color,
+            animation: 'pfTextRise 360ms ease-out 660ms both',
+          }}
         >
           <span
             className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
@@ -1471,37 +1523,35 @@ function PaymentSuccessPanel({
           style={{
             width: 64,
             height: 64,
-            background: 'rgba(4, 181, 11, 0.1)',
+            background: palette.tint,
             animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 220ms both',
           }}
         >
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <path
-              d="M7 14L12 19L21 9"
-              stroke="#04b50b"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{
-                strokeDasharray: 24,
-                animation: 'pfIconStroke 360ms ease-out 460ms both',
-              }}
-            />
-          </svg>
+          {renderIcon(28)}
         </div>
 
         <p
           className="text-[20px] sm:text-[24px] font-semibold text-[#262626] text-center leading-normal"
           style={{ animation: 'pfTextRise 320ms ease-out 380ms both' }}
         >
-          Payment received
+          {titleText}
         </p>
         <p
           className="text-[14px] sm:text-[16px] text-[#737373] text-center leading-normal max-w-[420px]"
           style={{ animation: 'pfTextRise 320ms ease-out 480ms both' }}
         >
-          Your <AnimatedDollar value={amount} decimals={2} /> payment has been processed and added
-          to the project&rsquo;s payment records.
+          {kind === 'pending' ? (
+            <>
+              We&rsquo;ve received your <AnimatedDollar value={amount} decimals={2} /> bank
+              transfer request. ACH transfers typically clear in 1&ndash;3 business days &mdash;
+              we&rsquo;ll add it to the project&rsquo;s payment records once the funds settle.
+            </>
+          ) : (
+            <>
+              Your <AnimatedDollar value={amount} decimals={2} /> payment has been processed and added
+              to the project&rsquo;s payment records.
+            </>
+          )}
         </p>
       </div>
 
@@ -1511,8 +1561,8 @@ function PaymentSuccessPanel({
       >
         <button
           onClick={onDone}
-          className="bg-[#04b50b] border-0 flex items-center justify-center h-10 rounded-[2px] w-full cursor-pointer"
-          style={{ paddingLeft: 16, paddingRight: 16 }}
+          className="border-0 flex items-center justify-center h-10 rounded-[2px] w-full cursor-pointer"
+          style={{ background: palette.color, paddingLeft: 16, paddingRight: 16 }}
         >
           <span
             className="text-[14px] sm:text-[16px] font-semibold text-white text-center whitespace-nowrap"
@@ -1618,15 +1668,10 @@ export default function MakePaymentDialog({
     return () => window.clearTimeout(t);
   }, [target, mounted]);
 
-  // Body scroll lock while open
-  useEffect(() => {
-    if (!mounted) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [mounted]);
+  // Body scroll lock while open — ref-counted so nested locks (e.g. opening
+  // this dialog from inside InvoicePaymentDetailDialog) don't leave the
+  // page un-scrollable after both close.
+  useBodyScrollLock(mounted);
 
   // Esc to close
   useEffect(() => {
@@ -1645,14 +1690,17 @@ export default function MakePaymentDialog({
   //   failed     — paymentResult='failure' simulation finished: form stays
   //                read-only and the right column swaps in PaymentFailedPanel
   //                (fades in). Try Again returns to 'idle'.
-  //   succeeded  — paymentResult='success' simulation finished: form stays
-  //                read-only and the right column swaps in PaymentSuccessPanel.
-  //                Done dismisses the dialog. The payment is recorded on
-  //                entering this state so a subsequent X / Esc still keeps
-  //                it in the records list.
+  //   succeeded  — card paymentResult='success' simulation finished: right
+  //                column swaps in the green PaymentSuccessPanel.
+  //   pending    — bank-transfer (ACH) confirm finished: right column swaps
+  //                in the blue PaymentSuccessPanel kind='pending' explaining
+  //                the 1-3 business day clearance window. The payment is
+  //                recorded with status='processing' on entering this state
+  //                so the records list shows it as in-flight even after
+  //                X / Esc dismiss.
   // Reset every time the dialog opens fresh.
   const [resultState, setResultState] = useState<
-    'idle' | 'submitting' | 'failed' | 'succeeded'
+    'idle' | 'submitting' | 'failed' | 'succeeded' | 'pending'
   >('idle');
   useEffect(() => {
     if (target) setResultState('idle');
@@ -1689,17 +1737,22 @@ export default function MakePaymentDialog({
         return;
       }
       // Success: record the payment so the Invoices & Payments tab is
-      // already in lock-step by the time the user dismisses the success
+      // already in lock-step by the time the user dismisses the result
       // panel — even via X / Esc. The dialog stays open showing the
       // confirmation; Done closes it.
+      // Bank transfers (ACH) settle on a 1-3 business day delay, so they
+      // record as 'processing' and route to the pending result panel.
+      // Card payments clear instantly → 'completed' → success panel.
+      const isBank = formState.method === 'bank';
       onConfirm?.({
         amountApplied: last.amount,
         platformFee:   fee,
         amountPaid:    total,
         method:        formState.method,
         methodLabel,
+        status:        isBank ? 'processing' : 'completed',
       });
-      setResultState('succeeded');
+      setResultState(isBank ? 'pending' : 'succeeded');
     }, SUBMIT_DELAY_MS);
   };
 
@@ -1807,7 +1860,7 @@ export default function MakePaymentDialog({
           // sheet would snap from 60vh back up to its content height the
           // moment Try Again unmounts the failure panel. Success uses the
           // same 60vh sizing.
-          height: resultState === 'failed' || resultState === 'succeeded' ? '60vh' : '92vh',
+          height: resultState === 'failed' || resultState === 'succeeded' || resultState === 'pending' ? '60vh' : '92vh',
           boxShadow: '0px -4px 24px rgba(0,0,0,0.18)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: open
@@ -1842,6 +1895,13 @@ export default function MakePaymentDialog({
             amount={total}
             onDone={onClose}
             variant="mobile"
+          />
+        ) : resultState === 'pending' ? (
+          <PaymentSuccessPanel
+            amount={total}
+            onDone={onClose}
+            variant="mobile"
+            kind="pending"
           />
         ) : (
           <div
@@ -1943,6 +2003,13 @@ export default function MakePaymentDialog({
               amount={total}
               onDone={onClose}
               variant="desktop"
+            />
+          ) : resultState === 'pending' ? (
+            <PaymentSuccessPanel
+              amount={total}
+              onDone={onClose}
+              variant="desktop"
+              kind="pending"
             />
           ) : (
             <DesktopSummaryColumn
