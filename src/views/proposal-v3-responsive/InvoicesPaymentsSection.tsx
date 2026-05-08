@@ -83,6 +83,14 @@ const PAYMENT_RECORDS: PaymentRecord[] = [
   { paymentId: '1030', paidOn: 'Jan 2, 2025',  amountApplied: 1000, platformFee: 0,  amountPaid: 1000, paidBy: 'Junyu Zhang', method: 'Check' },
 ];
 
+// Total money applied against invoices across all payment records — drives
+// the Project Home "Payment Progress" figure so it stays in lockstep with
+// what the user sees in the Invoices & Payments tab.
+export const TOTAL_AMOUNT_APPLIED = PAYMENT_RECORDS.reduce(
+  (sum, rec) => sum + rec.amountApplied,
+  0,
+);
+
 const PAYMENT_DETAIL_EXTRAS: Record<
   string,
   {

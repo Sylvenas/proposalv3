@@ -294,6 +294,24 @@ function InvoiceContent({
         </FieldRow>
       )}
 
+      {/* Date row — fully-paid invoices show the closing payment's date
+          (`payments` is newest-first, so payments[0] is what tipped the
+          invoice into PAID); everything else shows the upcoming due date.
+          Placed last so the amounts read top-down before the date footer. */}
+      {invoice.status === 'paid' && invoice.payments.length > 0 ? (
+        <FieldRow label="Paid On">
+          <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
+            {invoice.payments[0].paidOn}
+          </p>
+        </FieldRow>
+      ) : (
+        <FieldRow label="Due Date">
+          <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
+            {invoice.dueDate}
+          </p>
+        </FieldRow>
+      )}
+
       {/* Show Invoice Payment Records — one-shot reveal. The link only
           renders while collapsed; clicking replaces it with the section
           ("Invoice Payment Records" label + per-payment slice list). UNPAID
