@@ -12,6 +12,8 @@ import type { FenceOption as SummaryFenceOption, AddonItem } from './SummaryPage
 import { DEFAULT_ADDONS } from './SummaryPageResponsive';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
+import { DevConsoleProvider, useDevConsole } from './DevConsoleContext';
+import DevConsole from './DevConsole';
 
 // ── Equal-height hook ─────────────────────────────────────────────────────────
 // For each [data-card-container], finds all [data-card-section="X"] elements,
@@ -88,7 +90,10 @@ type FenceOption = {
   baseMaterials: number;
 };
 
-const OPTIONS: FenceOption[] = [
+// Master list of demo options. The DevConsole controls how many of these are
+// actually rendered via `config.optionCount` (1–4). When you add new entries
+// here, also bump the max in DevConsole's selector.
+const ALL_OPTIONS: FenceOption[] = [
   {
     id: 1,
     label: 'OPTION 1 - CHAIN LINK FENCE',
@@ -140,6 +145,25 @@ const OPTIONS: FenceOption[] = [
       { name: 'Aluminum Panels', qty: '960', unit: 'sqf.' },
       { name: 'Aluminum Posts', qty: '24', unit: 'ea.' },
       { name: 'Finials & Decorative', qty: '96', unit: 'ea.' },
+      { name: 'Hardware & Fittings', qty: '1', unit: 'set' },
+    ],
+  },
+  {
+    id: 4,
+    label: 'OPTION 4 - WOOD PRIVACY FENCE',
+    features: 'Natural Look / Customizable / Privacy',
+    constructionTime: '3–5 Weeks',
+    price: '$10,800.00 USD',
+    contractTotal: '$10,800.00',
+    monthly: '$507.00 / mo',
+    // Reuses option-1 imagery — only 3 hero images exist in /public.
+    image: IMG_OPTION_1,
+    // baseMaterials: 10527 → discount $526 → afterDisc $10,001 → tax $800 → total ~$10,800
+    baseMaterials: 10527,
+    products: [
+      { name: 'Wood Pickets', qty: '960', unit: 'sqf.' },
+      { name: 'Wood Posts', qty: '24', unit: 'ea.' },
+      { name: 'Top & Bottom Rails', qty: '320', unit: 'lf.' },
       { name: 'Hardware & Fittings', qty: '1', unit: 'set' },
     ],
   },
@@ -409,11 +433,13 @@ function OverflowNavigation({
 function PrimaryOptionSlot({
   opt,
   index,
+  totalOptions,
   isFullyVisible,
   onSelect,
 }: {
   opt: FenceOption;
   index: number;
+  totalOptions: number;
   isFullyVisible: boolean;
   onSelect: () => void;
 }) {
@@ -431,11 +457,23 @@ function PrimaryOptionSlot({
     });
   };
 
+  // Slot widths per total-option count:
+  //   2 options : '' — parent uses a 2-col grid that sizes children
+  //   3 options : md = 2.125-card peek scroll, lg+ = `auto` inside grid-cols-3
+  //   4+ options: md = 2.125-card peek, lg+ = 3.125-card peek (still scrolls)
+  // 3.125-card formula: 3 visible + 1/8 peek with 3 gaps of 12px → (100%−36px)/3.125
+  const slotClassName =
+    totalOptions === 2
+      ? ''
+      : totalOptions === 3
+      ? 'md:shrink-0 md:w-[calc((100%-24px)/2.125)] lg:w-auto'
+      : 'md:shrink-0 md:w-[calc((100%-24px)/2.125)] lg:w-[calc((100%-36px)/3.125)]';
+
   return (
     <div
       ref={slotRef}
       data-slot-index={index}
-      className="md:shrink-0 md:w-[calc((100%-24px)/2.125)] lg:w-auto"
+      className={slotClassName}
       onClickCapture={handleClickCapture}
     >
       <OptionCard opt={opt} onSelect={onSelect} />
@@ -451,14 +489,20 @@ function PrimaryOptionSlot({
 // Select CTA. Used only in the comparison-table header & footer cards in the
 // overflow state (total options > visible comparison slots). The menu is a
 // future iteration — the button is rendered but is a no-op for now.
+// `changeOptionVisibleOnLg`: by default the button is `lg:hidden` because lg+
+// fits 3 columns and 3-or-fewer options have no overflow. With 4+ options the
+// lg+ comparison also overflows, so this flag drops the `lg:hidden` so users
+// can swap options on desktop too.
 function OptionCard({
   opt,
   onSelect,
   onChangeOption,
+  changeOptionVisibleOnLg = false,
 }: {
   opt: FenceOption;
   onSelect: () => void;
   onChangeOption?: () => void;
+  changeOptionVisibleOnLg?: boolean;
 }) {
   return (
     <div className="flex flex-col">
@@ -530,7 +574,7 @@ function OptionCard({
           {onChangeOption && (
             <button
               onClick={onChangeOption}
-              className="lg:hidden w-full h-10 bg-white border border-solid border-[#d9d9d9] text-[14px] rounded-[4px] flex items-center justify-center cursor-pointer"
+              className={`${changeOptionVisibleOnLg ? '' : 'lg:hidden '}w-full h-10 bg-white border border-solid border-[#d9d9d9] text-[14px] rounded-[4px] flex items-center justify-center cursor-pointer`}
               style={{ fontFamily: 'Segoe UI, sans-serif', color: 'rgba(0,0,0,0.85)' }}
             >
               Change Option
@@ -633,7 +677,21 @@ function ProductLineItem({
 // Font XXL token: Low Density (<md) = 20px / Medium Density (md+) = 24px
 // Mobile layout  (<md): logo 160×160, stacked CTAs (Valid Until → Explore → Inspection)
 // Desktop layout (md+): logo 320×320, side-by-side CTAs (Inspection | Explore), then Valid Until
-function CoverPageContent({ onExplore }: { onExplore: () => void }) {
+function CoverPageContent({
+  onExplore,
+  singleOptionMode = false,
+  showInspectionReport = true,
+}: {
+  onExplore: () => void;
+  /** When true, the proposal has only one option, so the CTA reads
+   *  "EXPLORE PROPOSAL" instead of "EXPLORE OPTIONS" — there's nothing to
+   *  choose between, the curtain reveals the proposal itself. */
+  singleOptionMode?: boolean;
+  /** When false, the cover hides the "Inspection Report" CTA (used by the
+   *  DevConsole to demo proposals without an attached inspection report). */
+  showInspectionReport?: boolean;
+}) {
+  const exploreLabel = singleOptionMode ? 'EXPLORE PROPOSAL' : 'EXPLORE OPTIONS';
   // ── Token table (from Figma variable defs per breakpoint frame) ──────────────
   // FONTS — viewport-responsive (change at sm and xl):
   //   Font S  : XS=12  S=14  M=14  L=14  XL=16  XXL=16  → text-[12px] sm:text-[14px] xl:text-[16px]
@@ -707,12 +765,15 @@ function CoverPageContent({ onExplore }: { onExplore: () => void }) {
           className="w-full h-10 bg-[#d41a32] text-white text-[14px] font-semibold flex items-center justify-center cursor-pointer"
           style={{ lineHeight: '18px' }}
         >
-          EXPLORE OPTIONS
+          {exploreLabel}
         </button>
-        {/* Inspection — h-10 (40px), font/size/body/medium = 14px fixed */}
-        <button className="w-full h-10 bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[14px] flex items-center justify-center cursor-pointer">
-          INSPECTION REPORT
-        </button>
+        {/* Inspection — h-10 (40px), font/size/body/medium = 14px fixed.
+            Hidden when the DevConsole has Inspection Report set to "Hidden". */}
+        {showInspectionReport && (
+          <button className="w-full h-10 bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[14px] flex items-center justify-center cursor-pointer">
+            INSPECTION REPORT
+          </button>
+        )}
       </div>
 
       {/* ── CTAs: Desktop (Medium Density, md+) ────────────────────────── */}
@@ -721,17 +782,23 @@ function CoverPageContent({ onExplore }: { onExplore: () => void }) {
       <div className="hidden md:flex flex-col gap-6 w-full items-center">
         {/* Button row — 12px gap (hardcoded in design) */}
         <div className="flex gap-3 items-center justify-center w-full">
-          {/* Inspection — flex-1, max-w-240px, h-11 (44px), --m = 16px */}
-          <button className="flex-1 h-11 max-w-[240px] bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[16px] flex items-center justify-center cursor-pointer">
-            INSPECTION REPORT
-          </button>
-          {/* Explore — flex-1, max-w-240px, h-11 (44px), --m = 16px */}
+          {/* Inspection — flex-1, max-w-240px, h-11 (44px), --m = 16px.
+              Hidden when the DevConsole has Inspection Report set to "Hidden". */}
+          {showInspectionReport && (
+            <button className="flex-1 h-11 max-w-[240px] bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[16px] flex items-center justify-center cursor-pointer">
+              INSPECTION REPORT
+            </button>
+          )}
+          {/* Explore — flex-1, h-11 (44px), --m = 16px.
+              When Inspection Report is hidden, the Explore button is the only
+              one in the row, so it expands to the original two-button total
+              width (240 + 12 gap + 240 = 492px) instead of staying at 240. */}
           <button
             onClick={onExplore}
-            className="flex-1 h-11 max-w-[240px] bg-[#d41a32] text-white text-[16px] font-semibold flex items-center justify-center cursor-pointer"
+            className={`flex-1 h-11 ${showInspectionReport ? 'max-w-[240px]' : 'max-w-[492px]'} bg-[#d41a32] text-white text-[16px] font-semibold flex items-center justify-center cursor-pointer`}
             style={{ lineHeight: '18px' }}
           >
-            EXPLORE OPTIONS
+            {exploreLabel}
           </button>
         </div>
         {/* Valid Until — Font M (desktop): M/L=16px  XL/XXL=20px */}
@@ -751,7 +818,15 @@ function CoverPageContent({ onExplore }: { onExplore: () => void }) {
 // Mouse wheel: no action — wheel scrolling does NOT dismiss the curtain.
 // Button: "EXPLORE OPTIONS" and Home icon dismiss immediately.
 // z-index 100 — above sticky comparison header (z-50).
-function CoverCurtain({ onDismiss }: { onDismiss: () => void }) {
+function CoverCurtain({
+  onDismiss,
+  singleOptionMode = false,
+  showInspectionReport = true,
+}: {
+  onDismiss: () => void;
+  singleOptionMode?: boolean;
+  showInspectionReport?: boolean;
+}) {
   const [dismissed, setDismissed] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [snappingBack, setSnappingBack] = useState(false);
@@ -833,7 +908,11 @@ function CoverCurtain({ onDismiss }: { onDismiss: () => void }) {
       onTouchEnd={handleTouchEnd}
     >
       <div className="w-full h-full flex items-center justify-center" style={{ maxWidth: 2160 }}>
-        <CoverPageContent onExplore={dismiss} />
+        <CoverPageContent
+          onExplore={dismiss}
+          singleOptionMode={singleOptionMode}
+          showInspectionReport={showInspectionReport}
+        />
       </div>
     </div>
   );
@@ -886,9 +965,18 @@ function useStickyHeader() {
 function StickyComparisonHeader({
   options,
   visible,
+  isInPair,
+  isInTriple,
+  lgHasOverflow,
 }: {
   options: FenceOption[];
   visible: boolean;
+  /** Whether the option is in the visible pair on <lg breakpoints. */
+  isInPair: (id: number) => boolean;
+  /** Whether the option is in the visible triple on lg+ when lg has overflow. */
+  isInTriple: (id: number) => boolean;
+  /** True when total options > 3 (lg+ also runs out of slots). */
+  lgHasOverflow: boolean;
 }) {
   return (
     <div
@@ -904,12 +992,17 @@ function StickyComparisonHeader({
         className="mx-auto flex items-center gap-4 md:gap-3 px-4 sm:px-6 md:px-4 lg:px-6 py-2 md:py-3"
         style={{ minWidth: 360, maxWidth: 2160 }}
       >
-        {options.map((opt, i) => (
+        {options.map((opt) => {
+          const md = isInPair(opt.id);
+          const lg = !lgHasOverflow || isInTriple(opt.id);
+          let extra = '';
+          if (!md) extra += ' hidden';
+          if (md && !lg) extra += ' lg:hidden';
+          else if (!md && lg) extra += ' lg:flex';
+          return (
           <div
             key={opt.id}
-            className={`flex flex-1 items-center gap-1 px-2 min-w-0${
-              i === 2 ? ' hidden lg:flex' : ''
-            }`}
+            className={`flex flex-1 items-center gap-1 px-2 min-w-0${extra}`}
           >
             <p
               className="flex-1 font-semibold text-[14px] text-[#262626] truncate leading-normal"
@@ -924,14 +1017,36 @@ function StickyComparisonHeader({
               style={{ width: 16, height: 16 }}
             />
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+// The default export wires up the DevConsole provider + panel. OptionsPageContent
+// reads `config.optionCount` and slices the master ALL_OPTIONS list. Internal
+// state that depends on the option count (visibility array, comparison pair,
+// selected option) is reconciled via a useEffect so we don't need to remount
+// the whole tree — that way the curtain / scroll position / addons survive
+// mid-demo data changes.
 export default function OptionsPageResponsive() {
+  return (
+    <DevConsoleProvider>
+      <OptionsPageContent />
+      <DevConsole />
+    </DevConsoleProvider>
+  );
+}
+
+function OptionsPageContent() {
+  const { config } = useDevConsole();
+  const optionCount = config.optionCount;
+  // Slice the master list to the configured count. Everything below operates on
+  // this trimmed array, so widget logic (overflow detection, comparison pair,
+  // sticky header, etc.) automatically adapts.
+  const OPTIONS = ALL_OPTIONS.slice(0, optionCount);
   useSyncCardSectionHeights();
   const stickyVisible = useStickyHeader();
   const [curtainMounted, setCurtainMounted] = useState(true);
@@ -1033,7 +1148,12 @@ export default function OptionsPageResponsive() {
       observer.observe(el)
     );
     return () => observer.disconnect();
-  }, [primaryScrollEl]);
+    // optionCount is in deps so the observer re-binds when the DevConsole
+    // changes the count: existing slots' intersection ratios may not cross a
+    // threshold (e.g. lg-grid → lg-scroll keeps slots 0–2 at ratio 1) so the
+    // observer wouldn't fire on its own, AND any newly-added slot wouldn't be
+    // observed until we explicitly re-attach.
+  }, [primaryScrollEl, optionCount]);
 
   // Track scroll position & overflow state (for nav visibility + button disabled state).
   //
@@ -1095,7 +1215,10 @@ export default function OptionsPageResponsive() {
       mqlMd.removeEventListener('change', scheduleUpdate);
       mqlLg.removeEventListener('change', scheduleUpdate);
     };
-  }, [primaryScrollEl]);
+    // optionCount in deps so we re-observe each slot when the DevConsole
+    // changes the count (a new slot needs to be added to the ResizeObserver,
+    // and a removed slot dropped) and recompute overflow state immediately.
+  }, [primaryScrollEl, optionCount]);
 
   // Scroll by one card "stride" (card width + gap). Measured from actual DOM.
   // Also: predict the final visibility array and set it immediately, so the
@@ -1180,17 +1303,83 @@ export default function OptionsPageResponsive() {
   // the ones NOT in the pair via `hidden lg:block/flex`, so lg+ always sees all
   // options regardless of pair state, and grid auto-flow places the 2 visible
   // items in the 2 columns in document order.
-  const [comparisonPair, _setComparisonPair] = useState<[number, number]>(
-    [OPTIONS[0].id, OPTIONS[1].id]
+  // When optionCount < 2 (dev-mode 1-option demo), the second slot collapses
+  // to id 0 — comparison rendering is gated by hasOverflow anyway, so the
+  // duplicate id is never observed.
+  const [comparisonPair, setComparisonPair] = useState<[number, number]>(
+    [OPTIONS[0]?.id ?? 0, OPTIONS[1]?.id ?? OPTIONS[0]?.id ?? 0]
   );
+  // lg+ analogue: which 3 options are visible in the comparison grid when there
+  // are 4+ options (lg+ also overflows the 3 fixed columns). Defaults to the
+  // first 3 options. Swap functionality TBD.
+  const [comparisonTriple, setComparisonTriple] = useState<number[]>(
+    () => OPTIONS.slice(0, 3).map((o) => o.id)
+  );
+
+  // Reconcile option-count-dependent state when the DevConsole changes the
+  // count. We don't remount the whole tree (which would also reset the curtain,
+  // scroll position, etc.) — instead we just resize the visibility array,
+  // pick a fresh comparison pair, and clear the selection if it pointed at
+  // an option that no longer exists.
+  useEffect(() => {
+    const sliced = ALL_OPTIONS.slice(0, optionCount);
+    setPrimaryVisibility(sliced.map(() => false));
+    setComparisonPair([
+      sliced[0]?.id ?? 0,
+      optionCount >= 2 ? sliced[1]!.id : sliced[0]?.id ?? 0,
+    ]);
+    setComparisonTriple(sliced.slice(0, 3).map((o) => o.id));
+    setSelectedOption((prev) =>
+      prev && sliced.some((o) => o.id === prev.id) ? prev : null
+    );
+  }, [optionCount]);
+
+  // Single-option mode: the Options page has nothing to choose between, so we
+  // treat the sole option as the implicit selection — even when no actual
+  // selection has been made and the cover curtain is still up. This keeps the
+  // page UNDER the curtain on Summary, so when the curtain slides away it
+  // reveals Summary directly instead of briefly flashing the Options page.
+  const isSingleOptionMode = optionCount === 1 && !!OPTIONS[0];
+  const effectiveSelectedOption =
+    selectedOption ?? (isSingleOptionMode ? OPTIONS[0]! : null);
   const isInPair = (id: number) => comparisonPair.includes(id);
+  const isInTriple = (id: number) => comparisonTriple.includes(id);
+  // <lg overflow: there are too many options to show side-by-side in 2 cols.
+  // lg+ overflow: the lg-grid runs out of its 3 fixed cols too.
   const hasOverflow = OPTIONS.length > 2;
+  const lgHasOverflow = OPTIONS.length > 3;
   // Change Option button: stub for now; menu is a future iteration.
   const openChangeOptionMenu = (_optId: number) => {
     // no-op — menu will be implemented in a later iteration
   };
 
+  // Per-option visibility classes for items in the comparison grids. The grid
+  // itself stays at `grid-cols-2 lg:grid-cols-3` (when overflow exists) — we
+  // hide non-pair / non-triple items via responsive classes so the visible
+  // ones always lay out in the leftmost cells.
+  // baseLg: the display utility to use when the item should show on lg+.
+  function comparisonItemVisibilityClass(id: number, baseLg: 'flex' | 'block') {
+    const md = !hasOverflow || isInPair(id);
+    const lg = !lgHasOverflow || isInTriple(id);
+    if (md && lg) return '';
+    if (md && !lg) return ' lg:hidden';
+    if (!md && lg) return ` hidden lg:${baseLg}`;
+    return ' hidden';
+  }
+
   const comparisonOptions = OPTIONS; // rendered with CSS visibility per column
+
+  // Comparison grid layout: 3+ options use 2-col on <lg (showing the pair) +
+  // 3-col on lg+; with exactly 2 options we drop the lg-3-col override so the
+  // table fills the container instead of leaving an empty third column.
+  //
+  // 2-option cap: cards/columns are capped at 720px each. Beyond that, the
+  // grid stops growing and `justify-center` keeps it centered in the wider
+  // container so cards don't balloon on very large viewports.
+  const comparisonGridClass =
+    OPTIONS.length === 2
+      ? 'grid grid-cols-[repeat(2,minmax(0,720px))] gap-4 md:gap-3 justify-center'
+      : 'grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3';
 
   // When an option is selected, render either Summary (pre-approval) or
   // ProjectHub (post-approval) and overlay the signature sheet on top when
@@ -1198,12 +1387,12 @@ export default function OptionsPageResponsive() {
   // the Summary→ProjectHub swap: on successful sign, onApproveStart flips
   // `approved`, swapping the page behind the overlay; when the overlay's
   // slide-out finishes, onApproved unmounts it and the user sees ProjectHub.
-  if (selectedOption) {
+  if (effectiveSelectedOption) {
     return (
       <>
         {approved ? (
           <ProjectHubPageResponsive
-            option={selectedOption as SummaryFenceOption}
+            option={effectiveSelectedOption as SummaryFenceOption}
             addons={addons}
             approvedAt={approvedAt}
             onShowCover={() => {
@@ -1215,9 +1404,11 @@ export default function OptionsPageResponsive() {
           />
         ) : (
           <SummaryPageResponsive
-            option={selectedOption as SummaryFenceOption}
+            option={effectiveSelectedOption as SummaryFenceOption}
             addons={addons}
             setAddons={setAddons}
+            singleOptionMode={isSingleOptionMode}
+            signatureRequired={config.signatureRequired}
             onBack={() => {
               setSelectedOption(null);
               window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1229,9 +1420,21 @@ export default function OptionsPageResponsive() {
             onRequestSign={() => setShowSignatureOverlay(true)}
           />
         )}
+        {/* In single-option mode the curtain sits on top of Summary so its
+            slide-up reveals Summary directly. In multi-option mode this branch
+            is only reached after a real selection — the curtain is already
+            dismissed and curtainMounted is false, so this renders nothing. */}
+        {curtainMounted && (
+          <CoverCurtain
+            onDismiss={dismissCurtain}
+            singleOptionMode={isSingleOptionMode}
+            showInspectionReport={config.inspectionReport}
+          />
+        )}
         {showSignatureOverlay && (
           <SignatureOverlay
             clientName="Michael Rozier"
+            signatureRequired={config.signatureRequired}
             onClose={() => setShowSignatureOverlay(false)}
             onApproveStart={() => {
               // Slide-out has just begun. Swap Summary for ProjectHub behind
@@ -1253,10 +1456,20 @@ export default function OptionsPageResponsive() {
   return (
     <div className="bg-white min-h-screen">
       {curtainMounted && (
-        <CoverCurtain onDismiss={dismissCurtain} />
+        <CoverCurtain
+          onDismiss={dismissCurtain}
+          singleOptionMode={isSingleOptionMode}
+          showInspectionReport={config.inspectionReport}
+        />
       )}
       <PageHeader onShowCover={() => setCurtainMounted(true)} />
-      <StickyComparisonHeader options={OPTIONS} visible={stickyVisible} />
+      <StickyComparisonHeader
+        options={OPTIONS}
+        visible={stickyVisible}
+        isInPair={isInPair}
+        isInTriple={isInTriple}
+        lgHasOverflow={lgHasOverflow}
+      />
       {/*
         Width clamp: min 360px, max 2160px, centred.
         Below 360px the content stays 360px wide (horizontal scroll).
@@ -1297,13 +1510,27 @@ export default function OptionsPageResponsive() {
         <div
           ref={setPrimaryScrollNode}
           data-card-container
-          className="flex flex-col gap-4 md:flex-row md:gap-3 md:overflow-x-auto md:overflow-y-hidden scrollbar-none lg:grid lg:grid-cols-3 lg:overflow-visible"
+          className={
+            // 2-option mode: 2-col grid that fills the container, capped at
+            //   720px per card so they don't grow unboundedly on very wide
+            //   viewports (grid is `justify-center` once the cap engages).
+            // 3-option mode: flex-row scroll on md (2.125-card peek), 3-col
+            //   grid on lg+ (no overflow — fits exactly).
+            // 4+ options: flex-row scroll on BOTH md (2.125-card peek) and
+            //   lg+ (3.125-card peek) — lg+ also runs out of room.
+            OPTIONS.length === 2
+              ? 'grid grid-cols-1 md:grid-cols-[repeat(2,minmax(0,720px))] gap-4 md:gap-3 md:justify-center'
+              : OPTIONS.length === 3
+              ? 'flex flex-col gap-4 md:flex-row md:gap-3 md:overflow-x-auto md:overflow-y-hidden scrollbar-none lg:grid lg:grid-cols-3 lg:overflow-visible'
+              : 'flex flex-col gap-4 md:flex-row md:gap-3 md:overflow-x-auto md:overflow-y-hidden scrollbar-none'
+          }
         >
           {OPTIONS.map((opt, i) => (
             <PrimaryOptionSlot
               key={opt.id}
               opt={opt}
               index={i}
+              totalOptions={OPTIONS.length}
               isFullyVisible={primaryVisibility[i] ?? true}
               onSelect={() => selectOption(opt)}
             />
@@ -1388,19 +1615,34 @@ export default function OptionsPageResponsive() {
         */}
 
         {/*
-          Mini comparison header cards.
-          Show on XS/S/M when there's overflow (total > 2 visible slots);
-          hidden on L+ since the comparison table already shows all options.
-          The card NOT in comparisonPair is hidden via `hidden lg:block`.
+          Mini comparison header cards — mirror of the section-5 cards at the
+          bottom, shown above the comparison table whenever the table itself
+          has overflow at the current breakpoint:
+            • <lg: visible when hasOverflow (count > 2) — shows the pair
+            • lg+: visible when lgHasOverflow (count > 3) — shows the triple
+          When there's no lg overflow the parent grid is `lg:hidden` so the
+          whole row is dropped on desktop (the comparison table is enough).
         */}
         {hasOverflow && (
-          <div id="comparison-cards" data-card-container className="grid grid-cols-2 gap-4 lg:hidden">
+          <div
+            id="comparison-cards"
+            data-card-container
+            className={
+              lgHasOverflow
+                ? comparisonGridClass
+                : 'grid grid-cols-2 gap-4 md:gap-3 lg:hidden'
+            }
+          >
             {comparisonOptions.map((opt) => (
-              <div key={opt.id} className={isInPair(opt.id) ? '' : 'hidden lg:block'}>
+              <div
+                key={opt.id}
+                className={comparisonItemVisibilityClass(opt.id, 'block').trim()}
+              >
                 <OptionCard
                   opt={opt}
                   onSelect={() => selectOption(opt)}
                   onChangeOption={() => openChangeOptionMenu(opt.id)}
+                  changeOptionVisibleOnLg={lgHasOverflow}
                 />
               </div>
             ))}
@@ -1420,12 +1662,13 @@ export default function OptionsPageResponsive() {
             Schedule and Pricing
           </p>
 
-          {/* Param columns: 2-col on <lg (shows comparisonPair), 3-col on lg+ (all) */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3">
+          {/* Param columns: 2-col on <lg (shows comparisonPair), 3-col on lg+
+              (shows comparisonTriple when there are 4+ options). */}
+          <div className={comparisonGridClass}>
             {comparisonOptions.map((opt) => (
               <div
                 key={opt.id}
-                className={`bg-white flex flex-col${isInPair(opt.id) ? '' : ' hidden lg:flex'}`}
+                className={`bg-white flex flex-col${comparisonItemVisibilityClass(opt.id, 'flex')}`}
               >
                 <ComparisonParam label="Contract Total" value={opt.contractTotal} />
                 <ComparisonParam
@@ -1453,12 +1696,13 @@ export default function OptionsPageResponsive() {
             Fence Parts
           </p>
 
-          {/* Product columns: 2-col on <lg (shows comparisonPair), 3-col on lg+ (all) */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3">
+          {/* Product columns: 2-col on <lg (shows comparisonPair), 3-col on lg+
+              (shows comparisonTriple when there are 4+ options). */}
+          <div className={comparisonGridClass}>
             {comparisonOptions.map((opt) => (
               <div
                 key={opt.id}
-                className={`flex flex-col${isInPair(opt.id) ? '' : ' hidden lg:flex'}`}
+                className={`flex flex-col${comparisonItemVisibilityClass(opt.id, 'flex')}`}
               >
                 {opt.products.map((p) => (
                   <ProductLineItem
@@ -1500,14 +1744,17 @@ export default function OptionsPageResponsive() {
           Section 5: Bottom option cards (mirror of the comparison header — same pair on < lg, all on lg+).
           Change Option button exposed only on the two pair-visible cards, matching the header.
         */}
-        <div id="section-5-cards" data-card-container className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3">
+        <div id="section-5-cards" data-card-container className={comparisonGridClass}>
           {comparisonOptions.map((opt) => (
-            <div key={opt.id} className={isInPair(opt.id) ? '' : 'hidden lg:block'}>
+            <div
+              key={opt.id}
+              className={comparisonItemVisibilityClass(opt.id, 'block').trim()}
+            >
               <OptionCard
                 opt={opt}
                 onSelect={() => selectOption(opt)}
-                // Button auto-hidden on lg+ inside OptionCard via `lg:hidden`.
                 onChangeOption={hasOverflow ? () => openChangeOptionMenu(opt.id) : undefined}
+                changeOptionVisibleOnLg={lgHasOverflow}
               />
             </div>
           ))}

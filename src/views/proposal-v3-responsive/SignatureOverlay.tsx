@@ -13,6 +13,10 @@ const SKELETON_MS = 2000;
 // After the user clicks Sign, we show a "Finishing Signature" state for
 // this many ms before dismissing the overlay and navigating to the hub.
 const SUBMIT_MS = 2000;
+// "Approve" mode (signatureRequired=false) collapses both delays into a
+// single 1-second confirmation pause — the contract is shown immediately
+// and clicking Approve resolves quickly.
+const APPROVE_SUBMIT_MS = 1000;
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -301,6 +305,7 @@ function SignatureUtility({
   mobileLayout,
   loading,
   submitting,
+  signatureRequired,
   onCancel,
   onSign,
 }: {
@@ -310,16 +315,27 @@ function SignatureUtility({
   loading: boolean;
   /** User has clicked Sign — "Finishing Signature" state. */
   submitting: boolean;
+  /** When false, the CTA is the simpler "Approve" flow (no signature). */
+  signatureRequired: boolean;
   onCancel: () => void;
   onSign: () => void;
 }) {
   const disabled = loading || submitting;
-  // Button label precedence: submitting > loading > idle.
-  const buttonLabel = submitting
-    ? 'Finishing Signature'
-    : loading
-    ? 'Loading Contract'
-    : 'Next Field (3)';
+  // Button label precedence: submitting > loading > idle. Labels diverge
+  // between the signature flow (Sign / Loading Contract / Finishing) and the
+  // simpler Approve flow (Approve / Approving — no skeleton in approve mode).
+  const buttonLabel = signatureRequired
+    ? submitting
+      ? 'Finishing Signature'
+      : loading
+      ? 'Loading Contract'
+      : 'Next Field (3)'
+    : submitting
+      ? 'Approving'
+      : 'Approve';
+  const titleLabel = signatureRequired
+    ? `Sign Contract as ${clientName}`
+    : `Approve Contract as ${clientName}`;
   if (mobileLayout) {
     return (
       <div
@@ -337,7 +353,7 @@ function SignatureUtility({
           className="w-full text-[14px] sm:text-[16px] text-[#262626] leading-normal"
           style={{ letterSpacing: '-0.04em' }}
         >
-          Sign Contract as {clientName}
+          {titleLabel}
         </p>
         {/* Description — Font S: 12 XS / 14 S+, light */}
         <p
@@ -432,6 +448,7 @@ export default function SignatureOverlay({
   onClose,
   onApproved,
   onApproveStart,
+  signatureRequired = true,
 }: {
   clientName: string;
   /** User cancelled (Esc / backdrop / X / mobile Cancel). */
@@ -445,6 +462,10 @@ export default function SignatureOverlay({
    *  overlay so its slide-out reveals the destination page, not the
    *  one the user signed from. */
   onApproveStart?: () => void;
+  /** When false, this becomes a one-click "Approve" flow: contract is
+   *  shown immediately (no skeleton) and clicking Approve resolves after
+   *  a short 1-second confirmation pause. */
+  signatureRequired?: boolean;
 }) {
   // `open`: drives CSS transform + opacity. Starts false so the first paint
   //   has translateY(100%), then rAF flips it to true for the slide-in.
@@ -453,7 +474,9 @@ export default function SignatureOverlay({
   const [closing, setClosing]       = useState(false);
   // Loading state — starts true; simulate a contract-generation delay, then
   // swap the skeleton for real PDF pages and enable the Sign button.
-  const [loading, setLoading]       = useState(true);
+  // In Approve mode we skip the skeleton entirely (the contract is already
+  // generated; we're just confirming approval) and start at loading=false.
+  const [loading, setLoading]       = useState(signatureRequired);
   // Submitting state — true after user clicks Sign, until we call onApproved.
   const [submitting, setSubmitting] = useState(false);
 
@@ -464,11 +487,13 @@ export default function SignatureOverlay({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Simulated loading timer.
+  // Simulated loading timer (signature flow only — Approve mode never enters
+  // the loading state in the first place).
   useEffect(() => {
+    if (!signatureRequired) return;
     const t = window.setTimeout(() => setLoading(false), SKELETON_MS);
     return () => window.clearTimeout(t);
-  }, []);
+  }, [signatureRequired]);
 
   // Shared close path: start exit animation, then notify parent after it
   // completes. Guarded so rapid clicks don't schedule multiple unmounts.
@@ -505,7 +530,10 @@ export default function SignatureOverlay({
   const handleSign = () => {
     if (loading || submitting || closing) return;
     setSubmitting(true);
-    window.setTimeout(() => requestClose(true), SUBMIT_MS);
+    window.setTimeout(
+      () => requestClose(true),
+      signatureRequired ? SUBMIT_MS : APPROVE_SUBMIT_MS
+    );
   };
 
   // Direction-aware easing: enter uses ease-out (decelerate into place),
@@ -557,6 +585,7 @@ export default function SignatureOverlay({
           mobileLayout
           loading={loading}
           submitting={submitting}
+          signatureRequired={signatureRequired}
           onCancel={() => requestClose(false)}
           onSign={handleSign}
         />
@@ -612,6 +641,7 @@ export default function SignatureOverlay({
                 mobileLayout={false}
                 loading={loading}
                 submitting={submitting}
+                signatureRequired={signatureRequired}
                 onCancel={() => requestClose(false)}
                 onSign={handleSign}
               />

@@ -226,15 +226,41 @@ function ActionHeader({ onBack }: { onBack: () => void }) {
   );
 }
 
+// ── ActionHeaderSpacer ────────────────────────────────────────────────────────
+// Empty placeholder used in single-option mode where the "Change Option" back
+// button is removed but its vertical footprint needs to stay so the title
+// block sits at the same distance from the page header as in multi-option
+// mode. Sizes:
+//   <md  : 40px (matches ActionHeader mobile height)
+//   md   : 52px (matches ActionHeader desktop height)
+//   lg+  : hidden — the wider desktop layout doesn't need the placeholder
+//          gap above the title block.
+function ActionHeaderSpacer() {
+  return (
+    <>
+      <div className="md:hidden w-full" style={{ height: 40 }} aria-hidden />
+      <div
+        className="hidden md:block lg:hidden w-full"
+        style={{ height: 52 }}
+        aria-hidden
+      />
+    </>
+  );
+}
+
 // ── OptionSummaryTitleBlock ───────────────────────────────────────────────────
 // showSummaryLabel: shows "SUMMARY" header label (used in the Summary panel below scope)
 // hideSummaryLabel: omits it (used in the mobile "Option Header" above scope)
+// titleOverride: when provided, replaces `option.label` (used in single-option
+// mode to show the proposal name instead of an individual option label).
 function OptionSummaryTitleBlock({
   option,
   showSummaryLabel = false,
+  titleOverride,
 }: {
   option: FenceOption;
   showSummaryLabel?: boolean;
+  titleOverride?: string;
 }) {
   return (
     <div
@@ -250,7 +276,7 @@ function OptionSummaryTitleBlock({
       )}
       {/* Option name — --font-l both variants: 16px / 20px / 24px */}
       <p className="text-[16px] sm:text-[20px] xl:text-[24px] font-semibold w-full">
-        {option.label}
+        {titleOverride ?? option.label}
       </p>
       {/* Address — --font-m both variants: 14px / 16px / 20px */}
       <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full">
@@ -665,7 +691,15 @@ function AddonsSection({
 // XS/S/M only (lg:hidden). Appears when the top OptionSummaryTitleBlock scrolls
 // off screen; disappears when the bottom one is fully visible.
 // Slides in from top / slides out to top with 0.3s ease.
-function StickyHeader({ option, visible }: { option: FenceOption; visible: boolean }) {
+function StickyHeader({
+  option,
+  visible,
+  titleOverride,
+}: {
+  option: FenceOption;
+  visible: boolean;
+  titleOverride?: string;
+}) {
   return (
     <div
       className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b-[0.5px] border-[rgba(0,0,0,0.2)] flex items-center gap-2 px-4 sm:px-6 w-full"
@@ -680,7 +714,7 @@ function StickyHeader({ option, visible }: { option: FenceOption; visible: boole
     >
       {/* Option name — flex-1, semibold 14px, truncated */}
       <p className="flex-1 min-w-0 text-[14px] sm:text-[16px] font-semibold text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap">
-        {option.label}
+        {titleOverride ?? option.label}
       </p>
       {/* Chevron rotated 90° → points down */}
       <div className="shrink-0 flex items-center justify-center" style={{ width: 16, height: 16, transform: 'rotate(90deg)' }}>
@@ -715,11 +749,13 @@ function StickyFooter({
   financials,
   onScrollToSummary,
   onSignApprove,
+  approveLabel,
 }: {
   visible: boolean;
   financials: Financials;
   onScrollToSummary: () => void;
   onSignApprove: () => void;
+  approveLabel: string;
 }) {
   return (
     <div
@@ -770,7 +806,7 @@ function StickyFooter({
           style={{ paddingTop: 4, paddingBottom: 4 }}
         >
           <span className="text-[14px] sm:text-[16px] font-semibold text-white leading-[16px] whitespace-nowrap tracking-[-0.48px] sm:tracking-[-0.56px]">
-            Sign &amp; Approve
+            {approveLabel}
           </span>
         </button>
       </div>
@@ -789,11 +825,13 @@ function SummaryContent({
   ctaRef,
   financials,
   onSignApprove,
+  approveLabel,
 }: {
   option: FenceOption;
   ctaRef?: React.RefObject<HTMLDivElement | null>;
   financials: Financials;
   onSignApprove: () => void;
+  approveLabel: string;
 }) {
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
@@ -882,7 +920,7 @@ function SummaryContent({
           >
             <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
               style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}>
-              Sign &amp; Approve
+              {approveLabel}
             </span>
           </button>
           {/* Explore Payment & Financing */}
@@ -969,6 +1007,8 @@ export default function SummaryPageResponsive({
   onRequestSign,
   addons: addonsProp,
   setAddons: setAddonsProp,
+  singleOptionMode = false,
+  signatureRequired = true,
 }: {
   option: FenceOption;
   onBack: () => void;
@@ -980,7 +1020,19 @@ export default function SummaryPageResponsive({
   /** Optional controlled addon state (shared with Project Hub). */
   addons?: AddonItem[];
   setAddons?: React.Dispatch<React.SetStateAction<AddonItem[]>>;
+  /** When true, the proposal has only one option, so we hide the
+   *  "Change Option" back button and substitute the proposal name for
+   *  the option label everywhere it would normally appear. */
+  singleOptionMode?: boolean;
+  /** When false, the approval CTA reads "Approve" instead of "Sign & Approve"
+   *  (the overlay flow itself shifts modes via its own prop). */
+  signatureRequired?: boolean;
 }) {
+  const approveCtaLabel = signatureRequired ? 'Sign & Approve' : 'Approve';
+  // Title shown in place of `option.label` whenever singleOptionMode is on.
+  // Matches the "FENCE REPLACEMENT PROPOSAL" copy used on the cover page and
+  // on the post-approval Project Hub.
+  const titleOverride = singleOptionMode ? 'FENCE REPLACEMENT PROPOSAL' : undefined;
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -1096,17 +1148,33 @@ export default function SummaryPageResponsive({
             ActionHeader spans full width (separate)
         */}
 
-        {/* Mobile Option Header: ActionHeader + brief title (no SUMMARY label) */}
+        {/* Mobile Option Header: ActionHeader + brief title (no SUMMARY label).
+            In single-option mode the back button is replaced with an empty
+            spacer of the same height so the title block keeps its original
+            distance from the page header. */}
         <div className="lg:hidden flex flex-col gap-0 w-full">
-          <ActionHeader onBack={onBack} />
+          {singleOptionMode ? (
+            <ActionHeaderSpacer />
+          ) : (
+            <ActionHeader onBack={onBack} />
+          )}
           <div ref={topTitleRef}>
-            <OptionSummaryTitleBlock option={option} showSummaryLabel={false} />
+            <OptionSummaryTitleBlock
+              option={option}
+              showSummaryLabel={false}
+              titleOverride={titleOverride}
+            />
           </div>
         </div>
 
-        {/* Desktop ActionHeader (full width) */}
+        {/* Desktop ActionHeader (full width). Same spacer treatment in
+            single-option mode. */}
         <div className="hidden lg:block w-full">
-          <ActionHeader onBack={onBack} />
+          {singleOptionMode ? (
+            <ActionHeaderSpacer />
+          ) : (
+            <ActionHeader onBack={onBack} />
+          )}
         </div>
 
         {/*
@@ -1137,13 +1205,18 @@ export default function SummaryPageResponsive({
             */}
             <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-4 sm:pt-8 px-4 sm:px-8 w-full">
               <div ref={bottomTitleRef}>
-                <OptionSummaryTitleBlock option={option} showSummaryLabel />
+                <OptionSummaryTitleBlock
+                  option={option}
+                  showSummaryLabel
+                  titleOverride={titleOverride}
+                />
               </div>
               <SummaryContent
                 option={option}
                 ctaRef={ctaRef}
                 financials={financials}
                 onSignApprove={onRequestSign}
+                approveLabel={approveCtaLabel}
               />
             </div>
 
@@ -1153,11 +1226,16 @@ export default function SummaryPageResponsive({
                 OptionSummaryTitleBlock WITH label, then SummaryContent
             */}
             <div className="hidden lg:flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
-              <OptionSummaryTitleBlock option={option} showSummaryLabel />
+              <OptionSummaryTitleBlock
+                option={option}
+                showSummaryLabel
+                titleOverride={titleOverride}
+              />
               <SummaryContent
                 option={option}
                 financials={financials}
                 onSignApprove={onRequestSign}
+                approveLabel={approveCtaLabel}
               />
             </div>
           </div>
@@ -1170,7 +1248,7 @@ export default function SummaryPageResponsive({
       </div>
 
       {/* Sticky Header — XS/S/M only, slides in from top */}
-      <StickyHeader option={option} visible={showStickyHeader} />
+      <StickyHeader option={option} visible={showStickyHeader} titleOverride={titleOverride} />
       {/* Sticky Footer — XS/S/M only, slides down when CTA block is visible */}
       <StickyFooter
         visible={showStickyFooter}
@@ -1179,6 +1257,7 @@ export default function SummaryPageResponsive({
           mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
         onSignApprove={onRequestSign}
+        approveLabel={approveCtaLabel}
       />
     </div>
   );

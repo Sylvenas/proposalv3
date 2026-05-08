@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ScrollHintArrows from './ScrollHintArrows';
+import { AnimatedDollar } from './AnimatedDollar';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PaymentTarget = {
@@ -670,7 +671,8 @@ function DesktopSummaryColumn({
       </div>
 
       {/* Amount due + Platform fee — one-step tighter than the column gap so
-          the two subtotal rows read as a paired unit (better visual rhythm). */}
+          the two subtotal rows read as a paired unit (better visual rhythm).
+          Bank transfers carry no fee, so the row is omitted entirely. */}
       <div className="flex flex-col gap-2 xl:gap-3 2xl:gap-4 items-start w-full">
         <div className="flex items-start w-full">
           <p className="flex-1 min-w-0 text-[14px] text-[#737373] leading-normal whitespace-nowrap">
@@ -680,14 +682,16 @@ function DesktopSummaryColumn({
             {fmtMoney(target.amount)}
           </p>
         </div>
-        <div className="flex items-start w-full">
-          <p className="flex-1 min-w-0 text-[14px] text-[#737373] leading-normal whitespace-nowrap">
-            Platform fee (3%)
-          </p>
-          <p className="text-[14px] text-[#737373] leading-normal whitespace-nowrap">
-            {fmtMoney(fee)}
-          </p>
-        </div>
+        {fee > 0 && (
+          <div className="flex items-start w-full">
+            <p className="flex-1 min-w-0 text-[14px] text-[#737373] leading-normal whitespace-nowrap">
+              Platform fee (3%)
+            </p>
+            <p className="text-[14px] text-[#737373] leading-normal whitespace-nowrap">
+              <AnimatedDollar value={fee} decimals={2} />
+            </p>
+          </div>
+        )}
       </div>
 
       {/* You'll be charged */}
@@ -699,7 +703,7 @@ function DesktopSummaryColumn({
           You&rsquo;ll be charged
         </p>
         <p className="text-[16px] font-semibold text-[#398ae7] leading-normal whitespace-nowrap">
-          {fmtMoney(total)}
+          <AnimatedDollar value={total} decimals={2} />
         </p>
       </div>
 
@@ -708,7 +712,7 @@ function DesktopSummaryColumn({
       <p className="text-[10px] xl:text-[12px] text-[#737373] leading-normal" style={{ marginTop: 8 }}>
         By clicking &lsquo;Confirm and Pay,&rsquo; you authorize ArcSite to initiate a one-time
         debit from your provided account for{' '}
-        <span className="font-semibold">{fmtMoney(total)}</span>, and acknowledge your
+        <span className="font-semibold"><AnimatedDollar value={total} decimals={2} /></span>, and acknowledge your
         agreement to our <span className="underline">terms of service.</span>
       </p>
 
@@ -727,7 +731,7 @@ function DesktopSummaryColumn({
             className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
             style={{ letterSpacing: '-0.56px', lineHeight: '16px' }}
           >
-            Confirm and Pay {fmtMoney(total)}
+            Confirm and Pay <AnimatedDollar value={total} decimals={2} />
           </span>
         </button>
         <div className="flex gap-1.5 items-center justify-center w-full">
@@ -779,7 +783,8 @@ function MobileSheetScrollContent({
         </p>
       </div>
 
-      {/* Summary block (gray, rounded) — Amount due / Platform fee / You'll be charged */}
+      {/* Summary block (gray, rounded) — Amount due / Platform fee / You'll be charged.
+          Bank transfers carry no fee, so the Platform fee row is omitted. */}
       <div className="bg-[#fafafa] rounded-[8px] flex flex-col gap-2 sm:gap-3 items-start w-full px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex items-start w-full">
           <p className="flex-1 min-w-0 text-[14px] sm:text-[16px] text-[#737373] leading-normal whitespace-nowrap">
@@ -789,14 +794,16 @@ function MobileSheetScrollContent({
             {fmtMoney(target.amount)}
           </p>
         </div>
-        <div className="flex items-start w-full">
-          <p className="flex-1 min-w-0 text-[14px] sm:text-[16px] text-[#737373] leading-normal whitespace-nowrap">
-            Platform fee (3%)
-          </p>
-          <p className="text-[14px] sm:text-[16px] text-[#737373] leading-normal whitespace-nowrap">
-            {fmtMoney(fee)}
-          </p>
-        </div>
+        {fee > 0 && (
+          <div className="flex items-start w-full">
+            <p className="flex-1 min-w-0 text-[14px] sm:text-[16px] text-[#737373] leading-normal whitespace-nowrap">
+              Platform fee (3%)
+            </p>
+            <p className="text-[14px] sm:text-[16px] text-[#737373] leading-normal whitespace-nowrap">
+              <AnimatedDollar value={fee} decimals={2} />
+            </p>
+          </div>
+        )}
         <div
           className="flex items-start w-full"
           style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: 8 }}
@@ -805,7 +812,7 @@ function MobileSheetScrollContent({
             You&rsquo;ll be charged
           </p>
           <p className="text-[16px] sm:text-[20px] font-semibold text-[#398ae7] leading-normal whitespace-nowrap">
-            {fmtMoney(total)}
+            <AnimatedDollar value={total} decimals={2} />
           </p>
         </div>
       </div>
@@ -904,7 +911,7 @@ function MobileSheetScrollContent({
       <p className="text-[12px] sm:text-[14px] text-[#737373] leading-normal w-full">
         By clicking &lsquo;Confirm and Pay,&rsquo; you authorize ArcSite to initiate a
         one-time debit from your provided account for{' '}
-        <span className="font-semibold">{fmtMoney(total)}</span>, and acknowledge
+        <span className="font-semibold"><AnimatedDollar value={total} decimals={2} /></span>, and acknowledge
         your agreement to our <span className="underline">terms of service.</span>
       </p>
     </div>
@@ -943,7 +950,7 @@ function MobileSheetFooter({
             className="text-[14px] sm:text-[16px] font-semibold text-white text-center whitespace-nowrap"
             style={{ lineHeight: '18px' }}
           >
-            Confirm and Pay {fmtMoney(total)}
+            Confirm and Pay <AnimatedDollar value={total} decimals={2} />
           </span>
         </button>
         <button
@@ -970,17 +977,102 @@ function MobileSheetFooter({
   );
 }
 
+// Dollar+method shape passed to the parent on a successful confirm so the
+// parent can append a new entry to its payment record list.
+export type ConfirmedPaymentInfo = {
+  amountApplied: number;
+  platformFee:   number;
+  amountPaid:    number;
+  method:        'card' | 'bank';
+  /** Display label like "Credit Card (***4242)" or "Bank Transfer (ACH)". */
+  methodLabel:   string;
+};
+
+// ─── Payment Failed result panel ─────────────────────────────────────────────
+// Rendered in place of the form when the DevConsole has Payment Result set
+// to 'failure'. Shows a simple error icon + message, with two CTAs:
+//   Try Again — returns to the form so the user can re-submit
+//   Close     — dismisses the dialog entirely
+function PaymentFailedPanel({
+  amount,
+  onTryAgain,
+  onClose,
+  variant,
+}: {
+  amount: number;
+  onTryAgain: () => void;
+  onClose: () => void;
+  variant: 'mobile' | 'desktop';
+}) {
+  const titleSize = variant === 'mobile' ? 'text-[20px] sm:text-[24px]' : 'text-[20px] xl:text-[24px]';
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-4 w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12"
+      style={{ fontFamily: 'Segoe UI, sans-serif' }}
+    >
+      {/* Red X icon in a soft red circle */}
+      <div
+        className="flex items-center justify-center rounded-full"
+        style={{ width: 64, height: 64, background: 'rgba(212, 26, 50, 0.1)' }}
+      >
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path
+            d="M7 7L21 21M21 7L7 21"
+            stroke="#d41a32"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      <p className={`${titleSize} font-semibold text-[#262626] text-center leading-normal`}>
+        Payment Failed
+      </p>
+      <p className="text-[14px] xl:text-[16px] text-[#737373] text-center leading-normal max-w-[420px]">
+        We couldn&rsquo;t process your <AnimatedDollar value={amount} decimals={2} /> payment.
+        Please review your payment method and try again, or contact support if
+        the issue persists.
+      </p>
+
+      <div className="flex gap-2 sm:gap-3 w-full max-w-[420px] pt-2">
+        <button
+          onClick={onClose}
+          className="flex-1 h-10 bg-white border border-solid border-[#262626] rounded-[2px] cursor-pointer"
+        >
+          <span className="text-[14px] sm:text-[16px] text-[rgba(0,0,0,0.85)]">
+            Close
+          </span>
+        </button>
+        <button
+          onClick={onTryAgain}
+          className="flex-1 h-10 bg-[#d41a32] border-0 rounded-[2px] cursor-pointer"
+        >
+          <span className="text-[14px] sm:text-[16px] font-semibold text-white">
+            Try Again
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main dialog ─────────────────────────────────────────────────────────────
 export default function MakePaymentDialog({
   target,
   onClose,
   onConfirm,
+  paymentResult = 'success',
 }: {
   /** Non-null = open. Null = closed. */
   target: PaymentTarget | null;
   onClose: () => void;
-  /** Called when the user clicks "Confirm and Pay". Prototype: just closes. */
-  onConfirm?: () => void;
+  /** Called when the user submits and the payment is recorded. Receives the
+   *  payment details for appending to the Payment Records list. Only fires
+   *  in the 'success' branch — failure shows an error screen instead. */
+  onConfirm?: (payment: ConfirmedPaymentInfo) => void;
+  /** Outcome the prototype simulates after the user clicks Confirm and Pay.
+   *  Driven by the DevConsole. */
+  paymentResult?: 'success' | 'failure';
 }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -1054,13 +1146,39 @@ export default function MakePaymentDialog({
     return () => window.removeEventListener('keydown', onKey);
   }, [mounted, onClose]);
 
+  // Result panel state: when paymentResult='failure' the Confirm and Pay
+  // button doesn't close the dialog — instead it flips this to 'failed' so
+  // the dialog body is replaced with a payment-failed result screen with a
+  // Try Again / Close pair. Reset every time the dialog opens fresh.
+  const [resultState, setResultState] = useState<'idle' | 'failed'>('idle');
+  useEffect(() => {
+    if (target) setResultState('idle');
+  }, [target]);
+
   if (!mounted || !last) return null;
 
-  const fee = Math.round(last.amount * 0.03 * 100) / 100;
+  // 3% processing fee on credit/debit; bank transfers (ACH) are free.
+  const fee = formState.method === 'card'
+    ? Math.round(last.amount * 0.03 * 100) / 100
+    : 0;
   const total = Math.round((last.amount + fee) * 100) / 100;
 
+  const methodLabel = formState.method === 'card'
+    ? 'Credit Card (***4242)'
+    : 'Bank Transfer (ACH)';
+
   const handleConfirm = () => {
-    onConfirm?.();
+    if (paymentResult === 'failure') {
+      setResultState('failed');
+      return;
+    }
+    onConfirm?.({
+      amountApplied: last.amount,
+      platformFee:   fee,
+      amountPaid:    total,
+      method:        formState.method,
+      methodLabel,
+    });
     onClose();
   };
 
@@ -1116,34 +1234,46 @@ export default function MakePaymentDialog({
             Scrollbar is fully hidden (even while scrolling) per UX request.
             Wrapped in a `relative flex flex-col` container so the bouncing
             scroll-hint arrows can anchor to the scroll viewport's edges
-            without affecting the sheet's natural height. */}
-        <div className="relative flex flex-col flex-1 min-h-0">
-          <div
-            ref={mobileScrollRef}
-            className="flex-1 min-h-0 overflow-y-auto make-payment-sheet-scroll"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            <MobileSheetScrollContent
-              target={last}
-              fee={fee}
+            without affecting the sheet's natural height. In the failure
+            result state we replace the body with a payment-failed panel. */}
+        {resultState === 'failed' ? (
+          <PaymentFailedPanel
+            amount={total}
+            onTryAgain={() => setResultState('idle')}
+            onClose={onClose}
+            variant="mobile"
+          />
+        ) : (
+          <>
+            <div className="relative flex flex-col flex-1 min-h-0">
+              <div
+                ref={mobileScrollRef}
+                className="flex-1 min-h-0 overflow-y-auto make-payment-sheet-scroll"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                <MobileSheetScrollContent
+                  target={last}
+                  fee={fee}
+                  total={total}
+                  state={formState}
+                  setField={setField}
+                  submitAttempted={submitAttempted}
+                />
+              </div>
+              <ScrollHintArrows targetRef={mobileScrollRef} />
+            </div>
+            <style>{`
+              .make-payment-sheet-scroll::-webkit-scrollbar { display: none; }
+            `}</style>
+            {/* Sticky footer — Confirm/Cancel + Secured-by, pinned to sheet bottom */}
+            <MobileSheetFooter
               total={total}
-              state={formState}
-              setField={setField}
-              submitAttempted={submitAttempted}
+              onClose={onClose}
+              onConfirm={attemptSubmit}
+              isValid={isValid}
             />
-          </div>
-          <ScrollHintArrows targetRef={mobileScrollRef} />
-        </div>
-        <style>{`
-          .make-payment-sheet-scroll::-webkit-scrollbar { display: none; }
-        `}</style>
-        {/* Sticky footer — Confirm/Cancel + Secured-by, pinned to sheet bottom */}
-        <MobileSheetFooter
-          total={total}
-          onClose={onClose}
-          onConfirm={attemptSubmit}
-          isValid={isValid}
-        />
+          </>
+        )}
       </div>
 
       {/* ── Desktop (L+) — centered modal, two-column layout ─────────────────
@@ -1169,20 +1299,31 @@ export default function MakePaymentDialog({
               : `transform ${ANIM_MS}ms ${EASE_IN}, opacity ${ANIM_MS}ms ${EASE_IN}`,
           }}
         >
-          <DesktopFormColumn
-            target={last}
-            state={formState}
-            setField={setField}
-            submitAttempted={submitAttempted}
-          />
-          <DesktopSummaryColumn
-            target={last}
-            fee={fee}
-            total={total}
-            onClose={onClose}
-            onConfirm={attemptSubmit}
-            isValid={isValid}
-          />
+          {resultState === 'failed' ? (
+            <PaymentFailedPanel
+              amount={total}
+              onTryAgain={() => setResultState('idle')}
+              onClose={onClose}
+              variant="desktop"
+            />
+          ) : (
+            <>
+              <DesktopFormColumn
+                target={last}
+                state={formState}
+                setField={setField}
+                submitAttempted={submitAttempted}
+              />
+              <DesktopSummaryColumn
+                target={last}
+                fee={fee}
+                total={total}
+                onClose={onClose}
+                onConfirm={attemptSubmit}
+                isValid={isValid}
+              />
+            </>
+          )}
         </div>
       </div>
     </>

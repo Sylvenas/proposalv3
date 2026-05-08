@@ -7,12 +7,15 @@
 //   Medium Density (M+ md+):  --margin=12px, --s=12px, h=48px
 // px responsive: XS px-4 | S/M/L+ px-6  →  px-4 sm:px-6
 
+import { useDevConsole } from './DevConsoleContext';
+
 const BASE = '/images/proposal-v3-responsive';
 const IMG_HEADER_HOME = `${BASE}/header-home.svg`;
 const IMG_HEADER_LOGO = `${BASE}/header-logo.webp`;
 const IMG_HEADER_USER = `${BASE}/header-user.svg`;
 
 export default function PageHeader({ onShowCover }: { onShowCover: () => void }) {
+  const { open: openDevConsole } = useDevConsole();
   return (
     <header className="w-full bg-white flex items-center justify-center h-12 px-4 sm:px-6">
       <div className="flex items-center justify-between w-full max-w-[1024px]">
@@ -52,8 +55,14 @@ export default function PageHeader({ onShowCover }: { onShowCover: () => void })
           />
         </div>
 
-        {/* User icon: 24×24 clip box, vector 14×15.98px centred inside */}
-        <div className="relative shrink-0 overflow-clip" style={{ width: 24, height: 24 }}>
+        {/* User icon: 24×24 clip box, vector 14×15.98px centred inside.
+            Doubles as the entry point to the prototype Developer Console. */}
+        <button
+          onClick={openDevConsole}
+          className="relative shrink-0 overflow-clip cursor-pointer bg-transparent border-0 p-0"
+          style={{ width: 24, height: 24 }}
+          aria-label="Open developer console"
+        >
           <div
             className="absolute"
             style={{
@@ -71,7 +80,7 @@ export default function PageHeader({ onShowCover }: { onShowCover: () => void })
               style={{ maxWidth: 'none' }}
             />
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

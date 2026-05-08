@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import BackToTopButton from './BackToTopButton';
 import InvoicePaymentDetailDialog, {
   type DetailContent,
@@ -62,122 +62,313 @@ const STATUS_LABEL_COLOR: Record<InvoiceStatus, string> = {
 // Project name shown inside the invoice detail sheet/modal.
 const PROJECT_NAME = 'Henderson Backyard Fence';
 
-const INVOICES: Invoice[] = [
-  { number: 1, label: 'Deposit (20%)', amount: 2000, received: 2000, status: 'paid',    dueDate: 'May 2, 2026' },
-  { number: 2, label: 'Balance (60%)', amount: 5999, received: 1000, status: 'partial', dueDate: 'May 2, 2026' },
-  { number: 3, label: 'Balance (20%)', amount: 2000, received: 0,    status: 'unpaid',  dueDate: 'Jun 11, 2026' },
+// Static invoice metadata. Amounts are derived live from `contractTotal × percent`.
+const INVOICE_BLUEPRINT: {
+  number: number;
+  label: string;
+  percent: number;
+  dueDate: string;
+}[] = [
+  { number: 1, label: 'Deposit (20%)', percent: 20, dueDate: 'May 2, 2026' },
+  { number: 2, label: 'Balance (60%)', percent: 60, dueDate: 'May 2, 2026' },
+  { number: 3, label: 'Balance (20%)', percent: 20, dueDate: 'Jun 11, 2026' },
 ];
 
-// Payment chronology (earliest → latest):
-//   1030 — $1,000 paid against INVOICE #1, leaving #1 partial.
-//   1091 — $2,000 split: $1,000 finishes INVOICE #1 (becomes PAID),
-//          remaining $1,000 starts INVOICE #2 (becomes PARTIAL).
-// Per the sequential payment rule, money cascades to the lowest unpaid
-// invoice first — that's why 1091 has two `appliedTo` rows.
-//
-// List order is newest-first (most recently paid on top).
-const PAYMENT_RECORDS: PaymentRecord[] = [
-  // Credit card payment carries a 3% processing fee on top of what was
-  // applied to the invoices.
-  { paymentId: '1091', paidOn: 'Mar 23, 2025', amountApplied: 2000, platformFee: 60, amountPaid: 2060, paidBy: 'Junyu Zhang', method: 'Credit Card (***4242)' },
-  { paymentId: '1030', paidOn: 'Jan 2, 2025',  amountApplied: 1000, platformFee: 0,  amountPaid: 1000, paidBy: 'Junyu Zhang', method: 'Check' },
-];
+// Credit card processing fee — applied on top of the amount that lands on
+// invoices for the ArcSite Payment record. Cash/check payments carry no fee.
+const CARD_PROCESSING_FEE_RATE = 0.03;
 
-// Total money applied against invoices across all payment records — drives
-// the Project Home "Payment Progress" figure so it stays in lockstep with
-// what the user sees in the Invoices & Payments tab.
-export const TOTAL_AMOUNT_APPLIED = PAYMENT_RECORDS.reduce(
-  (sum, rec) => sum + rec.amountApplied,
-  0,
-);
-
-const PAYMENT_DETAIL_EXTRAS: Record<
-  string,
-  {
-    paidOnFull: string;
-    processedWith: string;
-    appliedTo: { amount: number; invoiceNumber: number; invoiceLabel: string }[];
-  }
-> = {
-  '1030': {
-    paidOnFull:    'Jan 2, 2025, 2:14:09 p.m.',
-    processedWith: 'Manual Entry',
-    appliedTo:     [
-      { amount: 1000, invoiceNumber: 1, invoiceLabel: 'INVOICE #1 - Deposit (20%)' },
-    ],
-  },
-  '1091': {
-    paidOnFull:    'Mar 23, 2025, 9:43:33 p.m.',
-    processedWith: 'ArcSite Payment',
-    appliedTo:     [
-      { amount: 1000, invoiceNumber: 1, invoiceLabel: 'INVOICE #1 - Deposit (20%)' },
-      { amount: 1000, invoiceNumber: 2, invoiceLabel: 'INVOICE #2 - Balance (60%)' },
-    ],
-  },
+// Spec for an additional, user-confirmed payment recorded after the initial
+// chronology. Lets the Make-A-Payment dialog feed new payments back into the
+// Invoices & Payments tab without InvoicesPaymentsSection owning that state.
+export type ExtraPaymentSpec = {
+  paymentId: string;
+  paidOn: string;        // e.g. "May 8, 2026"
+  paidOnFull: string;    // e.g. "May 8, 2026, 4:31:02 p.m."
+  amountApplied: number; // dollars that hit invoices (excluding fees)
+  platformFee: number;
+  paidBy: string;
+  method: string;        // e.g. "Credit Card (***4242)" or "Bank Transfer (ACH)"
+  processedWith: string; // e.g. "ArcSite Payment"
 };
 
-// Sequential payment rule: a non-paid invoice can only be paid once every
-// invoice before it (lower number) is fully paid. So Invoice #N gets the
-// "Make A Payment" CTA only when invoices #1..#N-1 are all `paid`.
-function isInvoicePayable(invNumber: number): boolean {
-  return INVOICES
-    .filter((i) => i.number < invNumber)
-    .every((i) => i.status === 'paid');
+// Total money applied against invoices, derived from the live contract total
+// + any user-confirmed payments. Drives the Project Home "Payment Progress"
+// figure so it stays in lockstep with the Invoices & Payments tab.
+export function computeTotalAmountApplied(
+  contractTotal: number,
+  extraPayments: ExtraPaymentSpec[] = [],
+): number {
+  return buildInvoicesData(contractTotal, extraPayments).totalAmountApplied;
 }
 
-// Inverse mapping of PAYMENT_DETAIL_EXTRAS.appliedTo: for a given invoice
-// number, return all per-payment slices that landed on it (newest first,
-// matching PAYMENT_RECORDS list order).
-function paymentsForInvoice(invNumber: number): InvoiceDetail['payments'] {
-  const labelPrefix = `INVOICE #${invNumber}`;
-  return PAYMENT_RECORDS.flatMap((rec) => {
+// "Next due invoice" — the first invoice that isn't fully paid yet. Drives
+// the Next Payment amount + subtitle ("60% balance due ... on May 2, 2026")
+// on Project Home and the sticky footer. Returns null once every invoice
+// is fully paid.
+export type NextDueInvoice = {
+  /** Outstanding balance on this invoice. */
+  remaining: number;
+  /** Percent share of the contract total this invoice represents
+   *  (parsed from the label, e.g. "Balance (60%)" → 60). */
+  percent: number;
+  /** Human-readable due date string, e.g. "May 2, 2026". */
+  dueDate: string;
+  /** Invoice number (1-based). */
+  number: number;
+  /** Full invoice label, e.g. "Balance (60%)". */
+  label: string;
+};
+
+export function getNextDueInvoice(
+  contractTotal: number,
+  extraPayments: ExtraPaymentSpec[] = [],
+): NextDueInvoice | null {
+  const next = buildInvoicesData(contractTotal, extraPayments).INVOICES.find(
+    (inv) => inv.received < inv.amount,
+  );
+  if (!next) return null;
+  const match = next.label.match(/\((\d+)%\)/);
+  const percent = match ? parseInt(match[1], 10) : 0;
+  return {
+    remaining: Math.max(0, next.amount - next.received),
+    percent,
+    dueDate: next.dueDate,
+    number: next.number,
+    label: next.label,
+  };
+}
+
+// Backwards-compatible thin wrapper — returns just the dollar amount.
+export function computeNextPaymentAmount(
+  contractTotal: number,
+  extraPayments: ExtraPaymentSpec[] = [],
+): number {
+  return getNextDueInvoice(contractTotal, extraPayments)?.remaining ?? 0;
+}
+
+// Most recent payment's display date (e.g. "May 8, 2026"). Used by Project
+// Home to show "All payments completed on …" once everything is paid off.
+export function getLastPaymentDate(
+  contractTotal: number,
+  extraPayments: ExtraPaymentSpec[] = [],
+): string | null {
+  // PAYMENT_RECORDS is newest-first.
+  return buildInvoicesData(contractTotal, extraPayments).PAYMENT_RECORDS[0]?.paidOn ?? null;
+}
+
+// ── Invoices/Payments data — derived from the active contract total ──────────
+type PaymentDetailExtras = {
+  paidOnFull: string;
+  processedWith: string;
+  appliedTo: { amount: number; invoiceNumber: number; invoiceLabel: string }[];
+};
+
+type InvoicesData = {
+  INVOICES: Invoice[];
+  PAYMENT_RECORDS: PaymentRecord[];
+  totalAmountApplied: number;
+  isInvoicePayable: (invNumber: number) => boolean;
+  paymentsForInvoice: (invNumber: number) => InvoiceDetail['payments'];
+  paidOnDate: (invNumber: number) => string | undefined;
+  toInvoiceDetail: (inv: Invoice) => InvoiceDetail;
+  toPaymentDetail: (rec: PaymentRecord) => PaymentDetail;
+};
+
+function buildInvoicesData(
+  contractTotal: number,
+  extraPayments: ExtraPaymentSpec[] = [],
+): InvoicesData {
+  // Invoice amounts: precise percentages of the contract total — sums to
+  // contractTotal up to ±$1 rounding.
+  const invSpecs = INVOICE_BLUEPRINT.map((bp) => ({
+    number: bp.number,
+    label:  bp.label,
+    amount: Math.round((contractTotal * bp.percent) / 100),
+    dueDate: bp.dueDate,
+  }));
+
+  // Static payment chronology, oldest → newest:
+  //   1030 — pays half of INVOICE #1 (leaves #1 partial).
+  //   1091 — pays the remainder of INVOICE #1 + half of INVOICE #2.
+  // After these we apply the dynamic `extraPayments` (user-confirmed payments
+  // recorded via the Make A Payment dialog).
+  const inv1Amount = invSpecs[0].amount;
+  const inv2Amount = invSpecs[1].amount;
+  const p1030Applied = Math.round(inv1Amount / 2);
+  const p1091ToInv1  = Math.max(0, inv1Amount - p1030Applied);
+  const p1091ToInv2  = Math.round(inv2Amount / 2);
+  const p1091Applied = p1091ToInv1 + p1091ToInv2;
+  const p1091Fee     = Math.round(p1091Applied * CARD_PROCESSING_FEE_RATE);
+
+  const staticChronology: ExtraPaymentSpec[] = [
+    {
+      paymentId:     '1030',
+      paidOn:        'Jan 2, 2025',
+      paidOnFull:    'Jan 2, 2025, 2:14:09 p.m.',
+      amountApplied: p1030Applied,
+      platformFee:   0,
+      paidBy:        'Junyu Zhang',
+      method:        'Check',
+      processedWith: 'Manual Entry',
+    },
+    {
+      paymentId:     '1091',
+      paidOn:        'Mar 23, 2025',
+      paidOnFull:    'Mar 23, 2025, 9:43:33 p.m.',
+      amountApplied: p1091Applied,
+      platformFee:   p1091Fee,
+      paidBy:        'Junyu Zhang',
+      method:        'Credit Card (***4242)',
+      processedWith: 'ArcSite Payment',
+    },
+  ];
+
+  // Walk every payment in chronological order, cascading dollars onto the
+  // lowest unpaid invoice first (sequential payment rule). Builds up
+  // received-per-invoice + a per-payment `appliedTo` map.
+  const allPaymentsChronological = [...staticChronology, ...extraPayments];
+  const received = invSpecs.map(() => 0);
+  const PAYMENT_DETAIL_EXTRAS: Record<string, PaymentDetailExtras> = {};
+
+  for (const p of allPaymentsChronological) {
+    let remainingFunds = p.amountApplied;
+    const appliedTo: PaymentDetailExtras['appliedTo'] = [];
+    for (let i = 0; i < invSpecs.length && remainingFunds > 0; i++) {
+      const owed = invSpecs[i].amount - received[i];
+      if (owed <= 0) continue;
+      const apply = Math.min(remainingFunds, owed);
+      received[i] += apply;
+      appliedTo.push({
+        amount:        apply,
+        invoiceNumber: invSpecs[i].number,
+        invoiceLabel:  `INVOICE #${invSpecs[i].number} - ${invSpecs[i].label}`,
+      });
+      remainingFunds -= apply;
+    }
+    PAYMENT_DETAIL_EXTRAS[p.paymentId] = {
+      paidOnFull:    p.paidOnFull,
+      processedWith: p.processedWith,
+      appliedTo,
+    };
+  }
+
+  const statusFor = (amount: number, rec: number): InvoiceStatus =>
+    rec >= amount ? 'paid' : rec > 0 ? 'partial' : 'unpaid';
+
+  const INVOICES: Invoice[] = invSpecs.map((s, i) => ({
+    number:   s.number,
+    label:    s.label,
+    amount:   s.amount,
+    received: received[i],
+    status:   statusFor(s.amount, received[i]),
+    dueDate:  s.dueDate,
+  }));
+
+  // PAYMENT_RECORDS is newest-first, so reverse the chronological list.
+  const PAYMENT_RECORDS: PaymentRecord[] = allPaymentsChronological
+    .slice()
+    .reverse()
+    .map((p) => ({
+      paymentId:     p.paymentId,
+      paidOn:        p.paidOn,
+      amountApplied: p.amountApplied,
+      platformFee:   p.platformFee,
+      amountPaid:    p.amountApplied + p.platformFee,
+      paidBy:        p.paidBy,
+      method:        p.method,
+    }));
+
+  const totalAmountApplied = PAYMENT_RECORDS.reduce(
+    (sum, rec) => sum + rec.amountApplied,
+    0,
+  );
+
+  // Sequential payment rule: a non-paid invoice can only be paid once every
+  // invoice before it (lower number) is fully paid. So Invoice #N gets the
+  // "Make A Payment" CTA only when invoices #1..#N-1 are all `paid`.
+  function isInvoicePayable(invNumber: number): boolean {
+    return INVOICES
+      .filter((i) => i.number < invNumber)
+      .every((i) => i.status === 'paid');
+  }
+
+  // Inverse mapping of PAYMENT_DETAIL_EXTRAS.appliedTo: for a given invoice
+  // number, return all per-payment slices that landed on it (newest first,
+  // matching PAYMENT_RECORDS list order).
+  function paymentsForInvoice(invNumber: number): InvoiceDetail['payments'] {
+    const labelPrefix = `INVOICE #${invNumber}`;
+    return PAYMENT_RECORDS.flatMap((rec) => {
+      const extras = PAYMENT_DETAIL_EXTRAS[rec.paymentId];
+      if (!extras) return [];
+      return extras.appliedTo
+        .filter((entry) => entry.invoiceLabel.startsWith(labelPrefix))
+        .map((entry) => ({
+          paymentId: rec.paymentId,
+          paidOn:    rec.paidOn,
+          amount:    entry.amount,
+        }));
+    });
+  }
+
+  // For a PAID invoice, the user-facing "paid on" date is the date of the
+  // final payment that brought `received` up to `amount` — i.e., the latest
+  // payment that landed on this invoice. `paymentsForInvoice` returns
+  // newest-first, so we just take the first entry.
+  function paidOnDate(invNumber: number): string | undefined {
+    const payments = paymentsForInvoice(invNumber);
+    return payments[0]?.paidOn;
+  }
+
+  function toInvoiceDetail(inv: Invoice): InvoiceDetail {
+    return {
+      number:   inv.number,
+      label:    inv.label,
+      itemName: PROJECT_NAME,
+      status:   inv.status,
+      amount:   inv.amount,
+      received: inv.received,
+      dueDate:  inv.dueDate,
+      payments: paymentsForInvoice(inv.number),
+    };
+  }
+
+  function toPaymentDetail(rec: PaymentRecord): PaymentDetail {
     const extras = PAYMENT_DETAIL_EXTRAS[rec.paymentId];
-    if (!extras) return [];
-    return extras.appliedTo
-      .filter((entry) => entry.invoiceLabel.startsWith(labelPrefix))
-      .map((entry) => ({
-        paymentId: rec.paymentId,
-        paidOn:    rec.paidOn,
-        amount:    entry.amount,
-      }));
-  });
-}
+    return {
+      paymentId:     rec.paymentId,
+      paidOnFull:    extras?.paidOnFull    ?? rec.paidOn,
+      amountApplied: rec.amountApplied,
+      platformFee:   rec.platformFee,
+      amountPaid:    rec.amountPaid,
+      processedWith: extras?.processedWith ?? '—',
+      method:        rec.method,
+      paidBy:        rec.paidBy,
+      appliedTo:     extras?.appliedTo     ?? [],
+    };
+  }
 
-// For a PAID invoice, the user-facing "paid on" date is the date of the
-// final payment that brought `received` up to `amount` — i.e., the latest
-// payment that landed on this invoice. `paymentsForInvoice` returns
-// newest-first, so we just take the first entry.
-function paidOnDate(invNumber: number): string | undefined {
-  const payments = paymentsForInvoice(invNumber);
-  return payments[0]?.paidOn;
-}
-
-function toInvoiceDetail(inv: Invoice): InvoiceDetail {
   return {
-    number:   inv.number,
-    label:    inv.label,
-    itemName: PROJECT_NAME,
-    status:   inv.status,
-    amount:   inv.amount,
-    received: inv.received,
-    dueDate:  inv.dueDate,
-    payments: paymentsForInvoice(inv.number),
+    INVOICES,
+    PAYMENT_RECORDS,
+    totalAmountApplied,
+    isInvoicePayable,
+    paymentsForInvoice,
+    paidOnDate,
+    toInvoiceDetail,
+    toPaymentDetail,
   };
 }
 
-function toPaymentDetail(rec: PaymentRecord): PaymentDetail {
-  const extras = PAYMENT_DETAIL_EXTRAS[rec.paymentId];
-  return {
-    paymentId:     rec.paymentId,
-    paidOnFull:    extras?.paidOnFull    ?? rec.paidOn,
-    amountApplied: rec.amountApplied,
-    platformFee:   rec.platformFee,
-    amountPaid:    rec.amountPaid,
-    processedWith: extras?.processedWith ?? '—',
-    method:        rec.method,
-    paidBy:        rec.paidBy,
-    appliedTo:     extras?.appliedTo     ?? [],
-  };
+// React Context: subcomponents inside this file consume the live data via
+// `useInvoicesData()` so they don't need to receive every helper as a prop.
+const InvoicesDataContext = createContext<InvoicesData | null>(null);
+function useInvoicesData(): InvoicesData {
+  const ctx = useContext(InvoicesDataContext);
+  if (!ctx) {
+    throw new Error('useInvoicesData must be used inside InvoicesPaymentsSection');
+  }
+  return ctx;
 }
 
 // ── Format helpers ────────────────────────────────────────────────────────────
@@ -191,6 +382,7 @@ function fmtDollars(n: number): string {
 // S/M: heading 16px, INVOICE# 12px, label 16px, amount 24px, date 14px, py-12
 // ─────────────────────────────────────────────────────────────────────────────
 function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }) {
+  const { paidOnDate } = useInvoicesData();
   const barColor = STATUS_BAR_COLOR[inv.status];
   const labelColor = STATUS_LABEL_COLOR[inv.status];
 
@@ -306,6 +498,7 @@ function DesktopInvoicesTable({
   onOpenInvoice: (inv: Invoice) => void;
   onMakePayment?: () => void;
 }) {
+  const { INVOICES } = useInvoicesData();
   return (
     <div className="hidden lg:flex flex-col items-start gap-1 w-full">
       <p className="text-[14px] xl:text-[16px] font-semibold text-[#262626] whitespace-nowrap leading-normal">
@@ -363,6 +556,7 @@ function DesktopInvoiceRow({
   onOpen: (inv: Invoice) => void;
   onMakePayment?: () => void;
 }) {
+  const { paidOnDate, isInvoicePayable } = useInvoicesData();
   const barColor = STATUS_BAR_COLOR_DESKTOP[inv.status];
   const labelColor = STATUS_LABEL_COLOR[inv.status];
   const remaining = Math.max(0, inv.amount - inv.received);
@@ -501,6 +695,7 @@ function DesktopPaymentRecordsTable({
 }: {
   onOpenPayment: (rec: PaymentRecord) => void;
 }) {
+  const { PAYMENT_RECORDS } = useInvoicesData();
   return (
     <div className="hidden lg:flex flex-col items-start gap-1 w-full">
       <p className="text-[14px] xl:text-[16px] font-semibold text-[#262626] whitespace-nowrap leading-normal">
@@ -619,11 +814,30 @@ function DesktopPaymentRecordRow({
 export default function InvoicesPaymentsSection({
   onScrollToTop,
   onMakePayment,
+  contractTotal,
+  extraPayments = [],
 }: {
   onScrollToTop: () => void;
   /** Open the Make-A-Payment utility (managed by ProjectHubPageResponsive). */
   onMakePayment?: () => void;
+  /** Live contract total from the approved option + addons. Drives invoice
+   *  amounts (from each invoice's percentage label) and the scaled payment
+   *  records / received values. */
+  contractTotal: number;
+  /** Payments confirmed at runtime via the Make A Payment dialog. They get
+   *  cascaded onto invoices in the order received and appended to the
+   *  PAYMENT RECORDS list (newest-first). */
+  extraPayments?: ExtraPaymentSpec[];
 }) {
+  // Build per-contract data once per `contractTotal` change. Helpers and
+  // tables consume it via InvoicesDataContext so subcomponents don't have
+  // to receive every helper individually.
+  const data = useMemo(
+    () => buildInvoicesData(contractTotal, extraPayments),
+    [contractTotal, extraPayments],
+  );
+  const { INVOICES, PAYMENT_RECORDS, isInvoicePayable, toInvoiceDetail, toPaymentDetail } = data;
+
   // Currently-open detail (null = closed). Drives the bottom-sheet (XS/S/M)
   // and centered modal (L+) inside InvoicePaymentDetailDialog.
   const [detail, setDetail] = useState<DetailContent | null>(null);
@@ -634,6 +848,7 @@ export default function InvoicesPaymentsSection({
     setDetail({ type: 'payment', record: toPaymentDetail(rec) });
 
   return (
+    <InvoicesDataContext.Provider value={data}>
     <div className="flex flex-col w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
       {/* ── XS / S / M (lg:hidden) — card layout ──────────────────────────── */}
       <div className="lg:hidden flex flex-col gap-16 pt-4 sm:pt-6 w-full">
@@ -713,5 +928,6 @@ export default function InvoicesPaymentsSection({
         }}
       />
     </div>
+    </InvoicesDataContext.Provider>
   );
 }
