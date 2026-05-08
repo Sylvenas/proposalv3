@@ -51,8 +51,8 @@ export default function DevConsole() {
               <ToggleRow
                 value={config.inspectionReport}
                 options={[
-                  { label: 'Include', value: true },
                   { label: 'Exclude', value: false },
+                  { label: 'Include', value: true },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, inspectionReport: v }))}
               />
@@ -74,8 +74,8 @@ export default function DevConsole() {
               <ToggleRow
                 value={config.signatureRequired}
                 options={[
-                  { label: 'Required', value: true },
                   { label: 'Not Required', value: false },
+                  { label: 'Required', value: true },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, signatureRequired: v }))}
               />
@@ -107,8 +107,8 @@ export default function DevConsole() {
               <ToggleRow
                 value={config.paymentCompletionIndication}
                 options={[
-                  { label: 'Check Mark', value: 'check' as const },
                   { label: 'Seal', value: 'seal' as const },
+                  { label: 'Check Mark', value: 'check' as const },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, paymentCompletionIndication: v }))}
               />

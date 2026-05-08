@@ -56,7 +56,7 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
   const [config, setConfigState] = useState<DevConfig>({
     optionCount: 3,
     inspectionReport: false,
-    signatureRequired: true,
+    signatureRequired: false,
     paymentResult: 'success',
     paymentCompletionIndication: 'seal',
     invoiceMode: 'happyPath',

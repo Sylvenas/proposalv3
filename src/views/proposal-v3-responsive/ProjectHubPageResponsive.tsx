@@ -1247,6 +1247,7 @@ export default function ProjectHubPageResponsive({
           paidBy:        'Junyu Zhang',
           method:        info.methodLabel,
           processedWith: 'ArcSite Payment',
+          status:        info.status,
         },
       ];
     });
