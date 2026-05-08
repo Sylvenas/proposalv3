@@ -83,6 +83,16 @@ export default function DevConsole() {
           </Cluster>
 
           <Cluster title="Project Hub">
+            <Section title="Payment Info Input">
+              <ToggleRow
+                value={config.paymentInfoInput}
+                options={[
+                  { label: 'Prefilled', value: 'prefilled' as const },
+                  { label: 'Blank', value: 'blank' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, paymentInfoInput: v }))}
+              />
+            </Section>
             <Section title="Payment Result">
               <ToggleRow
                 value={config.paymentResult}
@@ -101,6 +111,16 @@ export default function DevConsole() {
                   { label: 'Seal', value: 'seal' as const },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, paymentCompletionIndication: v }))}
+              />
+            </Section>
+            <Section title="Invoice">
+              <ToggleRow
+                value={config.invoiceMode}
+                options={[
+                  { label: 'Happy Path', value: 'happyPath' as const },
+                  { label: 'Enumerate States', value: 'enumerate' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, invoiceMode: v }))}
               />
             </Section>
           </Cluster>

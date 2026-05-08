@@ -10,6 +10,8 @@ import { createContext, useContext, useMemo, useState } from 'react';
 
 export type PaymentResult = 'success' | 'failure';
 export type PaymentCompletionIndication = 'check' | 'seal';
+export type InvoiceMode = 'happyPath' | 'enumerate';
+export type PaymentInfoInput = 'prefilled' | 'blank';
 
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
@@ -27,6 +29,17 @@ export type DevConfig = {
   /** Visual treatment for the "all invoices paid" state on Project Home —
    *  inline green check + line, or the rotated "Paid in Full" seal. */
   paymentCompletionIndication: PaymentCompletionIndication;
+  /** Invoice list shape on the Invoices & Payments tab. 'happyPath' uses the
+   *  default 3-invoice 20/60/20 schedule with the static payment chronology.
+   *  'enumerate' replaces it with a synthetic list that exhibits every
+   *  status × due-date combination (Paid; Partial × normal/today/overdue;
+   *  Unpaid × normal/today/overdue) so QA can eyeball each variant. */
+  invoiceMode: InvoiceMode;
+  /** Whether the Make A Payment dialog opens with mock card/bank data
+   *  already filled in ('prefilled', the default — speeds up testing the
+   *  Confirm and Pay flow) or with empty fields ('blank' — exercises the
+   *  validation states). */
+  paymentInfoInput: PaymentInfoInput;
 };
 
 type DevConsoleContextValue = {
@@ -46,6 +59,8 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     signatureRequired: true,
     paymentResult: 'success',
     paymentCompletionIndication: 'seal',
+    invoiceMode: 'happyPath',
+    paymentInfoInput: 'prefilled',
   });
   const [isOpen, setIsOpen] = useState(false);
 
