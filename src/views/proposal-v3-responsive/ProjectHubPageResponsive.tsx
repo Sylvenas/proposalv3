@@ -5,7 +5,7 @@ import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
 import ContractDocSection from './ContractDocSection';
-import InvoicesPaymentsSection from './InvoicesPaymentsSection';
+import InvoicesPaymentsSection, { TOTAL_AMOUNT_APPLIED } from './InvoicesPaymentsSection';
 import WorkInProgressSection from './WorkInProgressSection';
 import MakePaymentDialog, { type PaymentTarget } from './MakePaymentDialog';
 
@@ -871,12 +871,15 @@ function ProjectHomeDetails({
   approvedAt,
   paymentBtnRef,
   onMakePayment,
+  onShowPaymentRecords,
 }: {
   option: FenceOption;
   financials: Financials;
   approvedAt?: Date | null;
   paymentBtnRef?: React.Ref<HTMLButtonElement>;
   onMakePayment?: () => void;
+  /** Switch the Project Hub to the Invoices & Payments tab. */
+  onShowPaymentRecords?: () => void;
 }) {
   const dueDate = (() => {
     const base = approvedAt ?? new Date();
@@ -884,12 +887,15 @@ function ProjectHomeDetails({
     d.setDate(d.getDate() + 21);
     return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
   })();
-  // ── Payment progress (prototype values) ──────────────────────────────────
-  // Demo: the user has already paid a fixed $5,000 deposit. The contract
+  // ── Payment progress ─────────────────────────────────────────────────────
+  // Paid amount = sum of `amountApplied` across all payment records (single
+  // source of truth — exported from InvoicesPaymentsSection so the figure
+  // shown here stays in lockstep with what the user sees on the Invoices &
+  // Payments tab and inside the Invoice/Payment detail sheets). The contract
   // total comes from `financials`, which reflects any addons selected on the
-  // Summary page. Remaining = total − paid, clamped ≥ 0. The progress bar
-  // fill is the paid / total ratio (clamped to 100%).
-  const PAID_AMOUNT = 5000;
+  // Summary page. Remaining = total − paid, clamped ≥ 0. Progress fill is
+  // the paid / total ratio, clamped to 100%.
+  const PAID_AMOUNT   = TOTAL_AMOUNT_APPLIED;
   const contractTotal = financials.contractTotal;
   const remaining     = Math.max(0, contractTotal - PAID_AMOUNT);
   const progressRatio = contractTotal > 0
@@ -986,7 +992,7 @@ function ProjectHomeDetails({
         </div>
 
           {/* Payment Schedule & Records — link-style, gutter gap from bordered buttons */}
-          <button className="bg-transparent border-0 flex gap-[8px] items-center justify-start px-0 py-1 w-full cursor-pointer mt-4 lg:mt-3">
+          <button onClick={onShowPaymentRecords} className="bg-transparent border-0 flex gap-[8px] items-center justify-start px-0 py-1 w-full cursor-pointer mt-4 lg:mt-3">
             <CreditCardIcon />
             <span className="text-[14px] text-[rgba(0,0,0,0.85)] whitespace-nowrap" style={{ lineHeight: '18px' }}>
               Payment Schedule &amp; Records
@@ -1067,8 +1073,7 @@ export default function ProjectHubPageResponsive({
   const financials = computeFinancials(option.baseMaterials, addons);
 
   // ── Next payment (mirrors ProjectHomeDetails) — kept in sync with addons ──
-  const PAID_AMOUNT = 5000;
-  const nextPaymentAmount = Math.max(0, financials.contractTotal - PAID_AMOUNT);
+  const nextPaymentAmount = Math.max(0, financials.contractTotal - TOTAL_AMOUNT_APPLIED);
 
   // ── Make-A-Payment dialog state ───────────────────────────────────────────
   // Non-null = open. The next payable invoice in the prototype is
@@ -1233,6 +1238,7 @@ export default function ProjectHubPageResponsive({
                 approvedAt={approvedAt}
                 paymentBtnRef={paymentBtnRef}
                 onMakePayment={openMakePayment}
+                onShowPaymentRecords={() => setActiveTab('invoices')}
               />
             </div>
 
@@ -1257,7 +1263,7 @@ export default function ProjectHubPageResponsive({
               <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
                 <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
                   <ProjectHomeTitleBlock approvedAt={approvedAt} />
-                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} />
+                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} onShowPaymentRecords={() => setActiveTab('invoices')} />
                 </div>
               </div>
             </div>

@@ -764,7 +764,7 @@ function MobileSheetScrollContent({
 }) {
   const errFor = (v: string) => Boolean(submitAttempted && v.trim() === '');
   return (
-    <div className="flex flex-col gap-6 sm:gap-8 items-start w-full px-3 sm:px-6 pt-4 sm:pt-6 pb-8 sm:pb-12">
+    <div className="flex flex-col gap-6 sm:gap-8 items-start w-full px-3 sm:px-6 pt-6 pb-8 sm:pb-12">
       {/* Header — sizes scale up at sm+ to take advantage of larger tablet
           viewports (S/M get +2-4px on each line). */}
       <div className="flex flex-col gap-1 items-start w-full">
@@ -1106,6 +1106,12 @@ export default function MakePaymentDialog({
             : `transform ${ANIM_MS}ms ${EASE_IN}`,
         }}
       >
+        {/* Drag-handle pill — matches the Invoice/Payment Detail sheet for a
+            consistent bottom-sheet affordance. */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="rounded-full bg-[#d9d9d9]" style={{ width: 36, height: 4 }} />
+        </div>
+
         {/* Scrollable content area — header, summary, method tiles, form, auth.
             Scrollbar is fully hidden (even while scrolling) per UX request.
             Wrapped in a `relative flex flex-col` container so the bouncing
