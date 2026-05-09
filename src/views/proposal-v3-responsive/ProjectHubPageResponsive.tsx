@@ -19,6 +19,7 @@ import MakePaymentDialog, {
   type PaymentTarget,
 } from './MakePaymentDialog';
 import { useDevConsole } from './DevConsoleContext';
+import { ContactSalesModal } from './SalesContactCard';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -911,6 +912,8 @@ function ProjectHomeDetails({
   invoiceMode?: 'happyPath' | 'enumerate';
 }) {
   // ── Payment progress ─────────────────────────────────────────────────────
+  const [contactSalesOpen, setContactSalesOpen] = useState(false);
+
   // Paid amount = sum of `amountApplied` across all payment records (single
   // source of truth — exported from InvoicesPaymentsSection so the figure
   // shown here stays in lockstep with what the user sees on the Invoices &
@@ -1135,8 +1138,14 @@ function ProjectHomeDetails({
             </button>
           )}
 
-          {/* Contact Sales */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
+          {/* Contact Sales — opens the shared sales contact card */}
+          <button
+            type="button"
+            onClick={() => setContactSalesOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={contactSalesOpen}
+            className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
+          >
             <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
               <img src={IMG_PHONE} alt="" style={{ width: 20, height: 18 }} />
             </div>
@@ -1144,6 +1153,7 @@ function ProjectHomeDetails({
               Contact Sales
             </span>
           </button>
+          <ContactSalesModal open={contactSalesOpen} onClose={() => setContactSalesOpen(false)} />
 
           {/* Download Contract [PDF] */}
           <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">

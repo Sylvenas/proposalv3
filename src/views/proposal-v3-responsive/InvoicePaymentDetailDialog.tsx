@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ScrollHintArrows from './ScrollHintArrows';
 import { useBodyScrollLock } from './useBodyScrollLock';
+import { SalesContactCardContent } from './SalesContactCard';
 
 // useLayoutEffect on the server is a noop and triggers a warning during SSR;
 // fall back to useEffect for the SSR pass to keep the console clean. The
@@ -180,16 +181,18 @@ function LockIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+// Phone icon — uses the same `phone.svg` asset as the Summary / Project Hub
+// Contact Sales buttons so the visual treatment is consistent everywhere
+// the action is offered. The asset's natural viewBox is 24×22; the
+// height/width below preserve that aspect ratio at the requested size.
 function PhoneIcon({ size = 16 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <path
-        d="M3 3.5C3 2.67157 3.67157 2 4.5 2H5.78L7 5L5.5 6C6.16 7.5 7.5 8.84 9 9.5L10 8L13 9.22V10.5C13 11.3284 12.3284 12 11.5 12C7.27 12 3 7.73 3 3.5Z"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <img
+      src="/images/proposal-v3-responsive/phone.svg"
+      alt=""
+      aria-hidden="true"
+      style={{ width: (size * 24) / 22, height: size, flexShrink: 0 }}
+    />
   );
 }
 
@@ -654,6 +657,16 @@ export default function InvoicePaymentDetailDialog({
 }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen]       = useState(false);
+  // Sales contact swap — when true, the dialog body shows the sales card
+  // content instead of the payment/invoice detail. Tapping the card's
+  // "Payment Record" CTA flips this back to false. Reset whenever the
+  // dialog closes or the underlying content swaps out.
+  const [salesView, setSalesView] = useState(false);
+  // Direction of the most recent salesView swap. Drives which slide-in
+  // keyframe the incoming pane uses ('forward' = right→left = detail→sales,
+  // 'backward' = left→right = sales→detail). Null means no transition is
+  // currently animating. Cleared after SWAP_MS.
+  const [salesSwap, setSalesSwap] = useState<'forward' | 'backward' | null>(null);
   // Last non-null content kept around so the dialog can keep rendering while
   // it animates out (after the parent sets content back to null).
   const [last, setLast]       = useState<DetailContent | null>(null);
@@ -677,6 +690,7 @@ export default function InvoicePaymentDetailDialog({
       // — otherwise the previous session's content briefly flashes back in.
       if (mounted && prev !== null && prev !== content) {
         setOutgoing(prev);
+        setSalesView(false); // outer content swap dismisses the sales card
       }
       setLast(content);
       setMounted(true);
@@ -691,6 +705,7 @@ export default function InvoicePaymentDetailDialog({
     setOpen(false);
     const t = window.setTimeout(() => {
       setMounted(false);
+      setSalesView(false); // reset so the next open starts on the detail view
     }, ANIM_MS);
     return () => window.clearTimeout(t);
   }, [content, mounted]);
@@ -703,6 +718,13 @@ export default function InvoicePaymentDetailDialog({
     const t = window.setTimeout(() => setOutgoing(null), SWAP_MS);
     return () => window.clearTimeout(t);
   }, [outgoing]);
+
+  // Clear the salesView swap direction once the slide animation finishes.
+  useEffect(() => {
+    if (!salesSwap) return;
+    const t = window.setTimeout(() => setSalesSwap(null), SWAP_MS);
+    return () => window.clearTimeout(t);
+  }, [salesSwap]);
 
   // Body scroll lock while open — ref-counted so nested locks (e.g.
   // tapping Make A Payment, which opens MakePaymentDialog on top of this
@@ -836,7 +858,12 @@ export default function InvoicePaymentDetailDialog({
     return () => {
       cleanups.forEach((c) => c());
     };
-  }, [contentKey, mounted]);
+    // `salesView` is included so the same FLIP height pass runs when the
+    // dialog body swaps between the payment detail and the sales card —
+    // otherwise the sheet/modal would snap to the new content's height
+    // mid-slide. `contentKey` covers the outer invoice/payment swap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentKey, mounted, salesView]);
 
   if (!mounted || !last) return null;
 
@@ -849,7 +876,12 @@ export default function InvoicePaymentDetailDialog({
   const actionsFor = (c: DetailContent): React.ReactNode => {
     if (c.type === 'payment') {
       return (
-        <OutlineButton onClick={() => { /* prototype no-op */ }}>
+        <OutlineButton
+          onClick={() => {
+            setSalesSwap('forward');
+            setSalesView(true);
+          }}
+        >
           <span className="flex items-center gap-[6px]">
             <PhoneIcon size={16} />
             Contact Sales
@@ -908,6 +940,17 @@ export default function InvoicePaymentDetailDialog({
         @keyframes detailSwapOutLeft {
           0%   { transform: translateX(0);     opacity: 1; }
           100% { transform: translateX(-100%); opacity: 0; }
+        }
+        /* Reverse direction — used by the salesView pop ("Payment Record"
+           back). Mirrors the forward keyframes so the gesture reads as a
+           true left-to-right pop. */
+        @keyframes detailSwapInLeft {
+          0%   { transform: translateX(-100%); opacity: 0; }
+          100% { transform: translateX(0);     opacity: 1; }
+        }
+        @keyframes detailSwapOutRight {
+          0%   { transform: translateX(0);    opacity: 1; }
+          100% { transform: translateX(100%); opacity: 0; }
         }
         /* Reveal animation for the "Show Invoice Payment Records" section.
            grid-template-rows transitions between 0fr (collapsed, fully
@@ -1003,29 +1046,114 @@ export default function InvoicePaymentDetailDialog({
                 : 'none',
             }}
           >
-            {/* Scrollable content — wrapped in a relative container so the
-                bouncing scroll-hint arrows can anchor to the viewport edges. */}
+            {/* Detail / sales swap stage — the visible pane stays in flow
+                so the sheet keeps its natural height; during a salesView
+                toggle the previous pane is rendered as an absolute overlay
+                that slides off in the opposite direction (forward = off
+                left, backward = off right). */}
             <div className="relative flex flex-col flex-1 min-h-0">
               <div
-                ref={sheetScrollRef}
-                data-swap-scroll
-                onScroll={onScroll}
-                className={`detail-scroll flex-1 min-h-0 px-4 sm:px-6 pt-6${isScrolling ? ' is-scrolling' : ''}`}
-                style={{ overflowY: swapping ? 'hidden' : 'auto' }}
+                key={salesView ? 'sales' : 'detail'}
+                className="flex flex-col flex-1 min-h-0"
+                style={{
+                  animation: salesSwap
+                    ? `${
+                        salesSwap === 'forward' ? 'detailSwapInRight' : 'detailSwapInLeft'
+                      } ${SWAP_MS}ms ${SWAP_EASE} both`
+                    : 'none',
+                }}
               >
-                {last.type === 'invoice' ? (
-                  <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
+                {salesView && last.type === 'payment' ? (
+                  <SalesContactCardContent
+                    cta={{
+                      label: 'Payment Record',
+                      onClick: () => {
+                        setSalesSwap('backward');
+                        setSalesView(false);
+                      },
+                      icon: (
+                        <img
+                          src="/images/proposal-v3-responsive/left-arrow.svg"
+                          alt=""
+                          aria-hidden="true"
+                          style={{ width: 16, height: 16, flexShrink: 0 }}
+                        />
+                      ),
+                    }}
+                    secondaryCta={{ label: 'Close', onClick: onClose }}
+                  />
                 ) : (
-                  <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                  <>
+                    <div className="relative flex flex-col flex-1 min-h-0">
+                      <div
+                        ref={sheetScrollRef}
+                        data-swap-scroll
+                        onScroll={onScroll}
+                        className={`detail-scroll flex-1 min-h-0 px-4 sm:px-6 pt-6${isScrolling ? ' is-scrolling' : ''}`}
+                        style={{ overflowY: swapping ? 'hidden' : 'auto' }}
+                      >
+                        {last.type === 'invoice' ? (
+                          <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
+                        ) : (
+                          <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                        )}
+                      </div>
+                      <ScrollHintArrows targetRef={sheetScrollRef} />
+                    </div>
+
+                    <div className="flex flex-col gap-3 px-4 sm:px-6 pt-10 sm:pt-12 pb-6 shrink-0">
+                      {actionButtons}
+                      <OutlineButton onClick={onClose}>Close</OutlineButton>
+                    </div>
+                  </>
                 )}
               </div>
-              <ScrollHintArrows targetRef={sheetScrollRef} />
-            </div>
 
-            {/* Footer actions — separated from content by spacing only (no rule) */}
-            <div className="flex flex-col gap-3 px-4 sm:px-6 pt-10 sm:pt-12 pb-6 shrink-0">
-              {actionButtons}
-              <OutlineButton onClick={onClose}>Close</OutlineButton>
+              {/* Outgoing salesView pane — absolutely overlaid, slides off
+                  in the opposite direction so both panes appear to push the
+                  other off-screen in unison. */}
+              {salesSwap && last.type === 'payment' && (
+                <div
+                  className="absolute inset-0 flex flex-col bg-white pointer-events-none overflow-hidden"
+                  style={{
+                    animation: `${
+                      salesSwap === 'forward' ? 'detailSwapOutLeft' : 'detailSwapOutRight'
+                    } ${SWAP_MS}ms ${SWAP_EASE} both`,
+                  }}
+                >
+                  {salesSwap === 'forward' ? (
+                    /* Going forward: outgoing snapshot is the detail pane. */
+                    <>
+                      <div className="relative flex flex-col flex-1 min-h-0">
+                        <div className="detail-scroll flex-1 min-h-0 px-4 sm:px-6 pt-6 overflow-hidden">
+                          <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 px-4 sm:px-6 pt-10 sm:pt-12 pb-6 shrink-0">
+                        {actionButtons}
+                        <OutlineButton onClick={onClose}>Close</OutlineButton>
+                      </div>
+                    </>
+                  ) : (
+                    /* Going backward: outgoing snapshot is the sales card. */
+                    <SalesContactCardContent
+                      cta={{
+                        label: 'Payment Record',
+                        onClick: () => {},
+                        icon: (
+                          <img
+                            src="/images/proposal-v3-responsive/left-arrow.svg"
+                            alt=""
+                            aria-hidden="true"
+                            style={{ width: 16, height: 16, flexShrink: 0 }}
+                          />
+                        ),
+                      }}
+                      secondaryCta={{ label: 'Close', onClick: () => {} }}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1119,39 +1247,125 @@ export default function InvoicePaymentDetailDialog({
                     clearance so first-row text never tucks under the [X].
                     The scrollbar itself (6px wide) sits 10px to the right
                     of the X button, so they don't visually collide. */}
-              {/* Wrapper is `relative` so the bouncing scroll-hint arrows
-                  anchor to the scroll viewport's edges. */}
+              {/* Detail / sales swap stage — mirrors the mobile sheet:
+                  visible pane is in flow; salesView toggle slides the
+                  outgoing pane off in the opposite direction so the swap
+                  reads as a left/right push (forward) or pop (back). */}
               <div className="relative flex flex-col flex-1 min-h-0">
                 <div
-                  ref={modalScrollRef}
-                  data-swap-scroll
-                  onScroll={onScroll}
-                  className={`detail-scroll flex-1 min-h-0 pl-8${isScrolling ? ' is-scrolling' : ''}`}
+                  key={salesView ? 'sales' : 'detail'}
+                  className="flex flex-col flex-1 min-h-0"
                   style={{
-                    marginTop: 32,
-                    paddingRight: 64,
-                    marginRight: 16,
-                    paddingBottom: desktopHasFooter ? 0 : 32,
-                    overflowY: swapping ? 'hidden' : 'auto',
+                    animation: salesSwap
+                      ? `${
+                          salesSwap === 'forward' ? 'detailSwapInRight' : 'detailSwapInLeft'
+                        } ${SWAP_MS}ms ${SWAP_EASE} both`
+                      : 'none',
                   }}
                 >
-                  {last.type === 'invoice' ? (
-                    <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
+                  {salesView && last.type === 'payment' ? (
+                    <SalesContactCardContent
+                      cta={{
+                        label: 'Payment Record',
+                        onClick: () => {
+                          setSalesSwap('backward');
+                          setSalesView(false);
+                        },
+                        icon: (
+                          <img
+                            src="/images/proposal-v3-responsive/left-arrow.svg"
+                            alt=""
+                            aria-hidden="true"
+                            style={{ width: 16, height: 16, flexShrink: 0 }}
+                          />
+                        ),
+                      }}
+                      secondaryCta={{ label: 'Close', onClick: onClose }}
+                    />
                   ) : (
-                    <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                    <>
+                      <div className="relative flex flex-col flex-1 min-h-0">
+                        <div
+                          ref={modalScrollRef}
+                          data-swap-scroll
+                          onScroll={onScroll}
+                          className={`detail-scroll flex-1 min-h-0 pl-8${isScrolling ? ' is-scrolling' : ''}`}
+                          style={{
+                            marginTop: 32,
+                            paddingRight: 64,
+                            marginRight: 16,
+                            paddingBottom: desktopHasFooter ? 0 : 32,
+                            overflowY: swapping ? 'hidden' : 'auto',
+                          }}
+                        >
+                          {last.type === 'invoice' ? (
+                            <InvoiceContent invoice={last.invoice} onOpenPayment={onOpenPayment} />
+                          ) : (
+                            <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                          )}
+                        </div>
+                        <ScrollHintArrows targetRef={modalScrollRef} topInset={40} bottomInset={16} />
+                      </div>
+
+                      {desktopHasFooter && (
+                        <div className="flex flex-col gap-3 px-8 pt-12 pb-8 shrink-0">
+                          {actionButtons}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
-                <ScrollHintArrows targetRef={modalScrollRef} topInset={40} bottomInset={16} />
-              </div>
 
-              {/* Footer actions — only rendered when there's a contextual
-                  action. Separated from content by 48px of breathing room
-                  (no border). */}
-              {desktopHasFooter && (
-                <div className="flex flex-col gap-3 px-8 pt-12 pb-8 shrink-0">
-                  {actionButtons}
-                </div>
-              )}
+                {/* Outgoing salesView snapshot — absolutely overlaid; slides
+                    off in the direction opposite the incoming pane. */}
+                {salesSwap && last.type === 'payment' && (
+                  <div
+                    className="absolute inset-0 flex flex-col bg-white pointer-events-none overflow-hidden"
+                    style={{
+                      animation: `${
+                        salesSwap === 'forward' ? 'detailSwapOutLeft' : 'detailSwapOutRight'
+                      } ${SWAP_MS}ms ${SWAP_EASE} both`,
+                    }}
+                  >
+                    {salesSwap === 'forward' ? (
+                      <>
+                        <div
+                          className="flex-1 min-h-0 pl-8 overflow-hidden"
+                          style={{
+                            marginTop: 32,
+                            paddingRight: 64,
+                            marginRight: 16,
+                            paddingBottom: desktopHasFooter ? 0 : 32,
+                          }}
+                        >
+                          <PaymentContent record={last.record} onOpenInvoice={onOpenInvoice} />
+                        </div>
+                        {desktopHasFooter && (
+                          <div className="flex flex-col gap-3 px-8 pt-12 pb-8 shrink-0">
+                            {actionButtons}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <SalesContactCardContent
+                        cta={{
+                          label: 'Payment Record',
+                          onClick: () => {},
+                          icon: (
+                            <img
+                              src="/images/proposal-v3-responsive/left-arrow.svg"
+                              alt=""
+                              aria-hidden="true"
+                              style={{ width: 16, height: 16, flexShrink: 0 }}
+                            />
+                          ),
+                        }}
+                        secondaryCta={{ label: 'Close', onClick: () => {} }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Outgoing (previous `last` snapshot) — absolute overlay that
