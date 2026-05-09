@@ -24,8 +24,16 @@ export type InvoiceDetail = {
   dueDate: string;
   /** Payments that landed against this invoice (newest first). Each entry
    *  is the slice of a parent payment that was applied to this invoice —
-   *  one parent payment can produce multiple entries across invoices. */
-  payments: { paymentId: string; paidOn: string; amount: number }[];
+   *  one parent payment can produce multiple entries across invoices.
+   *  `status` mirrors the parent payment record's settlement state — a
+   *  'returned' slice is displayed in red + strikethrough since the bank
+   *  reversed the attempt and no money actually landed. */
+  payments: {
+    paymentId: string;
+    paidOn: string;
+    amount: number;
+    status: 'completed' | 'processing' | 'returned';
+  }[];
 };
 
 export type PaymentDetail = {
@@ -40,6 +48,10 @@ export type PaymentDetail = {
   processedWith: string;  // 'ArcSite Payment'
   method: string;
   paidBy: string;
+  /** Settlement state of the parent payment record — drives the red
+   *  "Returned" treatment on the Amount Paid figure + breakdown when the
+   *  bank reversed the transfer. */
+  status: 'completed' | 'processing' | 'returned';
   appliedTo: { amount: number; invoiceNumber: number; invoiceLabel: string }[];
 };
 
@@ -254,6 +266,19 @@ function InvoiceContent({
 }) {
   const remaining = Math.max(0, invoice.amount - invoice.received);
   const [showRecords, setShowRecords] = useState(false);
+  // Settlement breakdown of `invoice.received` — separates dollars that
+  // have fully cleared (status='completed') from in-flight ACH dollars
+  // (status='processing'). Returned slices never accumulate into
+  // `received`, so they're absent from both. Surfaces under the Paid
+  // Amount Total row whenever any of this invoice's funds are still
+  // settling, mirroring the breakdown styling used in the Payment
+  // record's Amount Paid block.
+  const clearedReceived  = invoice.payments
+    .filter((p) => p.status === 'completed')
+    .reduce((sum, p) => sum + p.amount, 0);
+  const processingPart   = invoice.payments
+    .filter((p) => p.status === 'processing')
+    .reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -299,6 +324,33 @@ function InvoiceContent({
         >
           {fmtDollars(invoice.received)}
         </p>
+        {/* Breakdown — only renders when any of this invoice's received
+            funds are still in-flight ACH. Mirrors the Payment record's
+            Amount Paid breakdown: green vertical rail on the left, then
+            stacked rows of `$X - Label`. */}
+        {processingPart > 0 && (
+          <div
+            className="flex flex-col gap-1 mt-3 pl-4 text-[14px] sm:text-[16px] leading-normal"
+            style={{ borderLeft: '2px solid #04b50b' }}
+          >
+            {clearedReceived > 0 && (
+              <p className="text-[#262626]">
+                <span className="font-semibold" style={{ color: '#04b50b' }}>
+                  {fmtDollars(clearedReceived)}
+                </span>
+                <span className="text-[#737373]">{'  -  '}</span>
+                Received
+              </p>
+            )}
+            <p className="text-[#262626]">
+              <span className="font-semibold" style={{ color: '#398ae7' }}>
+                {fmtDollars(processingPart)}
+              </span>
+              <span className="text-[#737373]">{'  -  '}</span>
+              Still Processing
+            </p>
+          </div>
+        )}
       </FieldRow>
 
       {remaining > 0 && (
@@ -329,9 +381,12 @@ function InvoiceContent({
 
       {/* Show Invoice Payment Records — one-shot reveal. The link only
           renders while collapsed; clicking replaces it with the section
-          ("Invoice Payment Records" label + per-payment slice list). UNPAID
-          invoices have nothing to show, so neither surface renders. */}
-      {invoice.received > 0 && invoice.payments.length > 0 && (
+          ("Invoice Payment Records" label + per-payment slice list).
+          Renders whenever there's at least one payment slice tied to this
+          invoice — including bank-returned attempts that never landed
+          (received stays 0 but the bounced ACH is still relevant context).
+          UNPAID invoices with no attempts have nothing to show. */}
+      {invoice.payments.length > 0 && (
         <>
           {!showRecords && (
             <button
@@ -364,29 +419,59 @@ function InvoiceContent({
               <div style={{ minHeight: 0, overflow: 'hidden' }}>
                 <FieldRow label="Invoice Payment Records">
                   <div className="flex flex-col gap-2 w-full">
-                    {invoice.payments.map((p) => (
-                      <p
-                        key={p.paymentId}
-                        className="text-[14px] sm:text-[16px] leading-normal"
-                      >
-                        <span style={{ color: '#04b50b' }} className="font-semibold">
-                          {fmtDollars(p.amount)}
-                        </span>
-                        <span className="text-[#262626]">{' '}Paid on {p.paidOn} </span>
-                        {onOpenPayment ? (
-                          <button
-                            type="button"
-                            onClick={() => onOpenPayment(p.paymentId)}
-                            className="bg-transparent border-0 p-0 cursor-pointer text-[#737373] hover:text-[#262626] transition-colors"
-                            style={{ font: 'inherit' }}
+                    {invoice.payments.map((p) => {
+                      // Returned slice: bank reversed the attempt, so no
+                      // money actually landed against this invoice. Render
+                      // the amount in red with a strikethrough and tag it
+                      // as Returned so the row reads as "attempted but
+                      // reversed".
+                      const isReturned   = p.status === 'returned';
+                      const isProcessing = p.status === 'processing';
+                      const amountColor  = isReturned   ? '#d41a32'
+                                         : isProcessing ? '#398ae7'
+                                         : '#04b50b';
+                      return (
+                        <p
+                          key={p.paymentId}
+                          className="text-[14px] sm:text-[16px] leading-normal"
+                        >
+                          <span
+                            style={{
+                              color: amountColor,
+                              textDecoration: isReturned ? 'line-through' : undefined,
+                            }}
+                            className="font-semibold"
                           >
-                            (#{p.paymentId})
-                          </button>
-                        ) : (
-                          <span className="text-[#737373]">(#{p.paymentId})</span>
-                        )}
-                      </p>
-                    ))}
+                            {fmtDollars(p.amount)}
+                          </span>
+                          {isReturned && (
+                            <span style={{ color: '#d41a32' }} className="font-semibold">
+                              {' '}(Returned)
+                            </span>
+                          )}
+                          {isProcessing && (
+                            <span style={{ color: '#398ae7' }} className="font-semibold">
+                              {' '}(Processing)
+                            </span>
+                          )}
+                          <span className="text-[#262626]">
+                            {' '}{(isReturned || isProcessing) ? 'Submitted on' : 'Paid on'} {p.paidOn}{' '}
+                          </span>
+                          {onOpenPayment ? (
+                            <button
+                              type="button"
+                              onClick={() => onOpenPayment(p.paymentId)}
+                              className="bg-transparent border-0 p-0 cursor-pointer text-[#737373] hover:text-[#262626] transition-colors"
+                              style={{ font: 'inherit' }}
+                            >
+                              (#{p.paymentId})
+                            </button>
+                          ) : (
+                            <span className="text-[#737373]">(#{p.paymentId})</span>
+                          )}
+                        </p>
+                      );
+                    })}
                   </div>
                 </FieldRow>
               </div>
@@ -406,6 +491,16 @@ function PaymentContent({
   record: PaymentDetail;
   onOpenInvoice?: (invoiceNumber: number) => void;
 }) {
+  // Settlement-state palette. Returned: red with strikethrough — the bank
+  // reversed the transfer, so no money actually landed against any invoice.
+  // Processing: blue (in-flight ACH). Completed: green.
+  const isReturned   = record.status === 'returned';
+  const isProcessing = record.status === 'processing';
+  const accentColor  = isReturned   ? '#d41a32'
+                     : isProcessing ? '#398ae7'
+                     : '#04b50b';
+  const strike       = isReturned ? 'line-through' : undefined;
+
   return (
     <div className="flex flex-col gap-6 w-full">
       <FieldRow label="Payment ID">
@@ -416,7 +511,7 @@ function PaymentContent({
 
       <div className="flex flex-col gap-1 w-full">
         <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
-          Payment Made On
+          {(isReturned || isProcessing) ? 'Payment Submitted On' : 'Payment Made On'}
         </p>
         <p className="text-[16px] sm:text-[18px] text-[#262626] leading-normal">
           {record.paidOnFull}
@@ -424,30 +519,55 @@ function PaymentContent({
       </div>
 
       <FieldRow label="Amount Paid">
-        <p className="text-[20px] sm:text-[24px] font-semibold" style={{ color: '#04b50b' }}>
-          {fmtDollars(record.amountPaid)}
-        </p>
-        {/* Breakdown — Amount Applied is always present; Platform Fee
-            only when there's a non-zero processing fee. A green vertical
-            bar on the left visually ties the breakdown back to the
-            Amount Paid total above. */}
-        <div
-          className="flex flex-col gap-1 mt-3 pl-4 text-[14px] sm:text-[16px] leading-normal"
-          style={{ borderLeft: '2px solid #04b50b' }}
-        >
-          <p className="text-[#262626]">
-            <span className="font-semibold">{fmtDollars(record.amountApplied)}</span>
-            <span className="text-[#737373]">{'  -  '}</span>
-            Amount Applied
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p
+            className="text-[20px] sm:text-[24px] font-semibold"
+            style={{ color: accentColor, textDecoration: strike }}
+          >
+            {fmtDollars(record.amountPaid)}
           </p>
-          {record.platformFee > 0 && (
+          {isReturned && (
+            <span
+              className="text-[12px] sm:text-[14px] font-semibold tracking-[0.5px] uppercase"
+              style={{ color: '#d41a32' }}
+            >
+              Returned
+            </span>
+          )}
+          {isProcessing && (
+            <span
+              className="text-[12px] sm:text-[14px] font-semibold tracking-[0.5px] uppercase"
+              style={{ color: '#398ae7' }}
+            >
+              Processing
+            </span>
+          )}
+        </div>
+        {/* Breakdown — Amount Applied + Platform Fee. A status-colored
+            vertical bar on the left visually ties the breakdown back to
+            the Amount Paid total above. Only renders when there's a
+            non-zero platform fee — otherwise Amount Applied equals
+            Amount Paid and the breakdown would just repeat the figure
+            above. Also suppressed for returned payments since the bank
+            reversed the transfer and the RETURNED tag already conveys
+            that meaning. */}
+        {!isReturned && record.platformFee > 0 && (
+          <div
+            className="flex flex-col gap-1 mt-3 pl-4 text-[14px] sm:text-[16px] leading-normal"
+            style={{ borderLeft: `2px solid ${accentColor}` }}
+          >
+            <p className="text-[#262626]">
+              <span className="font-semibold">{fmtDollars(record.amountApplied)}</span>
+              <span className="text-[#737373]">{'  -  '}</span>
+              Amount Applied
+            </p>
             <p className="text-[#262626]">
               <span className="font-semibold">{fmtDollars(record.platformFee)}</span>
               <span className="text-[#737373]">{'  -  '}</span>
               Platform Fee ({Math.round((record.platformFee / record.amountApplied) * 100)}%)
             </p>
-          )}
-        </div>
+          </div>
+        )}
       </FieldRow>
 
       <FieldRow label="Processed With">
@@ -468,11 +588,14 @@ function PaymentContent({
         </p>
       </FieldRow>
 
-      <FieldRow label="Applied to Invoice">
+      <FieldRow label={isReturned ? 'Attempted Payment For' : 'Applied to Invoice'}>
         <div className="flex flex-col gap-2 w-full">
           {record.appliedTo.map((entry, i) => (
             <div key={i} className="flex items-center gap-2 text-[14px] sm:text-[16px] leading-normal">
-              <span style={{ color: '#04b50b' }} className="font-semibold">
+              <span
+                style={{ color: accentColor, textDecoration: strike }}
+                className="font-semibold"
+              >
                 {fmtDollars(entry.amount)}
               </span>
               <ArrowRightIcon size={16} />
@@ -487,6 +610,11 @@ function PaymentContent({
                 </button>
               ) : (
                 <span className="text-[#262626]">{entry.invoiceLabel}</span>
+              )}
+              {isReturned && (
+                <span style={{ color: '#d41a32' }} className="font-semibold">
+                  (Returned)
+                </span>
               )}
             </div>
           ))}

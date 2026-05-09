@@ -164,6 +164,23 @@ export function computeTotalAmountApplied(
   return buildInvoicesData(contractTotal, extraPayments, mode).totalAmountApplied;
 }
 
+// Settlement breakdown of the applied total — separates fully-cleared
+// dollars (status='completed') from in-flight ACH dollars
+// (status='processing'). Returned amounts are intentionally excluded
+// from both since the bank reversed those transfers. Used by the Project
+// Home progress bar to render the processing portion as a distinct
+// pulsing slice when the contract is fully covered.
+export function computePaymentBreakdown(
+  contractTotal: number,
+  extraPayments: ExtraPaymentSpec[] = [],
+  mode: InvoiceMode = 'happyPath',
+): { received: number; processing: number } {
+  const records = buildInvoicesData(contractTotal, extraPayments, mode).PAYMENT_RECORDS;
+  const received   = records.filter((r) => r.status === 'completed') .reduce((s, r) => s + r.amountApplied, 0);
+  const processing = records.filter((r) => r.status === 'processing').reduce((s, r) => s + r.amountApplied, 0);
+  return { received, processing };
+}
+
 // "Next due invoice" — the first invoice that isn't fully paid yet. Drives
 // the Next Payment amount + subtitle ("60% balance due ... on May 2, 2026")
 // on Project Home and the sticky footer. Returns null once every invoice
@@ -282,43 +299,35 @@ function buildEnumeratedInvoicesData(
     dueDate: string;
     /** When set, the invoice has already received some money even though
      *  its status isn't 'partial'. Used for the first returned invoice
-     *  (one half settled, the other was returned by the bank) and for the
-     *  blue PROCESSING rows (an in-flight ACH covers half the invoice with
-     *  the rest still owed). */
+     *  (one half settled, the other was returned by the bank). */
     halfReceived?: boolean;
   };
   // Labels mirror the happy-path schedule's "Deposit (X%)" / "Balance (X%)"
   // convention — first invoice is the Deposit, the rest are Balance. Percent
-  // is ~5% per invoice (1/19) since enumerate mode splits evenly across all
-  // status × due-state combinations.
+  // is ~7% per invoice (1/15) since enumerate mode splits evenly across all
+  // valid status × due-state combinations.
   // Order: Paid → Processing → Payment Returned → Partially Paid → Unpaid.
   // Inside each status group the rows sort by Due Date urgency:
   //   Overdue → Due Today → Future (normal) → No due date.
-  // PROCESSING splits the same way the row palette does:
-  //   green = fully covered (received ≥ amount; due-date column shows
-  //           "Paid on {payment date}").
-  //   blue  = half covered (received = ½ amount; same four due-date variants
-  //           as the rest of the matrix).
+  // PROCESSING is only ever "fully covered" — by system rule there's no
+  // "partially paid + still processing" state, so the half-covered blue
+  // PROCESSING rows that used to live here have been removed.
   const specs: Spec[] = [
     { number: 1,  label: 'Deposit (5%)', status: 'paid',       dueState: 'normal',  dueDate: PAID_ON_DATE },
     { number: 2,  label: 'Balance (5%)', status: 'paid',       dueState: 'none',    dueDate: '' },
     { number: 3,  label: 'Balance (5%)', status: 'processing', dueState: 'normal',  dueDate: FUTURE_DATE },                          // green — fully covered
-    { number: 4,  label: 'Balance (5%)', status: 'processing', dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },     // blue — half covered
-    { number: 5,  label: 'Balance (5%)', status: 'processing', dueState: 'today',   dueDate: TODAY,        halfReceived: true },     // blue
-    { number: 6,  label: 'Balance (5%)', status: 'processing', dueState: 'normal',  dueDate: FUTURE_DATE,  halfReceived: true },     // blue
-    { number: 7,  label: 'Balance (5%)', status: 'processing', dueState: 'none',    dueDate: '',           halfReceived: true },     // blue
-    { number: 8,  label: 'Balance (5%)', status: 'returned',   dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },
-    { number: 9,  label: 'Balance (5%)', status: 'returned',   dueState: 'today',   dueDate: TODAY },
-    { number: 10, label: 'Balance (5%)', status: 'returned',   dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 11, label: 'Balance (5%)', status: 'returned',   dueState: 'none',    dueDate: '' },
-    { number: 12, label: 'Balance (5%)', status: 'partial',    dueState: 'overdue', dueDate: OVERDUE_DATE },
-    { number: 13, label: 'Balance (5%)', status: 'partial',    dueState: 'today',   dueDate: TODAY },
-    { number: 14, label: 'Balance (5%)', status: 'partial',    dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 15, label: 'Balance (5%)', status: 'partial',    dueState: 'none',    dueDate: '' },
-    { number: 16, label: 'Balance (5%)', status: 'unpaid',     dueState: 'overdue', dueDate: OVERDUE_DATE },
-    { number: 17, label: 'Balance (5%)', status: 'unpaid',     dueState: 'today',   dueDate: TODAY },
-    { number: 18, label: 'Balance (5%)', status: 'unpaid',     dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 19, label: 'Balance (5%)', status: 'unpaid',     dueState: 'none',    dueDate: '' },
+    { number: 4,  label: 'Balance (5%)', status: 'returned',   dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },
+    { number: 5,  label: 'Balance (5%)', status: 'returned',   dueState: 'today',   dueDate: TODAY },
+    { number: 6,  label: 'Balance (5%)', status: 'returned',   dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 7,  label: 'Balance (5%)', status: 'returned',   dueState: 'none',    dueDate: '' },
+    { number: 8,  label: 'Balance (5%)', status: 'partial',    dueState: 'overdue', dueDate: OVERDUE_DATE },
+    { number: 9,  label: 'Balance (5%)', status: 'partial',    dueState: 'today',   dueDate: TODAY },
+    { number: 10, label: 'Balance (5%)', status: 'partial',    dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 11, label: 'Balance (5%)', status: 'partial',    dueState: 'none',    dueDate: '' },
+    { number: 12, label: 'Balance (5%)', status: 'unpaid',     dueState: 'overdue', dueDate: OVERDUE_DATE },
+    { number: 13, label: 'Balance (5%)', status: 'unpaid',     dueState: 'today',   dueDate: TODAY },
+    { number: 14, label: 'Balance (5%)', status: 'unpaid',     dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 15, label: 'Balance (5%)', status: 'unpaid',     dueState: 'none',    dueDate: '' },
   ];
 
   // Even split with the remainder folded into invoice #1.
@@ -327,14 +336,15 @@ function buildEnumeratedInvoicesData(
   const amountFor     = (i: number) => baseAmount + (i === 0 ? remainder : 0);
   // Per-status received amount:
   //   paid       → full amount (closed out).
-  //   processing → halfReceived ? half (blue, still owed) : full (green).
+  //   processing → full amount (green; an in-flight ACH covers the whole
+  //                invoice — there's no partial-processing state).
   //   partial    → half.
   //   returned   → 0 by default (full reversal); halfReceived=true means
   //                the bank settled one attempt and bounced the other.
   //   unpaid     → 0.
   const receivedFor = (s: Spec, amt: number): number => {
     if (s.status === 'paid') return amt;
-    if (s.status === 'processing') return s.halfReceived ? Math.round(amt / 2) : amt;
+    if (s.status === 'processing') return amt;
     if (s.status === 'partial') return Math.round(amt / 2);
     if (s.halfReceived) return Math.round(amt / 2);
     return 0;
@@ -391,26 +401,36 @@ function buildEnumeratedInvoicesData(
   // Newest first; IDs descend with realistic non-uniform gaps (as if other
   // customers' payments slot between ours in a global sequence).
   const paymentSeeds: PaymentSeed[] = [
-    // Processing demos — one ACH per new processing invoice so the records
-    // list mirrors the invoice list. Invoice #3 (green / fully covered)
-    // gets the full-amount transfer; #4-#7 (blue / half covered) each get
-    // a half-amount transfer. The invoice's PROCESSING status follows from
-    // the spec; these seeds drive the matching Records rows + the Paid On
-    // date that the green row falls back to.
+    // Processing demo — single full-coverage ACH against invoice #3 (green
+    // PROCESSING). The half-covered blue PROCESSING rows that used to live
+    // here are gone (the system has no "partial + processing" state), so
+    // there's only one processing seed left.
     { paymentId: '2204', paidOn: 'May 8, 2026',  paidOnFull: 'May 8, 2026, 9:12:33 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 3 },
-    { paymentId: '2203', paidOn: 'May 7, 2026',  paidOnFull: 'May 7, 2026, 4:38:51 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 4 },
-    { paymentId: '2202', paidOn: 'May 7, 2026',  paidOnFull: 'May 7, 2026, 2:04:18 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 5 },
-    { paymentId: '2201', paidOn: 'May 6, 2026',  paidOnFull: 'May 6, 2026, 11:47:09 a.m.',    method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 6 },
-    { paymentId: '2200', paidOn: 'May 6, 2026',  paidOnFull: 'May 6, 2026, 10:21:42 a.m.',    method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 7 },
-    { paymentId: '2167', paidOn: 'May 7, 2026',  paidOnFull: 'May 7, 2026, 8:42:11 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', amount: 800 },
-    // Invoice #8 (Returned, Overdue): one ACH transfer settled (#2151),
+    // Invoice #4 (Returned, Overdue): one ACH transfer settled (#2151),
     // the other (#2155) was returned by the bank. The pair leaves the
     // invoice half-received with PAYMENT RETURNED status.
-    { paymentId: '2155', paidOn: 'May 5, 2026',  paidOnFull: 'May 5, 2026, 3:18:54 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 8 },
-    { paymentId: '2151', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 9:11:04 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 8 },
-    { paymentId: '2143', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 11:02:14 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 14 },
-    { paymentId: '2129', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:48:09 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 13 },
-    { paymentId: '2118', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:31:22 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 12 },
+    { paymentId: '2155', paidOn: 'May 5, 2026',  paidOnFull: 'May 5, 2026, 3:18:54 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 4 },
+    { paymentId: '2151', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 9:11:04 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 4 },
+    // Invoices #5-#7 (Returned, no funds received): each has a single ACH
+    // transfer the bank reversed. The payment record carries the full
+    // invoice amount as the attempted figure; nothing actually landed on
+    // the invoice (received stays at 0). One returned ACH per invoice
+    // keeps the records list aligned with the invoice list.
+    { paymentId: '2150', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 2:33:18 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 5 },
+    { paymentId: '2148', paidOn: 'May 3, 2026',  paidOnFull: 'May 3, 2026, 11:57:42 a.m.',    method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 6 },
+    { paymentId: '2146', paidOn: 'May 2, 2026',  paidOnFull: 'May 2, 2026, 4:09:27 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 7 },
+    { paymentId: '2143', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 11:02:14 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 10 },
+    { paymentId: '2129', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:48:09 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 9 },
+    { paymentId: '2118', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:31:22 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 8 },
+    // Half-payment record for invoice #11 (partial, no due date) — the
+    // spec gives this row $416 received, so it needs a matching payment
+    // record. Without it, the Progress bar's "received" total under-
+    // counts the invoice list by $416.
+    { paymentId: '2117', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:18:55 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 11 },
+    // Full-payment record for invoice #2 (paid, no due date) — same
+    // reason: the spec marks #2 as paid in full ($832 received) but the
+    // record-backed totals would otherwise miss it.
+    { paymentId: '2095', paidOn: PAID_ON_DATE,    paidOnFull: 'May 1, 2026, 9:34:12 a.m.',   method: 'Check',                 processedWith: 'Manual Entry',    status: 'completed', appliedToInvoice: 2 },
     { paymentId: '2094', paidOn: PAID_ON_DATE,    paidOnFull: 'May 1, 2026, 9:14:00 a.m.',   method: 'Check',                 processedWith: 'Manual Entry',    status: 'completed', appliedToInvoice: 1 },
   ];
 
@@ -571,6 +591,7 @@ function buildEnumeratedInvoicesData(
           paymentId: rec.paymentId,
           paidOn:    rec.paidOn,
           amount:    entry.amount,
+          status:    rec.status,
         }));
     });
   }
@@ -603,6 +624,7 @@ function buildEnumeratedInvoicesData(
       processedWith: extras?.processedWith ?? '—',
       method:        rec.method,
       paidBy:        rec.paidBy,
+      status:        rec.status,
       appliedTo:     extras?.appliedTo     ?? [],
     };
   }
@@ -776,6 +798,7 @@ function buildInvoicesData(
           paymentId: rec.paymentId,
           paidOn:    rec.paidOn,
           amount:    entry.amount,
+          status:    rec.status,
         }));
     });
   }
@@ -813,6 +836,7 @@ function buildInvoicesData(
       processedWith: extras?.processedWith ?? '—',
       method:        rec.method,
       paidBy:        rec.paidBy,
+      status:        rec.status,
       appliedTo:     extras?.appliedTo     ?? [],
     };
   }
@@ -911,10 +935,11 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
   })();
 
   // Mobile date text — for unpaid/partial we fold the due-state into the
-  // line itself ("Overdue · Due on …", "Due on … (Today)") so the card
-  // surfaces the same information the desktop badge does. Today is amber
-  // (warning); Overdue is red (error). When the invoice has no due date
-  // ('none'), render a dash regardless of status.
+  // line itself ("Overdue · {date}", "{date} (Today)") so the card
+  // surfaces the same information the desktop badge does, with the same
+  // shorthand (no "Due on" prefix). Today is amber (warning); Overdue is
+  // red (error). When the invoice has no due date ('none'), render a
+  // dash regardless of status.
   // Both fully-paid and fully-covered-but-still-processing invoices read as
   // "Paid on {date}" on the date line — the status pill ("PAID" vs.
   // "PROCESSING") carries the clearance distinction.
@@ -925,10 +950,10 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
       : isFullyCovered
       ? `Paid on ${paidOnDate(inv.number) ?? inv.dueDate}`
       : inv.dueState === 'overdue'
-      ? `Overdue · Due on ${inv.dueDate}`
+      ? `Overdue · ${inv.dueDate}`
       : inv.dueState === 'today'
-      ? `Due on ${inv.dueDate} (Today)`
-      : `Due on ${inv.dueDate}`;
+      ? `${inv.dueDate} (Today)`
+      : inv.dueDate;
   const dateColor =
     inv.dueState === 'none' ? '#737373'
     : isFullyCovered ? '#262626'
@@ -948,7 +973,7 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
       <div className="flex flex-col gap-2 items-start py-2 flex-1 min-w-0 pr-2">
         {/* Row 1: INVOICE #N · STATUS */}
         <div className="flex gap-2 items-start w-full">
-          <p className="text-[10px] sm:text-[12px] font-semibold text-[#262626] whitespace-nowrap leading-normal">
+          <p className="text-[10px] sm:text-[12px] font-semibold text-[#0a0a0a] whitespace-nowrap leading-normal">
             INVOICE #{inv.number}
           </p>
           <p
@@ -982,12 +1007,12 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
 function MobilePaymentRecordCard({ rec, onOpen }: { rec: PaymentRecord; onOpen: () => void }) {
   const palette = PAYMENT_STATUS_COLOR[rec.status];
   const statusLabel = PAYMENT_STATUS_LABEL[rec.status];
-  // Date prefix swaps for in-flight / failed states so the row reads
-  // correctly: completed = "Paid on …", processing = "Submitted on …",
-  // returned = "Returned on …".
+  // Date prefix swaps for in-flight / failed states. The stored date is
+  // when the user submitted the payment, so processing AND returned both
+  // read as "Submitted on …" (the bank reversal happens later, off the
+  // record's date). Matches the wording used in the detail dialog.
   const datePrefix =
-    rec.status === 'processing' ? 'Submitted on'
-    : rec.status === 'returned' ? 'Returned on'
+    (rec.status === 'processing' || rec.status === 'returned') ? 'Submitted on'
     : 'Paid on';
   return (
     <button
@@ -1000,12 +1025,30 @@ function MobilePaymentRecordCard({ rec, onOpen }: { rec: PaymentRecord; onOpen: 
         <p className="text-[12px] sm:text-[14px] text-[#262626] whitespace-nowrap leading-normal">
           {datePrefix} {rec.paidOn}
         </p>
-        {/* Amount line — non-completed rows prefix with the status word
-            ("Processing · $800") so the row's state lives in the same
-            visual slot as the dollar amount. */}
-        <p className="text-[20px] sm:text-[24px] whitespace-nowrap leading-normal" style={{ color: palette.amount }}>
-          {statusLabel ? `${statusLabel} · ${fmtDollars(rec.amountPaid)}` : fmtDollars(rec.amountPaid)}
-        </p>
+        {/* Amount line — mirrors the Amount Paid display in the detail
+            dialog: dollar figure first (semibold), then a small uppercase
+            status tag for non-completed rows (PROCESSING / RETURNED).
+            Returned amounts are struck through to read as "attempted but
+            reversed". */}
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p
+            className="text-[20px] sm:text-[24px] font-semibold whitespace-nowrap leading-normal"
+            style={{
+              color: palette.amount,
+              textDecoration: rec.status === 'returned' ? 'line-through' : undefined,
+            }}
+          >
+            {fmtDollars(rec.amountPaid)}
+          </p>
+          {statusLabel && (
+            <span
+              className="text-[12px] sm:text-[14px] font-semibold tracking-[0.5px] uppercase whitespace-nowrap leading-normal"
+              style={{ color: palette.label }}
+            >
+              {statusLabel}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );
@@ -1030,6 +1073,371 @@ function MobilePaymentRecordCard({ rec, onOpen }: { rec: PaymentRecord; onOpen: 
 //   The Label column is flex, so it absorbs the leftover space.
 // ─────────────────────────────────────────────────────────────────────────────
 const cs = (px: number) => `calc(${px}px * var(--cs))`;
+
+// "Paid in Full" seal — same SVG asset used by the Project Home payment
+// progress block. Surfaced inside the Next Payment card on the Invoices &
+// Payments tab when every invoice is covered.
+const SEAL_IMG = '/images/proposal-v3-responsive/paid-seal.svg';
+
+// ─── Desktop summary row (PROGRESS + NEXT PAYMENT) ───────────────────────────
+// Two-up summary that sits above the invoice table on L+ viewports.
+//
+// Layout: 12-column grid — Progress occupies cols 1-8, Next Payment cols 9-12.
+//
+// Progress card:
+//   • Bar segments: dark green = received (cleared), light green =
+//     processing (in-flight ACH); rest of the track stays gray.
+//   • A segment renders only when its amount is > 0 — when nothing is in
+//     flight the light-green slice disappears entirely (per the spec).
+//   • Returned dollars never accumulate against the contract — they're
+//     bounced ACH attempts — so they're absent from both segments and the
+//     received/processing labels.
+//
+// Next Payment card:
+//   • Amount + due date come from the next invoice that still has a
+//     remaining balance (sequential rule).
+//   • The CTA mirrors the Make-A-Payment button on the invoice table.
+function DesktopProgressAndNextPayment({
+  contractTotal,
+  onMakePayment,
+}: {
+  contractTotal: number;
+  onMakePayment?: () => void;
+}) {
+  const { INVOICES, PAYMENT_RECORDS } = useInvoicesData();
+  // The next-payment slice on the progress bar is gated on the user
+  // hovering the Next Payment card — surfaces the connection between the
+  // card and the bar segment without cluttering the bar in the default
+  // state. Toggled by onMouseEnter/onMouseLeave on the card.
+  const [nextPaymentHovered, setNextPaymentHovered] = useState(false);
+  // Which bar segment the user is currently pointing at — drives the
+  // segment's "highlighted" visual + the tooltip rendered above the bar.
+  // Reverts to null on mouse-leave so the tooltip dismisses cleanly.
+  const [barHover, setBarHover] = useState<'received' | 'processing' | 'next' | null>(null);
+
+  // Settlement breakdown — completed dollars sit in the dark-green slice,
+  // in-flight ACH dollars in the light-green slice. Returned amounts are
+  // excluded from both (the bank reversed the transfer; nothing landed).
+  const receivedAmount   = PAYMENT_RECORDS
+    .filter((r) => r.status === 'completed')
+    .reduce((sum, r) => sum + r.amountApplied, 0);
+  const processingAmount = PAYMENT_RECORDS
+    .filter((r) => r.status === 'processing')
+    .reduce((sum, r) => sum + r.amountApplied, 0);
+  const outstanding = Math.max(0, contractTotal - receivedAmount - processingAmount);
+
+  // Bar segment widths as percentages of the contract total. Clamped so a
+  // ±$1 rounding error in the synthetic data never overflows the track.
+  const receivedPct   = contractTotal > 0
+    ? Math.min(100, (receivedAmount / contractTotal) * 100)
+    : 0;
+  const processingPct = contractTotal > 0
+    ? Math.min(100 - receivedPct, (processingAmount / contractTotal) * 100)
+    : 0;
+
+  // Next due invoice — first row that still has a remaining balance.
+  // Mirrors getNextDueInvoice's sequential rule (consumed by Project Home).
+  const nextDue = INVOICES.find((inv) => inv.received < inv.amount);
+  const nextDueRemaining = nextDue ? Math.max(0, nextDue.amount - nextDue.received) : 0;
+  // Date the contract reached full coverage — the most-recent payment
+  // record (PAYMENT_RECORDS is newest-first). Surfaces in the fully-paid
+  // copy ("Paid in full on …" / "Payment submitted in full on …").
+  const paidOnDateLabel = !nextDue ? PAYMENT_RECORDS[0]?.paidOn : undefined;
+  // Next-payment slice on the bar — sits right after the received +
+  // processing segments. Its width represents the remaining balance on
+  // the next-due invoice. Clamped so it never extends past 100% even if
+  // a rounding glitch accumulates upstream.
+  const nextDuePct = contractTotal > 0
+    ? Math.min(100 - receivedPct - processingPct, (nextDueRemaining / contractTotal) * 100)
+    : 0;
+
+  return (
+    <div className="hidden lg:grid w-full" style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', columnGap: cs(24) }}>
+      {/* PROGRESS — cols 1-8 */}
+      <div className="col-span-8 flex flex-col gap-3">
+        <p className="text-[14px] xl:text-[16px] font-semibold text-[#262626] tracking-[0.5px] uppercase leading-normal">
+          Progress
+        </p>
+        <div
+          className="bg-[#fafafa] flex flex-col justify-center gap-1 w-full flex-1"
+          style={{ borderRadius: 12, padding: cs(24) }}
+        >
+          {/* Bar — dark green (received) | light green (processing) | gray rest.
+              Segments stack horizontally; the gray track is just the
+              container's background showing through past the colored slices.
+              The wrapper inherits the same font-size + leading-normal as
+              the Next Payment card's `$X` figure so the bar's vertical
+              midpoint lines up with the dollar amount's midpoint on the
+              right (a single empty inline-flex row sized by line-height). */}
+          {(() => {
+            const showNextSlice = nextPaymentHovered || barHover === 'next';
+            // Tooltip text + center-of-segment x-position (% of track) keyed
+            // off the currently-hovered segment. Anchors the tooltip to the
+            // middle of whichever slice the pointer is on.
+            const tooltipText =
+              barHover === 'received'   ? `Received · ${fmtDollars(receivedAmount)}`
+            : barHover === 'processing' ? `Processing · ${fmtDollars(processingAmount)}`
+            : barHover === 'next'       ? `Next Payment · ${fmtDollars(nextDueRemaining)}`
+            : null;
+            const tooltipPct =
+              barHover === 'received'   ? receivedPct / 2
+            : barHover === 'processing' ? receivedPct + processingPct / 2
+            : barHover === 'next'       ? receivedPct + processingPct + nextDuePct / 2
+            : 0;
+            return (
+              <div
+                className="text-[24px] xl:text-[28px] leading-normal flex items-center w-full"
+                style={{ height: '1lh' }}
+              >
+                {/* Bar wrapper — `relative` so the tooltip can anchor here.
+                    No overflow:hidden so the tooltip can escape upward. The
+                    inner clip-mask div handles the rounded clipping for the
+                    segments themselves. */}
+                <div
+                  className="relative w-full"
+                  style={{ height: 10, background: '#e5e5e5', borderRadius: 999 }}
+                >
+                  {/* Clip mask — segments live inside, get clipped to the
+                      pill shape via overflow:hidden + matching radius. */}
+                  <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: 999 }}>
+                    {receivedAmount > 0 && (
+                      <div
+                        className="absolute top-0 left-0 h-full transition-[filter] duration-150"
+                        onMouseEnter={() => setBarHover('received')}
+                        onMouseLeave={() => setBarHover(null)}
+                        style={{
+                          width: `${receivedPct}%`,
+                          background: '#04b50b',
+                          filter: barHover === 'received' ? 'brightness(1.15)' : undefined,
+                          cursor: 'help',
+                        }}
+                      />
+                    )}
+                    {processingAmount > 0 && (
+                      // Processing slice — hatched fill (diagonal stripes of
+                      // dark green over a light-green base) to convey the
+                      // in-flight "still settling" state.
+                      <div
+                        className="absolute top-0 h-full transition-[filter] duration-150"
+                        onMouseEnter={() => setBarHover('processing')}
+                        onMouseLeave={() => setBarHover(null)}
+                        style={{
+                          left: `${receivedPct}%`,
+                          width: `${processingPct}%`,
+                          backgroundColor: '#c4ecc6',
+                          backgroundImage:
+                            'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
+                          filter: barHover === 'processing' ? 'brightness(0.92)' : undefined,
+                          cursor: 'help',
+                        }}
+                      />
+                    )}
+                    {nextDueRemaining > 0 && (
+                      // Next-payment slice — always present as a hit area for
+                      // hover/tooltip; visually transparent until either the
+                      // Next Payment card is hovered or the user points
+                      // directly at this slice. Pulses on a 1.6s cycle while
+                      // visible.
+                      <div
+                        className="absolute top-0 h-full transition-[filter] duration-150"
+                        onMouseEnter={() => setBarHover('next')}
+                        onMouseLeave={() => setBarHover(null)}
+                        style={{
+                          left: `${receivedPct + processingPct}%`,
+                          width: `${nextDuePct}%`,
+                          background: showNextSlice ? '#a3c9f2' : 'transparent',
+                          animation: showNextSlice ? 'progressNextPulse 1.6s ease-in-out infinite' : undefined,
+                          filter: barHover === 'next' ? 'brightness(1.1)' : undefined,
+                          cursor: 'help',
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Tooltip — sits above the bar track, anchored to the
+                      hovered segment's horizontal midpoint. Pointer-events
+                      disabled so it never interferes with the underlying
+                      hover detection on the segment. */}
+                  {tooltipText !== null && (
+                    <div
+                      className="absolute pointer-events-none whitespace-nowrap"
+                      style={{
+                        left: `${tooltipPct}%`,
+                        bottom: '100%',
+                        marginBottom: 8,
+                        transform: 'translateX(-50%)',
+                        background: '#262626',
+                        color: 'white',
+                        padding: '6px 10px',
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        lineHeight: 1.2,
+                        zIndex: 10,
+                      }}
+                    >
+                      {tooltipText}
+                      {/* Arrow — small triangle pointing at the segment. */}
+                      <span
+                        className="absolute"
+                        aria-hidden
+                        style={{
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          borderTop: '4px solid #262626',
+                          borderLeft: '4px solid transparent',
+                          borderRight: '4px solid transparent',
+                          width: 0,
+                          height: 0,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          <style>{`
+            @keyframes progressNextPulse {
+              0%, 100% { opacity: 1; }
+              50%      { opacity: 0.45; }
+            }
+          `}</style>
+
+          {/* Caption row: settlement labels on the left, outstanding on the right.
+              Either label disappears when its amount is zero. */}
+          <div className="flex items-center justify-between gap-4 text-[12px] xl:text-[14px] leading-normal">
+            <div className="flex items-center gap-6 text-[#262626] flex-wrap">
+              {receivedAmount > 0 && (
+                <p>
+                  <span>Received · </span>
+                  <span className="font-semibold" style={{ color: '#04b50b' }}>
+                    {fmtDollars(receivedAmount)}
+                  </span>
+                </p>
+              )}
+              {processingAmount > 0 && (
+                <p>
+                  <span>Processing · </span>
+                  <span className="font-semibold" style={{ color: '#04b50b' }}>
+                    {fmtDollars(processingAmount)}
+                  </span>
+                </p>
+              )}
+            </div>
+            {/* Right-aligned summary — three states:
+                  • Outstanding > 0:    "$X outstanding of $Y"
+                  • Fully covered + processing in flight: "Paid / Submitted in full · $Y"
+                  • Fully covered + nothing processing:    "Paid in full · $Y" */}
+            <p className="whitespace-nowrap">
+              {outstanding > 0 ? (
+                <>
+                  <span className="font-semibold text-[#262626]">{fmtDollars(outstanding)}</span>
+                  <span className="text-[#737373]">{' '}outstanding of {fmtDollars(contractTotal)}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[#737373]">
+                    {processingAmount > 0 ? 'Paid / Submitted in full · ' : 'Paid in full · '}
+                  </span>
+                  <span className="font-semibold text-[#262626]">{fmtDollars(contractTotal)}</span>
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* NEXT PAYMENT — cols 9-12 */}
+      <div className="col-span-4 flex flex-col gap-3">
+        <p className="text-[14px] xl:text-[16px] font-semibold text-[#262626] tracking-[0.5px] uppercase leading-normal">
+          Next Payment
+        </p>
+        <div
+          className="relative flex items-center justify-between gap-4 w-full flex-1 transition-colors overflow-hidden"
+          onMouseEnter={() => setNextPaymentHovered(true)}
+          onMouseLeave={() => setNextPaymentHovered(false)}
+          style={{
+            borderRadius: 12,
+            padding: cs(24),
+            // Hovered: a pale-blue tint in the same hue family as the
+            // pulsing next-payment slice on the bar — visually links the
+            // card to the slice it's about to surface. Resting: same
+            // fafafa as the Progress card so both read as neutral. The
+            // hover tint is suppressed in the fully-paid state (nothing
+            // left to surface).
+            background: !nextDue ? '#fafafa'
+                       : nextPaymentHovered ? '#e6f0fa'
+                       : '#fafafa',
+          }}
+        >
+          {nextDue ? (
+            <>
+              {/* Inner stack — dollar figure with the due date directly
+                  below it (gap-1). The whole group is vertically centered
+                  in the card via the outer `items-center`. */}
+              <div className="flex flex-col gap-1 min-w-0">
+                <p
+                  className="text-[24px] xl:text-[28px] font-semibold leading-normal whitespace-nowrap"
+                  style={{ color: '#398ae7' }}
+                >
+                  {fmtDollars(nextDueRemaining)}
+                </p>
+                <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal whitespace-nowrap">
+                  Due {nextDue.dueDate || '—'}
+                </p>
+              </div>
+              {onMakePayment && (
+                <button
+                  type="button"
+                  onClick={onMakePayment}
+                  className="bg-[#d41a32] border-0 flex items-center justify-center text-white font-semibold whitespace-nowrap cursor-pointer shrink-0"
+                  style={{
+                    height: 40,
+                    paddingLeft: 20,
+                    paddingRight: 20,
+                    borderRadius: 4,
+                    fontSize: 14,
+                  }}
+                >
+                  Make A Payment
+                </button>
+              )}
+            </>
+          ) : (
+            // Fully-paid state — replace the dollar/Due/CTA stack with a
+            // status line + the rotated "PAID IN FULL" seal on the right.
+            // Seal is multiply-blended at 50% opacity so it absorbs the
+            // card background instead of sitting opaquely on top.
+            <>
+              <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal">
+                {processingAmount > 0 ? 'Payment submitted in full' : 'Contract paid in full'}
+                {paidOnDateLabel && <> on {paidOnDateLabel}</>}
+              </p>
+              <img
+                src={SEAL_IMG}
+                alt="Paid in full"
+                className="absolute pointer-events-none"
+                style={{
+                  width: 84,
+                  height: 84,
+                  right: cs(16),
+                  top: '50%',
+                  transform: 'translateY(-50%) rotate(-15deg)',
+                  transformOrigin: 'center',
+                  opacity: 0.5,
+                  mixBlendMode: 'multiply',
+                }}
+              />
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DesktopInvoicesTable({
   onOpenInvoice,
   onMakePayment,
@@ -1107,6 +1515,13 @@ function DesktopInvoiceRow({
   const barColor   = isPartlyProcessing ? '#398ae7' : STATUS_BAR_COLOR_DESKTOP[inv.status];
   const labelColor = isPartlyProcessing ? '#398ae7' : STATUS_LABEL_COLOR[inv.status];
 
+  // Processing rows render their left status strip as a hatched fill —
+  // dark-green diagonal stripes over a light-green base — to match the
+  // hatched processing slice on the desktop progress bar (same 4px:4px
+  // ratio, same colors). All other statuses keep the solid 4px CSS
+  // border. The hatch is rendered as an absolutely-positioned 4px-wide
+  // overlay since CSS borders can't carry a hatched fill.
+  const isProcessingStatus = inv.status === 'processing';
   return (
     <div
       onClick={() => onOpen(inv)}
@@ -1118,16 +1533,30 @@ function DesktopInvoiceRow({
           onOpen(inv);
         }
       }}
-      className="group bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors border-l-4 border-solid flex items-center w-full cursor-pointer"
+      className={`relative group bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors flex items-center w-full cursor-pointer ${isProcessingStatus ? '' : 'border-l-4 border-solid'}`}
       style={{
         height: 48,
-        borderColor: barColor,
+        borderColor: isProcessingStatus ? undefined : barColor,
         fontFamily: 'Segoe UI, sans-serif',
         gap: cs(12),
-        paddingLeft: cs(24),
+        // Add the 4px the missing border would have taken so processing
+        // rows align with the rest of the table at the same content
+        // start-x.
+        paddingLeft: isProcessingStatus ? `calc(${cs(24)} + 4px)` : cs(24),
         paddingRight: cs(24),
       }}
     >
+      {isProcessingStatus && (
+        <div
+          className="absolute top-0 left-0 h-full pointer-events-none"
+          style={{
+            width: 4,
+            backgroundColor: '#c4ecc6',
+            backgroundImage:
+              'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
+          }}
+        />
+      )}
       {/* Invoice # */}
       <p
         className="text-[14px] xl:text-[16px] text-[#262626] whitespace-nowrap leading-normal overflow-hidden text-ellipsis"
@@ -1452,6 +1881,10 @@ export default function InvoicesPaymentsSection({
         className="hidden lg:flex flex-col gap-8 xl:gap-12 2xl:gap-16 w-full pt-8 pb-6"
         style={{ '--cs': 'clamp(1, calc(100vw / 1024px), 2.109375)' } as React.CSSProperties}
       >
+        <DesktopProgressAndNextPayment
+          contractTotal={contractTotal}
+          onMakePayment={onMakePayment}
+        />
         <DesktopInvoicesTable onOpenInvoice={openInvoice} onMakePayment={onMakePayment} />
         <DesktopPaymentRecordsTable onOpenPayment={openPayment} />
       </div>
