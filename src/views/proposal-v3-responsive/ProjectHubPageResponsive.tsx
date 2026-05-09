@@ -7,6 +7,7 @@ import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHe
 import ContractDocSection from './ContractDocSection';
 import InvoicesPaymentsSection, {
   computeNextPaymentAmount,
+  computePaymentBreakdown,
   computeTotalAmountApplied,
   getLastPaymentDate,
   getNextDueInvoice,
@@ -918,6 +919,12 @@ function ProjectHomeDetails({
   // Summary page.
   const contractTotal = financials.contractTotal;
   const PAID_AMOUNT   = computeTotalAmountApplied(contractTotal, extraPayments, invoiceMode);
+  // Settlement split — drives the cleared/processing segments on the
+  // payment-progress bar. Cleared dollars stay solid black; in-flight
+  // dollars surface as a dark-gray pulse so the user can see the
+  // contract is fully covered but still settling.
+  const { received: receivedAmount, processing: processingAmount } =
+    computePaymentBreakdown(contractTotal, extraPayments, invoiceMode);
   // "Next Payment" reflects the FIRST invoice that isn't fully paid: the
   // remaining dollars, the invoice's percent share of the contract, and its
   // due date all read from the same invoice so the subtitle always matches
@@ -968,18 +975,59 @@ function ProjectHomeDetails({
               {fmtDollars(PAID_AMOUNT)}{' '}
               <span style={{ color: '#a0a0a0' }}>/ {fmtDollars(contractTotal)}</span>
             </p>
-            {/* Progress bar — ~3/5 width, thin 2px track */}
-            <div className="rounded-full overflow-hidden" style={{ width: '60%', height: 2, background: '#e0e0e0' }}>
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${progressRatio * 100}%`, background: '#262626' }}
-              />
+            {/* Progress bar — ~3/5 width, thin 2px track.
+                Whenever there's in-flight ACH money, split the bar into
+                a solid black cleared segment + a dark-gray pulsing
+                segment for the processing portion. The pulse keeps the
+                "still settling" state visible across every progress
+                state (partial, fully covered, etc.). When nothing is in
+                flight, fall back to the original single-segment bar. */}
+            <div className="rounded-full overflow-hidden flex" style={{ width: '60%', height: 2, background: '#e0e0e0' }}>
+              {processingAmount > 0 ? (
+                <>
+                  <div
+                    className="h-full"
+                    style={{
+                      width: `${(receivedAmount / contractTotal) * 100}%`,
+                      background: '#262626',
+                    }}
+                  />
+                  <div
+                    className="h-full"
+                    style={{
+                      width: `${(processingAmount / contractTotal) * 100}%`,
+                      background: '#737373',
+                      animation: 'paymentProgressProcessingPulse 1s ease-in-out infinite',
+                    }}
+                  />
+                </>
+              ) : (
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${progressRatio * 100}%`, background: '#262626' }}
+                />
+              )}
             </div>
+            <style>{`
+              @keyframes paymentProgressProcessingPulse {
+                0%, 100% { opacity: 1; }
+                50%      { opacity: 0.18; }
+              }
+            `}</style>
+            {/* Secondary caption — surfaces the in-flight ACH amount in
+                small secondary-grey text right under the bar. Hidden when
+                there's nothing settling so the line never reads as a
+                placeholder. */}
+            {processingAmount > 0 && (
+              <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal">
+                Includes {fmtDollars(processingAmount)} still processing
+              </p>
+            )}
             {/* Seal mode: paid date sits inside the Payment Progress block
                 so it reads alongside the rotated seal on the right. */}
             {!nextDue && paymentCompletionIndication === 'seal' && (
               <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal w-full pt-2">
-                Contract Paid in Full on {fullyPaidOn ?? subtitleDate}
+                {processingAmount > 0 ? 'Payment submitted in full on' : 'Contract Paid in Full on'} {fullyPaidOn ?? subtitleDate}
               </p>
             )}
           </div>
