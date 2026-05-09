@@ -1385,7 +1385,7 @@ function DesktopProgressAndNextPayment({
                   {fmtDollars(nextDueRemaining)}
                 </p>
                 <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal whitespace-nowrap">
-                  Due {nextDue.dueDate || '—'}
+                  {nextDue.dueDate ? `Due ${nextDue.dueDate}` : 'No due date'}
                 </p>
               </div>
               {onMakePayment && (
@@ -1504,7 +1504,7 @@ function DesktopInvoiceRow({
   onOpen: (inv: Invoice) => void;
   onMakePayment?: () => void;
 }) {
-  const { paidOnDate, isInvoicePayable, isEnumerate } = useInvoicesData();
+  const { paidOnDate } = useInvoicesData();
   const remaining = Math.max(0, inv.amount - inv.received);
   // Fully-covered invoices (paid OR processing-with-received≥amount) render
   // a "Paid on {date}" line in the Due Date column instead of a due date.
@@ -1601,9 +1601,8 @@ function DesktopInvoiceRow({
       {/* Spacer between Status and Due Date — mirrors the header row. */}
       <div className="shrink-0" style={{ width: cs(24) }} />
       {/* Due Date column — fully-covered (paid OR processing-with-received≥
-          amount): green "Paid on …" (no hover hint); partial / partly-
-          processing: date + "Pay previous invoices first" hint on hover;
-          unpaid: plain date with the same hint on hover when not payable. */}
+          amount): green "Paid on …"; partial / partly-processing: due date
+          with overdue/today badge; unpaid: plain due date. */}
       <div className="relative flex items-center" style={{ width: cs(155), gap: cs(12) }}>
         {isFullyCovered && (
           inv.dueState === 'none' ? (
@@ -1617,32 +1616,14 @@ function DesktopInvoiceRow({
           )
         )}
         {(inv.status === 'partial' || (inv.status === 'processing' && !isFullyCovered)) && (
-          <>
-            <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] whitespace-nowrap leading-normal overflow-hidden text-ellipsis">
-              <DueDateText dueState={inv.dueState} dueDate={inv.dueDate} mutedColor="#262626" />
-            </p>
-            {!isEnumerate && !isInvoicePayable(inv.number) && (
-              <span
-                className="absolute top-1/2 -translate-y-1/2 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-[12px] xl:text-[14px] text-[#737373] italic whitespace-nowrap"
-              >
-                Pay previous invoices first
-              </span>
-            )}
-          </>
+          <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] whitespace-nowrap leading-normal overflow-hidden text-ellipsis">
+            <DueDateText dueState={inv.dueState} dueDate={inv.dueDate} mutedColor="#262626" />
+          </p>
         )}
         {inv.status === 'unpaid' && (
-          <>
-            <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal">
-              <DueDateText dueState={inv.dueState} dueDate={inv.dueDate} mutedColor="#737373" />
-            </p>
-            {!isEnumerate && !isInvoicePayable(inv.number) && (
-              <span
-                className="absolute top-1/2 -translate-y-1/2 right-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-[12px] xl:text-[14px] text-[#737373] italic whitespace-nowrap"
-              >
-                Pay previous invoices first
-              </span>
-            )}
-          </>
+          <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal">
+            <DueDateText dueState={inv.dueState} dueDate={inv.dueDate} mutedColor="#262626" />
+          </p>
         )}
         {inv.status === 'returned' && (
           <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal">

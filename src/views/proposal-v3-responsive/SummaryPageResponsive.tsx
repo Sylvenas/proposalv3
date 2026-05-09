@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
+import { ContactSalesModal } from './SalesContactCard';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -21,6 +22,7 @@ const IMG_ZOOM_OUT          = `${BASE}/zoom-out.svg`;
 const IMG_ZOOM_FIT          = `${BASE}/zoom-fit.svg`;
 const IMG_CALCULATOR        = `${BASE}/calculator.svg`;
 const IMG_PHONE             = `${BASE}/phone.svg`;
+const IMG_EMAIL             = `${BASE}/email.svg`;
 const IMG_DOWNLOAD          = `${BASE}/download.svg`;
 const IMG_CHECKMARK         = `${BASE}/checkmark.svg`;
 
@@ -744,6 +746,35 @@ function InfoDuotoneIcon() {
   );
 }
 
+// ── Contact Sales button + modal ─────────────────────────────────────────────
+// Clicking the button opens the contact card, which always lists both email
+// and phone for the assigned sales rep.
+function ContactSalesButton() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
+      >
+        <img src={IMG_PHONE} alt="" style={{ width: 24, height: 22, flexShrink: 0 }} />
+        <span
+          className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
+          style={{ lineHeight: '18px' }}
+        >
+          Contact Sales
+        </span>
+      </button>
+      <ContactSalesModal open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+
 function StickyFooter({
   visible,
   financials,
@@ -933,14 +964,8 @@ function SummaryContent({
               Explore Payment &amp; Financing
             </span>
           </button>
-          {/* Contact Sales */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
-            <img src={IMG_PHONE} alt="" style={{ width: 24, height: 22, flexShrink: 0 }} />
-            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
-              style={{ lineHeight: '18px' }}>
-              Contact Sales
-            </span>
-          </button>
+          {/* Contact Sales — icon + behavior driven by DevConsole salesContact */}
+          <ContactSalesButton />
           {/* Download Config PDF */}
           <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
             <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
