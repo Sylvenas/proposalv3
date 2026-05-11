@@ -72,6 +72,17 @@ export const DEFAULT_ADDONS: AddonItem[] = [
   { id: 5, name: 'Security Camera Mount – Adjustable', qty: '2',   unit: 'ea.', price: '140',  selected: false },
 ];
 
+// Lightweight mock descriptions for each add-on (per-id). Exported so the
+// Project Hub can reuse the same copy when it opens an add-on's detail sheet
+// in its locked / post-approval state.
+export const ADDON_DESCRIPTIONS: Record<number, string> = {
+  1: 'A convenient automatic opener add-on for the project gate, allowing the gate to be opened and closed remotely with a smoother day-to-day experience. This package includes the motor unit, basic control hardware, and standard installation for one compatible gate.',
+  2: 'Heavy-gauge black PVC privacy slats that weave between chain-link mesh to dramatically reduce visibility without changing the fence layout. A budget-friendly way to add privacy to an existing or new run.',
+  3: 'Solar-powered LED caps that snap onto select post tops, providing gentle ambient lighting along the fence line at night with zero electrical run required.',
+  4: 'Pre-cast concrete pad set used to anchor terminal posts at corners and gate openings — improves long-term stability on softer or sloped ground.',
+  5: 'Adjustable mounting bracket package for adding security cameras at strategic points along the fence line. Brackets only; cameras supplied separately.',
+};
+
 // ── Financial calculation ─────────────────────────────────────────────────────
 // Rules (simple, realistic):
 //   materials  = baseMaterials + sum of selected addon prices
@@ -1168,15 +1179,6 @@ export default function SummaryPageResponsive({
   }
 
   // ── Add-on detail sheet ─────────────────────────────────────────────────────
-  // Lightweight mock descriptions for each add-on (per-id). Cleaner than coupling
-  // the prose to AddonItem itself, since the line item rendering doesn't need it.
-  const ADDON_DESCRIPTIONS: Record<number, string> = {
-    1: 'A convenient automatic opener add-on for the project gate, allowing the gate to be opened and closed remotely with a smoother day-to-day experience. This package includes the motor unit, basic control hardware, and standard installation for one compatible gate.',
-    2: 'Heavy-gauge black PVC privacy slats that weave between chain-link mesh to dramatically reduce visibility without changing the fence layout. A budget-friendly way to add privacy to an existing or new run.',
-    3: 'Solar-powered LED caps that snap onto select post tops, providing gentle ambient lighting along the fence line at night with zero electrical run required.',
-    4: 'Pre-cast concrete pad set used to anchor terminal posts at corners and gate openings — improves long-term stability on softer or sloped ground.',
-    5: 'Adjustable mounting bracket package for adding security cameras at strategic points along the fence line. Brackets only; cameras supplied separately.',
-  };
   const [addonDetailId, setAddonDetailId] = useState<number | null>(null);
   const addonDetailItem = addonDetailId === null ? null : addons.find((a) => a.id === addonDetailId) ?? null;
   const addonDetailContent: ProductDetailContent | null = addonDetailItem

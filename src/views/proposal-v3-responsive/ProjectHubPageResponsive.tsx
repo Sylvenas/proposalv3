@@ -20,6 +20,8 @@ import MakePaymentDialog, {
 } from './MakePaymentDialog';
 import { useDevConsole } from './DevConsoleContext';
 import { ContactSalesModal } from './SalesContactCard';
+import ProductDetailSheet, { type ProductDetailContent } from './ProductDetailSheet';
+import { ADDON_DESCRIPTIONS, type FenceProduct } from './SummaryPageResponsive';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -52,7 +54,7 @@ export type FenceOption = {
   contractTotal: string;
   monthly: string;
   image: string;
-  products: { name: string; qty: string; unit: string }[];
+  products: FenceProduct[];
   /** Base materials cost (before any addons) used to compute dynamic financials. */
   baseMaterials: number;
 };
@@ -424,9 +426,26 @@ function CategoryLabel({ name, count }: { name: string; count: number }) {
 // Desktop (md+): single row — [Name flex-1][Qty w-110px][Info w-48px][Upgrade w-80px], h-48px
 type ProductItem = { name: string; qty: string; unit: string; hasUpgrade?: boolean };
 
-function ProductLineItem({ item }: { item: ProductItem }) {
+function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () => void }) {
   return (
-    <div className="bg-white border-t-[0.5px] border-[rgba(0,0,0,0.1)] flex gap-2 items-start py-3 w-full">
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`bg-white border-t-[0.5px] border-[rgba(0,0,0,0.1)] flex gap-2 items-start py-3 w-full ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
+    >
       {/* Thumbnail */}
       <div className="flex flex-col items-start p-[2px] rounded-[4px] shrink-0" style={{ width: 48, height: 48 }}>
         <div className="relative w-full aspect-square rounded-[2px] overflow-hidden">
@@ -525,12 +544,19 @@ function ProductLineItem({ item }: { item: ProductItem }) {
 function ProductsSection({
   products,
   selectedAddons,
+  onOpenProduct,
+  onOpenAddon,
 }: {
-  products: { name: string; qty: string; unit: string }[];
+  products: FenceProduct[];
   selectedAddons: AddonItem[];
+  /** Open the product detail sheet for a product in either category. */
+  onOpenProduct: (product: FenceProduct) => void;
+  /** Open the product detail sheet for a selected add-on (rendered inside the
+   *  Add-ons category at the bottom of Included Products). */
+  onOpenAddon: (addon: AddonItem) => void;
 }) {
   // Extra secondary category (always shown as demo data)
-  const secondaryItems: ProductItem[] = [
+  const secondaryItems: FenceProduct[] = [
     { name: 'Gate Hardware Set – Heavy Duty',  qty: '2',   unit: 'set' },
     { name: 'Concrete – Fast-Set 50lb',        qty: '24',  unit: 'bag' },
     { name: 'Wire Ties – Galvanised 9ga',      qty: '100', unit: 'ea.' },
@@ -543,14 +569,14 @@ function ProductsSection({
         <div className="flex flex-col items-start overflow-hidden w-full">
           <CategoryLabel name="Category Name" count={products.length} />
           {products.map((p, i) => (
-            <ProductLineItem key={i} item={p} />
+            <ProductLineItem key={i} item={p} onClick={() => onOpenProduct(p)} />
           ))}
         </div>
         {/* Category 2 */}
         <div className="flex flex-col items-start overflow-hidden w-full">
           <CategoryLabel name="Category Name" count={secondaryItems.length} />
           {secondaryItems.map((p, i) => (
-            <ProductLineItem key={i} item={p} />
+            <ProductLineItem key={i} item={p} onClick={() => onOpenProduct(p)} />
           ))}
         </div>
         {/* Add-ons category — only rendered when the user selected any
@@ -563,6 +589,7 @@ function ProductsSection({
               <ProductLineItem
                 key={a.id}
                 item={{ name: a.name, qty: a.qty, unit: a.unit }}
+                onClick={() => onOpenAddon(a)}
               />
             ))}
           </div>
@@ -1234,6 +1261,7 @@ export default function ProjectHubPageResponsive({
   option,
   onShowCover,
   addons = DEFAULT_ADDONS,
+  upgradeSelections = {},
   approvedAt = null,
 }: {
   option: FenceOption;
@@ -1241,6 +1269,12 @@ export default function ProjectHubPageResponsive({
   /** Shared addon selections from the Summary page. Selected items appear
    *  as a new "Add-ons" category inside Included Products. */
   addons?: AddonItem[];
+  /** Per-product upgrade selection map keyed by `${optionId}:${productName}`,
+   *  carried over from the Options/Summary pages. Used to resolve which
+   *  upgrade option to show when the user opens a line item's detail sheet
+   *  in Project Hub. The sheet is locked here — it only displays the chosen
+   *  option, never the swatch picker. */
+  upgradeSelections?: Record<string, string>;
   /** Timestamp the user approved the proposal (set in OptionsPageResponsive
    *  when the signature flow completes). Shown in the title block. */
   approvedAt?: Date | null;
@@ -1254,6 +1288,52 @@ export default function ProjectHubPageResponsive({
 
   // ── Selected addons (read-only on Project Hub) ─────────────────────────────
   const selectedAddons = addons.filter((a) => a.selected);
+
+  // ── Product Detail sheet ───────────────────────────────────────────────────
+  // Post-approval the proposal is locked, so the sheet always renders as the
+  // plain Type=Product variant — no upgrade swatches, no add-on toggle. For
+  // upgradeable products we resolve the user's chosen option (carried over
+  // via `upgradeSelections`) and surface that option's title + description
+  // instead of the generic product copy.
+  const [productDetail, setProductDetail] = useState<ProductDetailContent | null>(null);
+
+  const handleOpenProduct = useCallback(
+    (p: FenceProduct) => {
+      const qtyLabel = `${p.qty} ${p.unit}`;
+      const key = `${option.id}:${p.name}`;
+      const selectedUpgrade =
+        p.upgradeOptions && p.upgradeOptions.length > 0
+          ? p.upgradeOptions.find((o) => o.id === upgradeSelections[key]) ?? p.upgradeOptions[0]
+          : undefined;
+      setProductDetail({
+        kind: 'product',
+        category: selectedUpgrade?.title ?? p.name,
+        qtyLabel,
+        description:
+          selectedUpgrade?.description ??
+          p.description ??
+          'A quality component included in this option. Detailed specifications and product imagery for this line item will appear here.',
+        images: selectedUpgrade?.images,
+        includedLabel: 'Included in the scope',
+      });
+    },
+    [option.id, upgradeSelections]
+  );
+
+  const handleOpenAddon = useCallback(
+    (a: AddonItem) => {
+      setProductDetail({
+        kind: 'product',
+        category: a.name,
+        qtyLabel: `${a.qty} ${a.unit}`,
+        description:
+          ADDON_DESCRIPTIONS[a.id] ??
+          'An optional upgrade for this project. Details and product imagery for this add-on will appear here.',
+        includedLabel: 'Included in the scope',
+      });
+    },
+    []
+  );
 
   // ── Computed financials ────────────────────────────────────────────────────
   const financials = computeFinancials(option.baseMaterials, addons);
@@ -1487,7 +1567,12 @@ export default function ProjectHubPageResponsive({
               {/* ── Scope Details column ── */}
               <div className="flex flex-col gap-4 w-full lg:flex-[2_1_0] min-w-0">
                 <DrawingSection />
-                <ProductsSection products={option.products} selectedAddons={selectedAddons} />
+                <ProductsSection
+                  products={option.products}
+                  selectedAddons={selectedAddons}
+                  onOpenProduct={handleOpenProduct}
+                  onOpenAddon={handleOpenAddon}
+                />
                 {/* Back to Top — inside Scope Details on L+ */}
                 <div className="hidden lg:flex lg:justify-center">
                   <BackToTopButton onClick={scrollToTop} />
@@ -1549,6 +1634,16 @@ export default function ProjectHubPageResponsive({
         onConfirm={handlePaymentConfirmed}
         paymentResult={devConfig.paymentResult}
         paymentInfoInput={devConfig.paymentInfoInput}
+      />
+
+      {/* Product Detail bottom sheet — opened by clicking any line item in
+          Included Products. Always renders as the locked Type=Product variant
+          (no upgrade swatches, no add-on toggle) since the proposal has been
+          approved at this point. */}
+      <ProductDetailSheet
+        open={productDetail !== null}
+        content={productDetail}
+        onClose={() => setProductDetail(null)}
       />
     </div>
   );
