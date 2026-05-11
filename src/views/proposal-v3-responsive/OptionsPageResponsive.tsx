@@ -1588,6 +1588,7 @@ function OptionsPageContent() {
           <ProjectHubPageResponsive
             option={effectiveSelectedOption as SummaryFenceOption}
             addons={addons}
+            upgradeSelections={upgradeSelections}
             approvedAt={approvedAt}
             onShowCover={() => {
               setSelectedOption(null);

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useBodyScrollLock } from './useBodyScrollLock';
+import ScrollHintArrows from './ScrollHintArrows';
 
 // --- Assets -----------------------------------------------------------------
 const BASE = '/images/proposal-v3-responsive';
@@ -31,6 +32,11 @@ export type ProductDetailContent =
       qtyLabel: string;
       description: string;
       images?: string[];
+      /** Footer label below the description. Defaults to
+       *  "Included in this option" (matches the Options flow). Project Hub
+       *  overrides this to "Included in the scope" to fit its post-approval
+       *  vocabulary. */
+      includedLabel?: string;
     }
   | {
       kind: 'upgrade';
@@ -61,6 +67,14 @@ function formatPriceDelta(n: number): string {
   if (n === 0) return '+$0';
   const sign = n > 0 ? '+' : '-';
   return `${sign}$${Math.abs(n).toLocaleString()}`;
+}
+
+// Label preceding the price delta in the upgrade sheet. The baseline option
+// (priceDelta === 0) is "Standard Option"; everything above baseline is an
+// "Upgrade". Format: "Standard Option +$0" / "Upgrade +$450".
+function formatOptionPriceLabel(n: number): string {
+  const kind = n === 0 ? 'Standard Option' : 'Upgrade';
+  return `${kind} ${formatPriceDelta(n)}`;
 }
 
 // --- Sub-components ---------------------------------------------------------
@@ -192,6 +206,20 @@ export default function ProductDetailSheet({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  // Scroll viewport for the mobile bottom-sheet — observed by ScrollHintArrows
+  // so the bouncing chevrons appear when there's more content above/below.
+  const mobileScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Upgrade variant state — lifted up so the sticky mobile footer can mirror
+  // the active swatch in the scroll body. Resets to the freshly-opened
+  // upgrade's committed selection whenever the content swaps.
+  const [upgradeActiveId, setUpgradeActiveId] = useState<string>('');
+  useEffect(() => {
+    if (content?.kind === 'upgrade') {
+      setUpgradeActiveId(content.currentOptionId);
+    }
+  }, [content]);
+
   if (!last) return null;
 
   return (
@@ -211,14 +239,19 @@ export default function ProductDetailSheet({
         }}
       />
 
-      {/* Sheet (bottom-anchored, both mobile + desktop) */}
+      {/* Sheet (bottom-anchored, both mobile + desktop).
+          Max-height caps:
+            XS/S/M (<lg) — `100vh − 48px` so the floating PageHeader (h-12 =
+              48px) stays visible above the sheet. If the body still
+              overflows past that height, ScrollHintArrows show the bouncing
+              chevrons.
+            L+ — 90vh (unchanged; desktop has no fixed top bar to clear). */}
       <div
-        className="fixed left-0 right-0 bottom-0 z-[81] bg-white flex flex-col overflow-hidden"
+        className="fixed left-0 right-0 bottom-0 z-[81] bg-white flex flex-col overflow-hidden max-h-[calc(100vh-48px)] lg:max-h-[90vh]"
         style={{
           fontFamily: 'Segoe UI, sans-serif',
           borderTopLeftRadius: 12,
           borderTopRightRadius: 12,
-          maxHeight: '90vh',
           boxShadow: '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.20)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: open
@@ -228,17 +261,142 @@ export default function ProductDetailSheet({
         }}
       >
         {/* Desktop close button - anchored to top-right inside the sheet, 24px from edges.
-            Hidden on mobile (mobile uses the Close button at the bottom instead). */}
+            Hidden on mobile (mobile uses the Close button in the sticky footer instead). */}
         <div className="hidden lg:flex absolute top-0 right-0 pt-6 pr-6 z-10">
           <CloseButton onClick={onClose} />
         </div>
 
-        {/* Scrollable content area */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <SheetContent content={last} onClose={onClose} />
+        {/* Scrollable content area — wrapped in a `relative flex flex-col`
+            container so the bouncing scroll-hint arrows can anchor to the
+            scroll viewport's edges without affecting layout. */}
+        <div className="relative flex flex-col flex-1 min-h-0">
+          <div ref={mobileScrollRef} className="flex-1 min-h-0 overflow-y-auto">
+            <SheetContent
+              content={last}
+              onClose={onClose}
+              upgradeActiveId={upgradeActiveId}
+              setUpgradeActiveId={setUpgradeActiveId}
+            />
+          </div>
+          {/* Bouncing chevrons — mobile only; the desktop layout uses its
+              own column-anchored CTA and rarely overflows the sheet. */}
+          <div className="lg:hidden">
+            <ScrollHintArrows targetRef={mobileScrollRef} />
+          </div>
+        </div>
+
+        {/* Sticky footer — XS/S/M only. Hosts the variant-specific bottom
+            CTAs (Close on Product, Select+Close on Upgrade, Add/Remove+Close
+            on Add-on) so they remain visible even when the body content
+            overflows the viewport. */}
+        <div className="lg:hidden shrink-0 px-4 pt-4 pb-6 bg-white">
+          <SheetMobileFooter
+            content={last}
+            onClose={onClose}
+            upgradeActiveId={upgradeActiveId}
+          />
         </div>
       </div>
     </>
+  );
+}
+
+// --- Mobile sticky footer router ------------------------------------------
+// Renders the bottom-CTA stack for the currently-open variant. Lifted out of
+// each body so it can be pinned to the bottom of the sheet while the body
+// content scrolls behind it.
+function SheetMobileFooter({
+  content,
+  onClose,
+  upgradeActiveId,
+}: {
+  content: ProductDetailContent;
+  onClose: () => void;
+  /** Currently-previewed swatch (upgrade variant only). Sourced from the
+   *  sheet's lifted state so this footer mirrors what the body shows. */
+  upgradeActiveId: string;
+}) {
+  if (content.kind === 'product') {
+    return (
+      <button
+        onClick={onClose}
+        className="w-full h-10 bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
+      >
+        Close
+      </button>
+    );
+  }
+  if (content.kind === 'upgrade') {
+    return <UpgradeMobileFooter content={content} onClose={onClose} activeId={upgradeActiveId} />;
+  }
+  return <AddonMobileFooter content={content} onClose={onClose} />;
+}
+
+function UpgradeMobileFooter({
+  content,
+  onClose,
+  activeId,
+}: {
+  content: Extract<ProductDetailContent, { kind: 'upgrade' }>;
+  onClose: () => void;
+  activeId: string;
+}) {
+  const { options, currentOptionId, onSelect, readOnly } = content;
+  const active = options.find((o) => o.id === activeId) ?? options[0];
+  const isActiveTheCurrentSelection = active.id === currentOptionId;
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {!readOnly && (
+        isActiveTheCurrentSelection ? (
+          <div
+            className="h-10 w-full flex items-center justify-center gap-2 rounded-[2px]"
+            style={{ backgroundColor: '#bfbfbf' }}
+          >
+            <MiniCheckIcon />
+            <span className="text-[12px] text-white">Option Selected</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => onSelect(active.id)}
+            className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
+          >
+            Select This Option
+          </button>
+        )
+      )}
+      <button
+        onClick={onClose}
+        className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
+      >
+        Close
+      </button>
+    </div>
+  );
+}
+
+function AddonMobileFooter({
+  content,
+  onClose,
+}: {
+  content: Extract<ProductDetailContent, { kind: 'addon' }>;
+  onClose: () => void;
+}) {
+  const { selected, onToggle } = content;
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      <button
+        onClick={onToggle}
+        className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
+      >
+        {selected ? 'Remove' : 'Add'}
+      </button>
+      <button
+        onClick={onClose}
+        className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
+      >
+        Close
+      </button>
+    </div>
   );
 }
 
@@ -246,12 +404,26 @@ export default function ProductDetailSheet({
 function SheetContent({
   content,
   onClose,
+  upgradeActiveId,
+  setUpgradeActiveId,
 }: {
   content: ProductDetailContent;
   onClose: () => void;
+  /** Currently-previewed swatch for the upgrade variant. Lifted to the sheet
+   *  so the sticky mobile footer can mirror it. */
+  upgradeActiveId: string;
+  setUpgradeActiveId: (id: string) => void;
 }) {
   if (content.kind === 'product') return <ProductBody content={content} onClose={onClose} />;
-  if (content.kind === 'upgrade') return <UpgradeBody content={content} onClose={onClose} />;
+  if (content.kind === 'upgrade')
+    return (
+      <UpgradeBody
+        content={content}
+        onClose={onClose}
+        activeId={upgradeActiveId}
+        setActiveId={setUpgradeActiveId}
+      />
+    );
   return <AddonBody content={content} onClose={onClose} />;
 }
 
@@ -263,7 +435,8 @@ function ProductBody({
   content: Extract<ProductDetailContent, { kind: 'product' }>;
   onClose: () => void;
 }) {
-  const { category, qtyLabel, description, images } = content;
+  const { category, qtyLabel, description, images, includedLabel } = content;
+  const includedText = includedLabel ?? 'Included in this option';
   const hasImages = !!images && images.length > 0;
   const [activeImage, setActiveImage] = useState(0);
 
@@ -293,19 +466,12 @@ function ProductBody({
         </div>
 
         <p className="text-[12px] text-[#737373]" style={{ letterSpacing: '-0.48px' }}>
-          Included in this option
+          {includedText}
         </p>
-
-        <button
-          onClick={onClose}
-          className="w-full h-10 bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-        >
-          Close
-        </button>
       </div>
 
       {/* Desktop (lg+) */}
-      <div className="hidden lg:flex gap-8 px-12 py-12 w-full items-start">
+      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1440px] mx-auto items-start">
         {/* Left column - image / placeholder */}
         <div className="flex-[8] min-w-0 flex flex-col gap-3">
           {hasImages ? (
@@ -355,7 +521,7 @@ function ProductBody({
             <p className="text-[12px] text-[#262626] font-light whitespace-pre-line">{description}</p>
           </div>
           <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
-            Included in this option
+            {includedText}
           </p>
         </div>
       </div>
@@ -367,18 +533,23 @@ function ProductBody({
 function UpgradeBody({
   content,
   onClose,
+  activeId,
+  setActiveId,
 }: {
   content: Extract<ProductDetailContent, { kind: 'upgrade' }>;
   onClose: () => void;
+  /** Currently-previewed swatch — controlled by the sheet so the sticky
+   *  mobile footer can mirror this value. */
+  activeId: string;
+  setActiveId: (id: string) => void;
 }) {
   const { category, qtyLabel, options, currentOptionId, onSelect, readOnly } = content;
 
-  // Local "active" option = which option is being previewed in the sheet
-  const [activeId, setActiveId] = useState(currentOptionId);
   const active = options.find((o) => o.id === activeId) ?? options[0];
   const isActiveTheCurrentSelection = active.id === currentOptionId;
 
-  // Per-option hero image index
+  // Per-option hero image index — local; resets whenever the active swatch
+  // changes via handleSwatchClick.
   const [imgIdx, setImgIdx] = useState(0);
   const activeImages = active.images ?? [];
   const hasImages = activeImages.length > 0;
@@ -439,12 +610,11 @@ function UpgradeBody({
           style={{ borderBottom: '0.5px solid rgba(0,0,0,0.1)' }}
         >
           <div className="flex flex-col gap-1">
-            <p className="text-[16px] font-semibold text-[#262626]">{category}</p>
-            <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
+            <p className="text-[14px] md:text-[16px] font-semibold text-[#262626]">{category}</p>
+            <p className="text-[14px] md:text-[16px] text-[#737373] tracking-[-0.04em]">
               {qtyLabel}
             </p>
           </div>
-          <p className="text-[12px] text-[#262626] font-light">Select your product option</p>
           <div className="flex gap-[10px] items-center">
             {options.map((opt) => {
               const selected = opt.id === activeId;
@@ -477,6 +647,11 @@ function UpgradeBody({
               );
             })}
           </div>
+          {/* Price label for the currently-active swatch — typography matches
+              the qty line ("24 ea.") above so the two read as a pair. */}
+          <p className="text-[14px] md:text-[16px] text-[#737373] tracking-[-0.04em]">
+            {formatOptionPriceLabel(active.priceDelta)}
+          </p>
         </div>
 
         {/* Active option title + description */}
@@ -487,41 +662,10 @@ function UpgradeBody({
           <p className="text-[12px] text-[#262626] font-light">{active.description}</p>
         </div>
 
-        {/* Price delta */}
-        <p className="text-[20px] text-[#262626] font-light">{formatPriceDelta(active.priceDelta)}</p>
-
-        {/* Buttons — in readOnly mode only the Close button is shown
-            (browse-only context, e.g. the Options comparison table). */}
-        <div className="flex flex-col gap-2 w-full">
-          {!readOnly && (
-            isActiveTheCurrentSelection ? (
-              <div
-                className="h-10 w-full flex items-center justify-center gap-2 rounded-[2px]"
-                style={{ backgroundColor: '#bfbfbf' }}
-              >
-                <MiniCheckIcon />
-                <span className="text-[12px] text-white">Option Selected</span>
-              </div>
-            ) : (
-              <button
-                onClick={handleSelectThisOption}
-                className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-              >
-                Select This Option
-              </button>
-            )
-          )}
-          <button
-            onClick={onClose}
-            className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-          >
-            Close
-          </button>
-        </div>
       </div>
 
       {/* Desktop (lg+) */}
-      <div className="hidden lg:flex gap-8 px-12 py-12 w-full items-start">
+      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1440px] mx-auto items-start">
         {/* Left column: hero + thumbs */}
         <div className="flex-[8] min-w-0 flex flex-col gap-3">
           {hasImages ? (
@@ -572,7 +716,6 @@ function UpgradeBody({
                   {qtyLabel}
                 </p>
               </div>
-              <p className="text-[14px] xl:text-[16px] text-[#262626] font-light">Select your product option</p>
               <div className="flex gap-[10px] items-center">
                 {options.map((opt) => {
                   const selected = opt.id === activeId;
@@ -605,6 +748,12 @@ function UpgradeBody({
                   );
                 })}
               </div>
+              {/* Price label for the currently-active swatch — typography
+                  matches the qty line ("24 ea.") above so the two read as a
+                  pair. */}
+              <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
+                {formatOptionPriceLabel(active.priceDelta)}
+              </p>
             </div>
 
             {/* Active option title + description */}
@@ -614,35 +763,32 @@ function UpgradeBody({
               </p>
               <p className="text-[14px] xl:text-[16px] text-[#262626] font-light">{active.description}</p>
             </div>
-
-            {/* Price delta */}
-            <p className="text-[24px] text-[#262626] font-light">{formatPriceDelta(active.priceDelta)}</p>
           </div>
 
-          {/* CTA — omitted in readOnly mode (browse-only context). The
-              `mt-auto` anchors it to the bottom of the right column so it
-              sits flush with the bottom of the image on the left, even when
-              the description text is short. */}
+          {/* CTA — anchored to the bottom of the right column via `mt-auto`
+              so it sits flush with the bottom of the image on the left, even
+              when the description text is short. Omitted in readOnly mode
+              (browse-only context). */}
           {!readOnly && (
-            <button
-              onClick={handleSelectThisOption}
-              disabled={isActiveTheCurrentSelection}
-              className="flex items-center justify-center rounded-[4px] cursor-pointer mt-auto self-start"
-              style={{
-                height: 44,
-                padding: '6px 16px',
-                backgroundColor: isActiveTheCurrentSelection ? '#737373' : '#262626',
-                color: isActiveTheCurrentSelection ? '#333' : '#fff',
-                fontFamily: 'Roboto, sans-serif',
-                fontWeight: 600,
-                fontSize: 14,
-                lineHeight: '18px',
-                cursor: isActiveTheCurrentSelection ? 'default' : 'pointer',
-              }}
-            >
-              {isActiveTheCurrentSelection ? 'Option Selected' : 'Select This Option'}
-            </button>
-          )}
+              <button
+                onClick={handleSelectThisOption}
+                disabled={isActiveTheCurrentSelection}
+                className="flex items-center justify-center rounded-[4px] cursor-pointer mt-auto w-full"
+                style={{
+                  height: 44,
+                  padding: '6px 16px',
+                  backgroundColor: isActiveTheCurrentSelection ? '#737373' : '#262626',
+                  color: isActiveTheCurrentSelection ? '#333' : '#fff',
+                  fontFamily: 'Roboto, sans-serif',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  lineHeight: '18px',
+                  cursor: isActiveTheCurrentSelection ? 'default' : 'pointer',
+                }}
+              >
+                {isActiveTheCurrentSelection ? 'Option Selected' : 'Select This Option'}
+              </button>
+            )}
         </div>
       </div>
     </div>
@@ -702,25 +848,10 @@ function AddonBody({
           <span className="text-[12px] text-[#bfbfbf]">|</span>
           <span className="text-[12px] text-[#262626] font-light">{formatPriceDelta(priceDelta)}</span>
         </button>
-
-        <div className="flex flex-col gap-2 w-full">
-          <button
-            onClick={onToggle}
-            className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-          >
-            {selected ? 'Remove' : 'Add'}
-          </button>
-          <button
-            onClick={onClose}
-            className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-          >
-            Close
-          </button>
-        </div>
       </div>
 
       {/* Desktop (lg+) */}
-      <div className="hidden lg:flex gap-8 px-12 py-12 w-full items-start">
+      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1440px] mx-auto items-start">
         {/* Left column: image / placeholder */}
         <div className="flex-[8] min-w-0">
           {hasImages ? (
