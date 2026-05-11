@@ -378,7 +378,7 @@ function ProductBody({
           <p className="text-[12px] sm:text-[14px] text-[#262626] font-light whitespace-pre-line">{description}</p>
         </div>
 
-        <p className="text-[12px] md:text-[16px] text-[#737373] tracking-[-0.04em]">
+        <p className="text-[12px] sm:text-[14px] md:text-[16px] text-[#737373] tracking-[-0.04em]">
           {includedText}
         </p>
       </div>
