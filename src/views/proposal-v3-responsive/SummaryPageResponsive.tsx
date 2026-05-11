@@ -520,11 +520,26 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
 // ── Included Products section ─────────────────────────────────────────────────
 function ProductsSection({
   products,
+  upgradeSelections,
   onOpenDetail,
 }: {
   products: ProductItem[];
+  /** Per-product upgrade selection map keyed by `item.name`. When a product
+   *  has been swapped to a non-default option, the line item displays that
+   *  option's title instead of the generic product name. */
+  upgradeSelections: Record<string, string>;
   onOpenDetail?: (item: ProductItem) => void;
 }) {
+  // Resolve which label the line item should render: if the product has
+  // upgrade options, surface the currently-selected option's title. Falls
+  // back to the default (first) option's title when the user hasn't
+  // explicitly picked one yet, and finally to the generic product name.
+  const resolveLabel = (p: ProductItem): string => {
+    if (!p.upgradeOptions || p.upgradeOptions.length === 0) return p.name;
+    const selectedId = upgradeSelections[p.name] ?? p.upgradeOptions[0].id;
+    const selectedOption = p.upgradeOptions.find((o) => o.id === selectedId);
+    return selectedOption?.title ?? p.name;
+  };
   // Extra secondary category (always shown as demo data). The two upgradeable
   // items carry fabricated `upgradeOptions` so clicking them opens the same
   // Upgrade variant (with swatches + Select CTA) as the primary products.
@@ -603,7 +618,7 @@ function ProductsSection({
           {primaryItems.map((p, i) => (
             <ProductLineItem
               key={i}
-              item={p}
+              item={{ ...p, name: resolveLabel(p) }}
               onClick={onOpenDetail ? () => onOpenDetail(p) : undefined}
             />
           ))}
@@ -614,7 +629,7 @@ function ProductsSection({
           {secondaryItems.map((p, i) => (
             <ProductLineItem
               key={i}
-              item={p}
+              item={{ ...p, name: resolveLabel(p) }}
               onClick={onOpenDetail ? () => onOpenDetail(p) : undefined}
             />
           ))}
@@ -1216,7 +1231,13 @@ export default function SummaryPageResponsive({
         currentOptionId,
         onSelect: (id) => {
           setUpgradeSelections((prev) => ({ ...prev, [p.name]: id }));
-          setProductDetail(null);
+          // Keep the sheet open and switch the CTA to its "Option Selected"
+          // state so the user can continue browsing the other swatches.
+          setProductDetail((prev) =>
+            prev && prev.kind === 'upgrade'
+              ? { ...prev, currentOptionId: id }
+              : prev
+          );
         },
       });
       return;
@@ -1379,7 +1400,11 @@ export default function SummaryPageResponsive({
           {/* ── Scope Details column ── */}
           <div className="flex flex-col gap-4 w-full lg:flex-[2_1_0] min-w-0">
             <DrawingSection />
-            <ProductsSection products={option.products} onOpenDetail={openProductDetail} />
+            <ProductsSection
+              products={option.products}
+              upgradeSelections={upgradeSelections}
+              onOpenDetail={openProductDetail}
+            />
             <AddonsSection
               addons={addons}
               onToggle={toggleAddon}
