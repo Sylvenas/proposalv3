@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import { ContactSalesModal } from './SalesContactCard';
+import { PhoneIcon } from './SvgIcons';
 import ProductDetailSheet, {
   NoImageThumb,
   type ProductDetailContent,
@@ -898,7 +899,7 @@ function ContactSalesButton() {
         aria-expanded={open}
         className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
       >
-        <img src={IMG_PHONE} alt="" style={{ width: 24, height: 22, flexShrink: 0 }} />
+        <PhoneIcon size={22} />
         <span
           className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
           style={{ lineHeight: '18px' }}

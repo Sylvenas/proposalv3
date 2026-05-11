@@ -22,6 +22,7 @@ import { useDevConsole } from './DevConsoleContext';
 import { ContactSalesModal } from './SalesContactCard';
 import ProductDetailSheet, { type ProductDetailContent } from './ProductDetailSheet';
 import { ADDON_DESCRIPTIONS, type FenceProduct } from './SummaryPageResponsive';
+import { PhoneIcon } from './SvgIcons';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -1190,7 +1191,7 @@ function ProjectHomeDetails({
             className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
           >
             <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-              <img src={IMG_PHONE} alt="" style={{ width: 20, height: 18 }} />
+              <PhoneIcon size={18} />
             </div>
             <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
               Contact Sales

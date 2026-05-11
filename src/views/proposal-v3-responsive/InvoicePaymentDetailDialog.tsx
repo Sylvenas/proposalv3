@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ScrollHintArrows from './ScrollHintArrows';
 import { useBodyScrollLock } from './useBodyScrollLock';
 import { SalesContactCardContent } from './SalesContactCard';
+import { PhoneIcon } from './SvgIcons';
 
 // useLayoutEffect on the server is a noop and triggers a warning during SSR;
 // fall back to useEffect for the SSR pass to keep the console clean. The
@@ -181,20 +182,6 @@ function LockIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-// Phone icon — uses the same `phone.svg` asset as the Summary / Project Hub
-// Contact Sales buttons so the visual treatment is consistent everywhere
-// the action is offered. The asset's natural viewBox is 24×22; the
-// height/width below preserve that aspect ratio at the requested size.
-function PhoneIcon({ size = 16 }: { size?: number }) {
-  return (
-    <img
-      src="/images/proposal-v3-responsive/phone.svg"
-      alt=""
-      aria-hidden="true"
-      style={{ width: (size * 24) / 22, height: size, flexShrink: 0 }}
-    />
-  );
-}
 
 // ─── Field row (label + value) ───────────────────────────────────────────────
 function FieldRow({

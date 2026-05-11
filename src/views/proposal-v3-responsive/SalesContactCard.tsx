@@ -10,11 +10,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBodyScrollLock } from './useBodyScrollLock';
-
-// Asset paths — duplicated locally so this card stays self-contained.
-const BASE = '/images/proposal-v3-responsive';
-const IMG_PHONE = `${BASE}/phone.svg`;
-const IMG_EMAIL = `${BASE}/email.svg`;
+import { PhoneIcon, EmailIcon } from './SvgIcons';
 
 // Mock sales contact details — single source of truth, imported by every
 // caller via this file's named exports.
@@ -67,13 +63,13 @@ export function SalesContactCardContent({
   );
 
   const Row = ({
-    iconSrc,
+    icon,
     label,
     value,
     href,
     isLast,
   }: {
-    iconSrc: string;
+    icon: React.ReactNode;
     label: string;
     value: string;
     href: string;
@@ -97,7 +93,7 @@ export function SalesContactCardContent({
           background: '#f5f5f5',
         }}
       >
-        <img src={iconSrc} alt="" style={{ width: 18, height: 16, flexShrink: 0 }} />
+        {icon}
       </div>
       <div className="flex flex-col min-w-0 flex-1">
         <span className="text-[12px] text-[#737373] leading-normal">{label}</span>
@@ -143,13 +139,13 @@ export function SalesContactCardContent({
 
       <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
         <Row
-          iconSrc={IMG_EMAIL}
+          icon={<EmailIcon size={16} />}
           label="Email"
           value={SALES_EMAIL}
           href={`mailto:${SALES_EMAIL}`}
         />
         <Row
-          iconSrc={IMG_PHONE}
+          icon={<PhoneIcon size={16} />}
           label="Phone"
           value={SALES_PHONE_DISPLAY}
           href={`tel:${SALES_PHONE}`}

@@ -566,8 +566,11 @@ function UpgradeBody({
                       by the Add-on line item, tucked into the swatch's
                       bottom-left corner with a comfortable inset from the
                       thumbnail edge. Replaces the old "Option Selected"
-                      pill below the sheet. */}
-                  {committed && (
+                      pill below the sheet. Hidden in readOnly mode (the
+                      comparison-table browser) where there is no concept of
+                      a committed selection — the sheet just lets the user
+                      flip through option details. */}
+                  {committed && !readOnly && (
                     <div className="absolute" style={{ left: 5, bottom: 5 }}>
                       <Checkbox checked={true} />
                     </div>
@@ -690,8 +693,10 @@ function UpgradeBody({
                       {/* Committed-selection marker — same 20×20 Checkbox
                           used by the Add-on line item, tucked into the
                           swatch's bottom-left corner with a comfortable inset
-                          from the thumbnail edge. */}
-                      {committed && (
+                          from the thumbnail edge. Hidden in readOnly mode
+                          (comparison-table browser) where there is no concept
+                          of a committed selection. */}
+                      {committed && !readOnly && (
                         <div className="absolute" style={{ left: 5, bottom: 5 }}>
                           <Checkbox checked={true} />
                         </div>
