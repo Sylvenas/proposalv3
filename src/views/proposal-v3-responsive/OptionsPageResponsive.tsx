@@ -14,6 +14,11 @@ import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import { DevConsoleProvider, useDevConsole } from './DevConsoleContext';
 import DevConsole from './DevConsole';
+import ProductDetailSheet, {
+  NoImageThumb,
+  type ProductDetailContent,
+  type UpgradeOption,
+} from './ProductDetailSheet';
 
 // ── Equal-height hook ─────────────────────────────────────────────────────────
 // For each [data-card-container], finds all [data-card-section="X"] elements,
@@ -76,6 +81,17 @@ const IMG_HEADER_USER    = `${BASE}/header-user.svg`;
 const IMG_COVER_LOGO     = `${BASE}/cover-logo.webp`;
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
+type FenceProduct = {
+  name: string;
+  qty: string;
+  unit: string;
+  /** Long-form description shown in the Product Detail sheet. */
+  description?: string;
+  /** When set, the product is "upgradeable" — clicking opens the Upgrade Detail
+   *  sheet so the user can swap to a different option. */
+  upgradeOptions?: UpgradeOption[];
+};
+
 type FenceOption = {
   id: number;
   label: string;
@@ -85,7 +101,7 @@ type FenceOption = {
   contractTotal: string;
   monthly: string;
   image: string;
-  products: { name: string; qty: string; unit: string }[];
+  products: FenceProduct[];
   /** Base materials cost (before any addons) used to compute dynamic financials on Summary page. */
   baseMaterials: number;
 };
@@ -107,7 +123,34 @@ const ALL_OPTIONS: FenceOption[] = [
     baseMaterials: 8397,
     products: [
       { name: 'Chain Link Fabric', qty: '960', unit: 'sqf.' },
-      { name: 'Line Posts', qty: '24', unit: 'ea.' },
+      {
+        name: 'Line Posts',
+        qty: '24',
+        unit: 'ea.',
+        upgradeOptions: [
+          {
+            id: 'line-1-5',
+            title: '1⅝" Light-Duty Galvanized Line Posts',
+            description:
+              'Cost-effective galvanized line posts at the most common residential gauge. The thinner 1⅝" diameter is well-suited to short runs and yards without high wind exposure.',
+            priceDelta: 0,
+          },
+          {
+            id: 'line-2',
+            title: '2" Standard Galvanized Line Posts',
+            description:
+              'The most popular gauge for chain-link runs of any meaningful length. The 2" diameter improves rigidity and lifetime versus light-duty stock without a significant cost premium.',
+            priceDelta: 120,
+          },
+          {
+            id: 'line-2-5',
+            title: '2½" Commercial-Grade Line Posts',
+            description:
+              'Heavier wall thickness and a larger 2½" profile for commercial yards, perimeter security, or sites with sustained wind load. Pairs well with heavier-gauge top rail.',
+            priceDelta: 280,
+          },
+        ],
+      },
       { name: 'Top Rail', qty: '320', unit: 'lf.' },
       { name: 'Hardware & Fittings', qty: '1', unit: 'set' },
     ],
@@ -124,8 +167,41 @@ const ALL_OPTIONS: FenceOption[] = [
     // baseMaterials: 9745 → discount $487 → afterDisc $9,258 → tax $741 → total $9,999
     baseMaterials: 9745,
     products: [
-      { name: 'Vinyl Panels', qty: '960', unit: 'sqf.' },
-      { name: 'Vinyl Posts', qty: '24', unit: 'ea.' },
+      {
+        name: 'Vinyl Panels',
+        qty: '960',
+        unit: 'sqf.',
+        description:
+          "A durable white vinyl fence panel designed for a clean, low-maintenance privacy fence. The 4'×6' panel format provides solid coverage while keeping the overall fence profile modest and residential-friendly. Its bright white finish creates a classic look and resists rot, peeling, and frequent repainting.",
+      },
+      {
+        name: 'Vinyl Posts',
+        qty: '24',
+        unit: 'ea.',
+        upgradeOptions: [
+          {
+            id: 'std-4x4',
+            title: '4"×4" Standard White Vinyl Line Posts',
+            description:
+              'A clean, low-maintenance post option for standard fence runs. The 4" × 4" profile provides a simple residential look and pairs well with matching white vinyl panels, while the durable PVC construction helps resist moisture, rot, and repainting needs.',
+            priceDelta: 0,
+          },
+          {
+            id: 'std-5x5',
+            title: '5"×5" Heavy-Duty White Vinyl Posts',
+            description:
+              'A heavier-gauge post option for fence runs that need extra rigidity. The 5" × 5" profile resists wind load better than standard line posts and pairs well with taller panels or longer spans.',
+            priceDelta: 220,
+          },
+          {
+            id: 'premium-alum',
+            title: '5" × 5" Premium Aluminum-Insert Vinyl Posts',
+            description:
+              'A premium post option with an internal aluminum insert for added strength and long-term durability. The taller 7′ height provides additional embedment depth and stability, making it a strong choice for gates, corners, and higher-stress sections of the fence while maintaining the classic low-maintenance white vinyl finish.',
+            priceDelta: 480,
+          },
+        ],
+      },
       { name: 'Post Caps', qty: '24', unit: 'ea.' },
       { name: 'Hardware & Fittings', qty: '1', unit: 'set' },
     ],
@@ -143,7 +219,34 @@ const ALL_OPTIONS: FenceOption[] = [
     baseMaterials: 12164,
     products: [
       { name: 'Aluminum Panels', qty: '960', unit: 'sqf.' },
-      { name: 'Aluminum Posts', qty: '24', unit: 'ea.' },
+      {
+        name: 'Aluminum Posts',
+        qty: '24',
+        unit: 'ea.',
+        upgradeOptions: [
+          {
+            id: 'alum-2x2-black',
+            title: '2"×2" Standard Black Aluminum Posts',
+            description:
+              'The default residential post profile in matte black. A clean, ornamental look that pairs naturally with the matching panels and resists rust on long, exposed runs.',
+            priceDelta: 0,
+          },
+          {
+            id: 'alum-2-5-bronze',
+            title: '2½"×2½" Architectural Bronze Posts',
+            description:
+              'A slightly heavier profile finished in textured bronze for a warmer, more architectural look. Best for projects where the fence is a visible front-yard feature.',
+            priceDelta: 340,
+          },
+          {
+            id: 'alum-3-hd',
+            title: '3"×3" Heavy-Duty Black Posts',
+            description:
+              'A commercial-grade post for tall sections, gate openings, and exposed corners. The extra wall thickness handles taller panels and gate hardware without flex.',
+            priceDelta: 520,
+          },
+        ],
+      },
       { name: 'Finials & Decorative', qty: '96', unit: 'ea.' },
       { name: 'Hardware & Fittings', qty: '1', unit: 'set' },
     ],
@@ -162,7 +265,34 @@ const ALL_OPTIONS: FenceOption[] = [
     baseMaterials: 10527,
     products: [
       { name: 'Wood Pickets', qty: '960', unit: 'sqf.' },
-      { name: 'Wood Posts', qty: '24', unit: 'ea.' },
+      {
+        name: 'Wood Posts',
+        qty: '24',
+        unit: 'ea.',
+        upgradeOptions: [
+          {
+            id: 'wood-pt-pine',
+            title: '4"×4" Pressure-Treated Pine Posts',
+            description:
+              'The standard residential post — pressure-treated southern yellow pine. Affordable, easy to source, and resistant to rot when set in concrete.',
+            priceDelta: 0,
+          },
+          {
+            id: 'wood-cedar',
+            title: '4"×4" Western Red Cedar Posts',
+            description:
+              'A natural rot- and insect-resistant cedar post. Ages to a soft silver-gray when left unfinished and pairs beautifully with cedar pickets.',
+            priceDelta: 240,
+          },
+          {
+            id: 'wood-cedar-6',
+            title: '6"×6" Premium Cedar Posts',
+            description:
+              'A heavier 6"×6" cedar post for taller privacy fences, gate frames, and corner runs. The larger cross-section adds rigidity and a more substantial look.',
+            priceDelta: 520,
+          },
+        ],
+      },
       { name: 'Top & Bottom Rails', qty: '320', unit: 'lf.' },
       { name: 'Hardware & Fittings', qty: '1', unit: 'set' },
     ],
@@ -621,25 +751,30 @@ function ProductLineItem({
   qty,
   unit,
   showThumb,
+  onClick,
+  isUpgradeable,
 }: {
   name: string;
   qty: string;
   unit: string;
   showThumb?: boolean;
+  onClick?: () => void;
+  /** When true, shows a "Change" pill on the row instead of just the info icon. */
+  isUpgradeable?: boolean;
 }) {
   return (
     <div
-      className="flex gap-3 items-start bg-white border-t border-t-[rgba(0,0,0,0.1)] w-full py-3"
+      className={`flex gap-3 items-start bg-white border-t border-t-[rgba(0,0,0,0.1)] w-full py-3 ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
       style={{ borderTopWidth: '0.5px' }}
+      onClick={onClick}
     >
-      {/* Thumbnail — only on desktop (lg+) */}
+      {/* Thumbnail — only on desktop (lg+). No-image fallback (light gray bg +
+          white logo) matches the big hero placeholder in the detail sheet. */}
       {showThumb && (
-        <div className="hidden lg:flex flex-col items-start p-0.5 rounded shrink-0 w-12 h-12">
-          <img
-            src={IMG_PRODUCT_THUMB}
-            alt=""
-            className="w-full h-full object-cover rounded-[2px]"
-          />
+        <div className="hidden lg:flex">
+          <NoImageThumb size={48} />
         </div>
       )}
       <div className="flex flex-col gap-1 flex-1 min-w-0 pr-1">
@@ -653,9 +788,18 @@ function ProductLineItem({
               {name}
             </p>
           </div>
-          <div className="flex items-center justify-center shrink-0 w-6 h-6">
-            <img src={IMG_INFO_ICON} alt="" className="w-[16.3px] h-[16.3px]" />
-          </div>
+          {isUpgradeable ? (
+            <div
+              className="flex items-center justify-center shrink-0 h-6 px-2 rounded-[2px] border border-solid border-[#262626] text-[12px] text-[#262626]"
+              style={{ fontFamily: 'Segoe UI, sans-serif' }}
+            >
+              Change
+            </div>
+          ) : (
+            <div className="flex items-center justify-center shrink-0 w-6 h-6">
+              <img src={IMG_INFO_ICON} alt="" className="w-[16.3px] h-[16.3px]" />
+            </div>
+          )}
         </div>
         {/* Quantity */}
         <div className="flex items-center">
@@ -1069,6 +1213,56 @@ function OptionsPageContent() {
   // approves and navigates to Project Hub (which renders selected addons as a
   // new "Add-ons" category in the Included Products list).
   const [addons, setAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
+
+  // ── Product Detail sheet state ─────────────────────────────────────────────
+  // Opened by clicking a product line item in the comparison section. Three
+  // variants render off the same sheet: Product / Upgrade / Add-on.
+  const [productDetail, setProductDetail] = useState<ProductDetailContent | null>(null);
+  // Per-product selection of the upgrade option, keyed by `${optionId}:${productName}`.
+  // The first option in `upgradeOptions` is the baseline (no override needed).
+  const [upgradeSelections, setUpgradeSelections] = useState<Record<string, string>>({});
+
+  const upgradeKey = (optId: number, productName: string) => `${optId}:${productName}`;
+
+  const openProductDetail = (
+    optId: number,
+    p: FenceProduct,
+    opts?: { readOnly?: boolean }
+  ) => {
+    const qtyLabel = `${p.qty} ${p.unit}`;
+    // Upgrade variant whenever the product has options. The comparison-table
+    // caller passes readOnly so the sheet is browse-only (no Select CTA).
+    if (p.upgradeOptions && p.upgradeOptions.length > 0) {
+      const key = upgradeKey(optId, p.name);
+      const currentOptionId = upgradeSelections[key] ?? p.upgradeOptions[0].id;
+      setProductDetail({
+        kind: 'upgrade',
+        category: p.name,
+        qtyLabel,
+        options: p.upgradeOptions,
+        currentOptionId,
+        readOnly: opts?.readOnly,
+        onSelect: (id) => {
+          setUpgradeSelections((prev) => ({ ...prev, [key]: id }));
+          setProductDetail(null);
+        },
+      });
+      return;
+    }
+    // For products without their own description, fall back to the default
+    // (= first) upgrade option's description so upgradeable products still
+    // surface meaningful copy when opened via Product variant.
+    const fallbackFromUpgrade = p.upgradeOptions?.[0]?.description;
+    setProductDetail({
+      kind: 'product',
+      category: p.name,
+      qtyLabel,
+      description:
+        p.description ??
+        fallbackFromUpgrade ??
+        'A quality component included in this option. Detailed specifications and product imagery for this line item will appear here.',
+    });
+  };
   // ── Section 1 horizontal-scroll state ──────────────────────────────────────
   // Tracks:
   //   1. Per-option full-visibility (drives OverflowNavigation's indicator
@@ -1711,6 +1905,11 @@ function OptionsPageContent() {
                     qty={p.qty}
                     unit={p.unit}
                     showThumb
+                    // No Change pill in the comparison row (intentional — keeps
+                    // the table visually uniform). Clicking still opens the
+                    // Upgrade variant when the product has options, but in
+                    // read-only mode (no Select CTA) — comparison is browse-only.
+                    onClick={() => openProductDetail(opt.id, p, { readOnly: true })}
                   />
                 ))}
               </div>
@@ -1762,6 +1961,15 @@ function OptionsPageContent() {
 
       </div>
       </div>
+
+      {/* Product Detail bottom sheet — opened by clicking a product line item in
+          the comparison section. Closed via backdrop, X (desktop), Close (mobile),
+          or Escape. */}
+      <ProductDetailSheet
+        open={!!productDetail}
+        content={productDetail}
+        onClose={() => setProductDetail(null)}
+      />
     </div>
   );
 }

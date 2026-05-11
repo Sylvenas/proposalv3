@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import { ContactSalesModal } from './SalesContactCard';
+import ProductDetailSheet, {
+  NoImageThumb,
+  type ProductDetailContent,
+  type UpgradeOption,
+} from './ProductDetailSheet';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -27,6 +32,14 @@ const IMG_DOWNLOAD          = `${BASE}/download.svg`;
 const IMG_CHECKMARK         = `${BASE}/checkmark.svg`;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+export type FenceProduct = {
+  name: string;
+  qty: string;
+  unit: string;
+  description?: string;
+  upgradeOptions?: UpgradeOption[];
+};
+
 export type FenceOption = {
   id: number;
   label: string;
@@ -36,7 +49,7 @@ export type FenceOption = {
   contractTotal: string;
   monthly: string;
   image: string;
-  products: { name: string; qty: string; unit: string }[];
+  products: FenceProduct[];
   /** Base materials cost (before any addons) used to compute dynamic financials. */
   baseMaterials: number;
 };
@@ -393,21 +406,25 @@ function CategoryLabel({ name, count }: { name: string; count: number }) {
 // ── Product line item ─────────────────────────────────────────────────────────
 // Mobile (< md): name + info on row 1, qty on row 2, upgrade on row 3
 // Desktop (md+): single row — [Name flex-1][Qty w-110px][Info w-48px][Upgrade w-80px], h-48px
-type ProductItem = { name: string; qty: string; unit: string; hasUpgrade?: boolean };
+type ProductItem = {
+  name: string;
+  qty: string;
+  unit: string;
+  hasUpgrade?: boolean;
+  description?: string;
+  upgradeOptions?: UpgradeOption[];
+};
 
-function ProductLineItem({ item }: { item: ProductItem }) {
+function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () => void }) {
   return (
-    <div className="bg-white border-t-[0.5px] border-[rgba(0,0,0,0.1)] flex gap-2 items-start py-3 w-full">
+    <div
+      className={`bg-white border-t-[0.5px] border-[rgba(0,0,0,0.1)] flex gap-2 items-start py-3 w-full ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
+      onClick={onClick}
+    >
       {/* Thumbnail */}
-      <div className="flex flex-col items-start p-[2px] rounded-[4px] shrink-0" style={{ width: 48, height: 48 }}>
-        <div className="relative w-full aspect-square rounded-[2px] overflow-hidden">
-          <img
-            src={IMG_PRODUCT_THUMB}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover rounded-[2px]"
-          />
-        </div>
-      </div>
+      <NoImageThumb size={48} />
 
       {/* Mobile layout (< md): stacked rows */}
       <div className="flex md:hidden flex-[1_0_0] flex-col gap-1 items-start min-w-0 pr-1">
@@ -490,29 +507,105 @@ function ProductLineItem({ item }: { item: ProductItem }) {
 }
 
 // ── Included Products section ─────────────────────────────────────────────────
-function ProductsSection({ products }: { products: { name: string; qty: string; unit: string }[] }) {
-  // Extra secondary category (always shown as demo data)
+function ProductsSection({
+  products,
+  onOpenDetail,
+}: {
+  products: ProductItem[];
+  onOpenDetail?: (item: ProductItem) => void;
+}) {
+  // Extra secondary category (always shown as demo data). The two upgradeable
+  // items carry fabricated `upgradeOptions` so clicking them opens the same
+  // Upgrade variant (with swatches + Select CTA) as the primary products.
   const secondaryItems: ProductItem[] = [
-    { name: 'Gate Hardware Set – Heavy Duty',  qty: '2',   unit: 'set', hasUpgrade: true },
-    { name: 'Concrete – Fast-Set 50lb',        qty: '24',  unit: 'bag' },
-    { name: 'Wire Ties – Galvanised 9ga',      qty: '100', unit: 'ea.', hasUpgrade: true },
+    {
+      name: 'Gate Hardware Set – Heavy Duty',
+      qty: '2',
+      unit: 'set',
+      upgradeOptions: [
+        {
+          id: 'hw-std-galv',
+          title: 'Standard Galvanized Gate Kit',
+          description:
+            'A basic galvanized hinge-and-latch kit suitable for light residential gates. Reliable for everyday use but expect more visible wear at the contact points over time.',
+          priceDelta: 0,
+        },
+        {
+          id: 'hw-hd-powder',
+          title: 'Heavy-Duty Powder-Coated Black Kit',
+          description:
+            'A thicker hinge plate and self-latching mechanism finished in matte black. Holds up better on heavier gates and resists corrosion in wetter climates.',
+          priceDelta: 80,
+        },
+        {
+          id: 'hw-marine',
+          title: 'Stainless Steel Marine-Grade Kit',
+          description:
+            'A premium stainless kit for coastal or pool-side gates where salt and chlorine destroy galvanized hardware. Smooth action, decades of service life.',
+          priceDelta: 210,
+        },
+      ],
+    },
+    { name: 'Concrete – Fast-Set 50lb', qty: '24', unit: 'bag' },
+    {
+      name: 'Wire Ties – Galvanised 9ga',
+      qty: '100',
+      unit: 'ea.',
+      upgradeOptions: [
+        {
+          id: 'wt-9ga-galv',
+          title: '9-Gauge Galvanized Wire Ties',
+          description:
+            'The standard heavy-gauge wire tie for securing chain-link fabric to line posts and top rail. Strong enough for residential installs at a modest cost.',
+          priceDelta: 0,
+        },
+        {
+          id: 'wt-11ga-vinyl',
+          title: '11-Gauge Vinyl-Coated Black Ties',
+          description:
+            'A thinner-gauge tie with a black vinyl coating that visually disappears against dark fabric — recommended whenever the fence is meant to read as a clean black line.',
+          priceDelta: 25,
+        },
+        {
+          id: 'wt-alum-quick',
+          title: 'Aluminum Quick-Tie System',
+          description:
+            'Pre-formed aluminum ties that snap on without tools and won’t rust. Faster install and easier maintenance, especially on long runs.',
+          priceDelta: 45,
+        },
+      ],
+    },
   ];
+
+  // Change pill is driven entirely by real upgradeOptions on the product.
+  const primaryItems: ProductItem[] = products.map((p) => ({
+    ...p,
+    hasUpgrade: !!p.upgradeOptions?.length,
+  }));
 
   return (
     <SectionCard label="Included Products">
       <div className="flex flex-col gap-4 items-start w-full">
         {/* Category 1 */}
         <div className="flex flex-col items-start overflow-hidden w-full">
-          <CategoryLabel name="Category Name" count={products.length} />
-          {products.map((p, i) => (
-            <ProductLineItem key={i} item={{ ...p, hasUpgrade: i === 1 }} />
+          <CategoryLabel name="Category Name" count={primaryItems.length} />
+          {primaryItems.map((p, i) => (
+            <ProductLineItem
+              key={i}
+              item={p}
+              onClick={onOpenDetail ? () => onOpenDetail(p) : undefined}
+            />
           ))}
         </div>
         {/* Category 2 */}
         <div className="flex flex-col items-start overflow-hidden w-full">
           <CategoryLabel name="Category Name" count={secondaryItems.length} />
           {secondaryItems.map((p, i) => (
-            <ProductLineItem key={i} item={p} />
+            <ProductLineItem
+              key={i}
+              item={p}
+              onClick={onOpenDetail ? () => onOpenDetail(p) : undefined}
+            />
           ))}
         </div>
       </div>
@@ -549,33 +642,28 @@ function Checkbox({ checked }: { checked: boolean }) {
 //     - onPointerDown captures pointerType; onClick only fires on tap (not scroll) → safe toggle.
 //     - Checkbox button stops propagation so the outer onClick doesn't double-fire.
 //   Mouse (all sizes): only the checkbox button toggles (outer onClick ignores mouse).
-function AddonLineItem({ item, onToggle }: { item: AddonItem; onToggle: () => void }) {
-  // Captures the input type on press so onClick can distinguish touch from mouse.
-  const pointerTypeRef = useRef<string>('');
-
+function AddonLineItem({
+  item,
+  onToggle,
+  onOpenDetail,
+}: {
+  item: AddonItem;
+  onToggle: () => void;
+  /** Click anywhere on the card (except the checkbox) opens the Add-on Detail sheet. */
+  onOpenDetail?: () => void;
+}) {
   return (
     <div
       className={`bg-white flex gap-2 items-start md:items-center px-2 py-3 md:py-0 md:h-[80px] rounded-[8px] w-full border-solid ${
         item.selected ? 'border-[#262626]' : 'border-[#d9d9d9]'
-      }`}
+      } ${onOpenDetail ? 'cursor-pointer' : ''}`}
       style={{ borderWidth: '1.5px' }}
-      onPointerDown={(e) => { pointerTypeRef.current = e.pointerType; }}
       onClick={() => {
-        // Touch/stylus tap anywhere → toggle.
-        // Mouse clicks are handled exclusively by the checkbox button (which stops propagation).
-        if (pointerTypeRef.current !== 'mouse') onToggle();
+        if (onOpenDetail) onOpenDetail();
       }}
     >
       {/* Thumbnail — always shown, stays 48×48 */}
-      <div className="flex flex-col items-start p-[2px] rounded-[4px] shrink-0" style={{ width: 48, height: 48 }}>
-        <div className="relative w-full aspect-square rounded-[2px] overflow-hidden">
-          <img
-            src={IMG_PRODUCT_THUMB}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover rounded-[2px]"
-          />
-        </div>
-      </div>
+      <NoImageThumb size={48} />
 
       {/* Mobile layout (< md): stacked rows */}
       <div className="flex md:hidden flex-[1_0_0] flex-col gap-1 items-start min-w-0 pr-1">
@@ -674,15 +762,22 @@ function AddonLineItem({ item, onToggle }: { item: AddonItem; onToggle: () => vo
 function AddonsSection({
   addons,
   onToggle,
+  onOpenDetail,
 }: {
   addons: AddonItem[];
   onToggle: (id: number) => void;
+  onOpenDetail?: (id: number) => void;
 }) {
   return (
     <SectionCard label="Add-ons">
       <div className="flex flex-col gap-4 items-start w-full">
         {addons.map((addon) => (
-          <AddonLineItem key={addon.id} item={addon} onToggle={() => onToggle(addon.id)} />
+          <AddonLineItem
+            key={addon.id}
+            item={addon}
+            onToggle={() => onToggle(addon.id)}
+            onOpenDetail={onOpenDetail ? () => onOpenDetail(addon.id) : undefined}
+          />
         ))}
       </div>
     </SectionCard>
@@ -1072,6 +1167,76 @@ export default function SummaryPageResponsive({
     setAddons((prev) => prev.map((a) => (a.id === id ? { ...a, selected: !a.selected } : a)));
   }
 
+  // ── Add-on detail sheet ─────────────────────────────────────────────────────
+  // Lightweight mock descriptions for each add-on (per-id). Cleaner than coupling
+  // the prose to AddonItem itself, since the line item rendering doesn't need it.
+  const ADDON_DESCRIPTIONS: Record<number, string> = {
+    1: 'A convenient automatic opener add-on for the project gate, allowing the gate to be opened and closed remotely with a smoother day-to-day experience. This package includes the motor unit, basic control hardware, and standard installation for one compatible gate.',
+    2: 'Heavy-gauge black PVC privacy slats that weave between chain-link mesh to dramatically reduce visibility without changing the fence layout. A budget-friendly way to add privacy to an existing or new run.',
+    3: 'Solar-powered LED caps that snap onto select post tops, providing gentle ambient lighting along the fence line at night with zero electrical run required.',
+    4: 'Pre-cast concrete pad set used to anchor terminal posts at corners and gate openings — improves long-term stability on softer or sloped ground.',
+    5: 'Adjustable mounting bracket package for adding security cameras at strategic points along the fence line. Brackets only; cameras supplied separately.',
+  };
+  const [addonDetailId, setAddonDetailId] = useState<number | null>(null);
+  const addonDetailItem = addonDetailId === null ? null : addons.find((a) => a.id === addonDetailId) ?? null;
+  const addonDetailContent: ProductDetailContent | null = addonDetailItem
+    ? {
+        kind: 'addon',
+        name: addonDetailItem.name,
+        qtyLabel: `${addonDetailItem.qty} ${addonDetailItem.unit}`,
+        description:
+          ADDON_DESCRIPTIONS[addonDetailItem.id] ??
+          'An optional upgrade for this project. Details and product imagery for this add-on will appear here.',
+        priceDelta: parseInt(addonDetailItem.price, 10) || 0,
+        selected: addonDetailItem.selected,
+        onToggle: () => toggleAddon(addonDetailItem.id),
+      }
+    : null;
+
+  // ── Product detail sheet for Included Products ─────────────────────────────
+  // Separate from addon detail: addon state stays reactive (selected changes
+  // re-render the sheet), product detail is more or less static once opened.
+  const [productDetail, setProductDetail] = useState<ProductDetailContent | null>(null);
+  // Per-product upgrade selection, keyed by product name.
+  const [upgradeSelections, setUpgradeSelections] = useState<Record<string, string>>({});
+
+  const openProductDetail = (p: ProductItem) => {
+    const qtyLabel = `${p.qty} ${p.unit}`;
+    // Close any open addon sheet so we never stack two sheets.
+    setAddonDetailId(null);
+    if (p.upgradeOptions && p.upgradeOptions.length > 0) {
+      const currentOptionId = upgradeSelections[p.name] ?? p.upgradeOptions[0].id;
+      setProductDetail({
+        kind: 'upgrade',
+        category: p.name,
+        qtyLabel,
+        options: p.upgradeOptions,
+        currentOptionId,
+        onSelect: (id) => {
+          setUpgradeSelections((prev) => ({ ...prev, [p.name]: id }));
+          setProductDetail(null);
+        },
+      });
+      return;
+    }
+    setProductDetail({
+      kind: 'product',
+      category: p.name,
+      qtyLabel,
+      description:
+        p.description ??
+        'A quality component included in this option. Detailed specifications and product imagery for this line item will appear here.',
+    });
+  };
+
+  // Single sheet content — addon detail wins if both are active (it shouldn't
+  // be possible thanks to the reset in openProductDetail, but guard anyway).
+  const sheetContent = addonDetailContent ?? productDetail;
+  const closeSheet = () => {
+    setAddonDetailId(null);
+    setProductDetail(null);
+  };
+
   // ── Computed financials ────────────────────────────────────────────────────
   const financials = computeFinancials(option.baseMaterials, addons);
 
@@ -1212,8 +1377,15 @@ export default function SummaryPageResponsive({
           {/* ── Scope Details column ── */}
           <div className="flex flex-col gap-4 w-full lg:flex-[2_1_0] min-w-0">
             <DrawingSection />
-            <ProductsSection products={option.products} />
-            <AddonsSection addons={addons} onToggle={toggleAddon} />
+            <ProductsSection products={option.products} onOpenDetail={openProductDetail} />
+            <AddonsSection
+              addons={addons}
+              onToggle={toggleAddon}
+              onOpenDetail={(id) => {
+                setProductDetail(null);
+                setAddonDetailId(id);
+              }}
+            />
             {/* Back to Top — inside Scope Details on L+ */}
             <div className="hidden lg:flex lg:justify-center">
               <BackToTopButton onClick={scrollToTop} />
@@ -1283,6 +1455,15 @@ export default function SummaryPageResponsive({
         }
         onSignApprove={onRequestSign}
         approveLabel={approveCtaLabel}
+      />
+
+      {/* Product / Upgrade / Add-on detail bottom sheet — opened by tapping a
+          product line item (Product/Upgrade variant) or an add-on line item
+          (Add-on variant). Only one sheet is open at a time. */}
+      <ProductDetailSheet
+        open={sheetContent !== null}
+        content={sheetContent}
+        onClose={closeSheet}
       />
     </div>
   );
