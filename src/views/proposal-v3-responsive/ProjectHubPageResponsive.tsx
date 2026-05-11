@@ -609,11 +609,25 @@ function Checkbox({ checked }: { checked: boolean }) {
           checked ? 'bg-[#262626]' : 'border border-solid border-black'
         }`}
       />
-      {/* Checkmark */}
+      {/* Checkmark — inline SVG so the tick renders instantly on first
+          toggle; loading checkmark.svg via <img> introduced a perceptible
+          half-second delay while the browser fetched the file. */}
       {checked && (
-        <div className="absolute inset-[18.75%_21.88%_25%_18.75%]">
-          <img src={IMG_CHECKMARK} alt="" className="block w-full h-full object-contain" />
-        </div>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          className="absolute"
+          style={{ inset: '18.75% 21.88% 25% 18.75%' }}
+        >
+          <path
+            d="M3 8.5l3 3 7-7"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       )}
     </div>
   );

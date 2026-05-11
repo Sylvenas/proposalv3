@@ -110,9 +110,25 @@ function Checkbox({ checked }: { checked: boolean }) {
         }`}
       />
       {checked && (
-        <div className="absolute inset-[18.75%_21.88%_25%_18.75%]">
-          <img src={IMG_CHECKMARK} alt="" className="block w-full h-full object-contain" />
-        </div>
+        // Inline SVG — using an <img src="..."> here introduces a perceptible
+        // delay on first toggle because the browser fetches the file the
+        // moment the user clicks. The vector is tiny, so inlining it keeps
+        // the checkmark render instant.
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          className="absolute"
+          style={{ inset: '18.75% 21.88% 25% 18.75%' }}
+        >
+          <path
+            d="M3 8.5l3 3 7-7"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       )}
     </div>
   );
@@ -362,7 +378,7 @@ function ProductBody({
           <p className="text-[12px] sm:text-[14px] text-[#262626] font-light whitespace-pre-line">{description}</p>
         </div>
 
-        <p className="text-[12px] text-[#737373]" style={{ letterSpacing: '-0.48px' }}>
+        <p className="text-[12px] md:text-[16px] text-[#737373] tracking-[-0.04em]">
           {includedText}
         </p>
       </div>
@@ -509,7 +525,7 @@ function UpgradeBody({
           style={{ borderBottom: '0.5px solid rgba(0,0,0,0.1)' }}
         >
           <div className="flex flex-col gap-1">
-            <p className="text-[14px] font-semibold text-[#262626]">{category}</p>
+            <p className="text-[14px] md:text-[16px] font-semibold text-[#262626]">{category}</p>
             <p className="text-[16px] text-[#737373] tracking-[-0.04em]">
               {qtyLabel}
             </p>
@@ -747,11 +763,8 @@ function AddonBody({
 
         <div className="flex flex-col gap-4 w-full">
           <div className="flex flex-col gap-1">
-            <p className="text-[14px] font-semibold text-[#262626]">Add-on</p>
-            <p
-              className="text-[16px] font-semibold text-[#262626]"
-              style={{ letterSpacing: '-0.64px' }}
-            >
+            <p className="text-[14px] md:text-[16px] font-semibold text-[#262626]">Add-on</p>
+            <p className="text-[16px] md:text-[20px] font-semibold text-[#262626] tracking-[-0.04em]">
               {name}
             </p>
             <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
