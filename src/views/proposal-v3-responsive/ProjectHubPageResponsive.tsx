@@ -611,13 +611,15 @@ function Checkbox({ checked }: { checked: boolean }) {
       />
       {/* Checkmark — inline SVG so the tick renders instantly on first
           toggle; loading checkmark.svg via <img> introduced a perceptible
-          half-second delay while the browser fetched the file. */}
+          half-second delay while the browser fetched the file. Fills the
+          full 20×20 box so the default xMidYMid preserveAspectRatio centers
+          the path on both axes (asymmetric % insets rendered slightly
+          off-center on iOS Safari). */}
       {checked && (
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
-          className="absolute"
-          style={{ inset: '18.75% 21.88% 25% 18.75%' }}
+          className="absolute inset-0 w-full h-full"
         >
           <path
             d="M3 8.5l3 3 7-7"
