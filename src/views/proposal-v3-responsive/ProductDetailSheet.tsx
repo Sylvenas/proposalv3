@@ -118,22 +118,6 @@ function Checkbox({ checked }: { checked: boolean }) {
   );
 }
 
-// Greyed-out 16x16 inline checkmark used inside the "Option Selected" pill on mobile.
-function MiniCheckIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width={12} height={12} aria-hidden="true">
-      <path
-        d="M3 8.5l3 3 7-7"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 /** Square thumbnail-sized "no image" placeholder for line-item rows.
  *  Same visual language as the big hero placeholder (light gray bg +
  *  centered white logo) so the fallback feels consistent across the
@@ -290,113 +274,26 @@ export default function ProductDetailSheet({
             on Add-on) so they remain visible even when the body content
             overflows the viewport. */}
         <div className="lg:hidden shrink-0 px-4 pt-4 pb-6 bg-white">
-          <SheetMobileFooter
-            content={last}
-            onClose={onClose}
-            upgradeActiveId={upgradeActiveId}
-          />
+          <SheetMobileFooter onClose={onClose} />
         </div>
       </div>
     </>
   );
 }
 
-// --- Mobile sticky footer router ------------------------------------------
-// Renders the bottom-CTA stack for the currently-open variant. Lifted out of
-// each body so it can be pinned to the bottom of the sheet while the body
-// content scrolls behind it.
-function SheetMobileFooter({
-  content,
-  onClose,
-  upgradeActiveId,
-}: {
-  content: ProductDetailContent;
-  onClose: () => void;
-  /** Currently-previewed swatch (upgrade variant only). Sourced from the
-   *  sheet's lifted state so this footer mirrors what the body shows. */
-  upgradeActiveId: string;
-}) {
-  if (content.kind === 'product') {
-    return (
-      <button
-        onClick={onClose}
-        className="w-full h-10 bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-      >
-        Close
-      </button>
-    );
-  }
-  if (content.kind === 'upgrade') {
-    return <UpgradeMobileFooter content={content} onClose={onClose} activeId={upgradeActiveId} />;
-  }
-  return <AddonMobileFooter content={content} onClose={onClose} />;
-}
-
-function UpgradeMobileFooter({
-  content,
-  onClose,
-  activeId,
-}: {
-  content: Extract<ProductDetailContent, { kind: 'upgrade' }>;
-  onClose: () => void;
-  activeId: string;
-}) {
-  const { options, currentOptionId, onSelect, readOnly } = content;
-  const active = options.find((o) => o.id === activeId) ?? options[0];
-  const isActiveTheCurrentSelection = active.id === currentOptionId;
+// --- Mobile sticky footer ---------------------------------------------------
+// Single Close button shared by all variants. Variant-specific commits (the
+// upgrade swatch picker, the add-on "Add to Selection" checkbox row) live
+// inline in the body and take effect instantly, so the footer only needs to
+// dismiss the sheet.
+function SheetMobileFooter({ onClose }: { onClose: () => void }) {
   return (
-    <div className="flex flex-col gap-2 w-full">
-      {!readOnly && (
-        isActiveTheCurrentSelection ? (
-          <div
-            className="h-10 w-full flex items-center justify-center gap-2 rounded-[2px]"
-            style={{ backgroundColor: '#bfbfbf' }}
-          >
-            <MiniCheckIcon />
-            <span className="text-[12px] text-white">Option Selected</span>
-          </div>
-        ) : (
-          <button
-            onClick={() => onSelect(active.id)}
-            className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-          >
-            Select This Option
-          </button>
-        )
-      )}
-      <button
-        onClick={onClose}
-        className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-      >
-        Close
-      </button>
-    </div>
-  );
-}
-
-function AddonMobileFooter({
-  content,
-  onClose,
-}: {
-  content: Extract<ProductDetailContent, { kind: 'addon' }>;
-  onClose: () => void;
-}) {
-  const { selected, onToggle } = content;
-  return (
-    <div className="flex flex-col gap-2 w-full">
-      <button
-        onClick={onToggle}
-        className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-      >
-        {selected ? 'Remove' : 'Add'}
-      </button>
-      <button
-        onClick={onClose}
-        className="h-10 w-full bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
-      >
-        Close
-      </button>
-    </div>
+    <button
+      onClick={onClose}
+      className="w-full h-10 bg-white border-[0.5px] border-[#262626] text-[12px] text-[rgba(0,0,0,0.85)] rounded-[2px] cursor-pointer"
+    >
+      Close
+    </button>
   );
 }
 
@@ -462,7 +359,7 @@ function ProductBody({
           <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
             {qtyLabel}
           </p>
-          <p className="text-[12px] text-[#262626] font-light whitespace-pre-line">{description}</p>
+          <p className="text-[12px] sm:text-[14px] text-[#262626] font-light whitespace-pre-line">{description}</p>
         </div>
 
         <p className="text-[12px] text-[#737373]" style={{ letterSpacing: '-0.48px' }}>
@@ -518,7 +415,7 @@ function ProductBody({
             <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
               {qtyLabel}
             </p>
-            <p className="text-[12px] text-[#262626] font-light whitespace-pre-line">{description}</p>
+            <p className="text-[14px] xl:text-[16px] text-[#262626] font-light whitespace-pre-line">{description}</p>
           </div>
           <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
             {includedText}
@@ -546,7 +443,6 @@ function UpgradeBody({
   const { category, qtyLabel, options, currentOptionId, onSelect, readOnly } = content;
 
   const active = options.find((o) => o.id === activeId) ?? options[0];
-  const isActiveTheCurrentSelection = active.id === currentOptionId;
 
   // Per-option hero image index — local; resets whenever the active swatch
   // changes via handleSwatchClick.
@@ -555,13 +451,16 @@ function UpgradeBody({
   const hasImages = activeImages.length > 0;
   const mainImage = activeImages[imgIdx] ?? activeImages[0];
 
+  // Swatch click both previews and commits in one step (no separate confirm
+  // button). The instant-commit is skipped in readOnly mode (comparison-table
+  // browser), where the swatch picker is still useful for flipping between
+  // options but committing isn't the intent.
   const handleSwatchClick = (id: string) => {
     setActiveId(id);
     setImgIdx(0);
-  };
-
-  const handleSelectThisOption = () => {
-    if (!isActiveTheCurrentSelection) onSelect(active.id);
+    if (!readOnly && id !== currentOptionId) {
+      onSelect(id);
+    }
   };
 
   return (
@@ -610,19 +509,20 @@ function UpgradeBody({
           style={{ borderBottom: '0.5px solid rgba(0,0,0,0.1)' }}
         >
           <div className="flex flex-col gap-1">
-            <p className="text-[14px] md:text-[16px] font-semibold text-[#262626]">{category}</p>
-            <p className="text-[14px] md:text-[16px] text-[#737373] tracking-[-0.04em]">
+            <p className="text-[14px] font-semibold text-[#262626]">{category}</p>
+            <p className="text-[16px] text-[#737373] tracking-[-0.04em]">
               {qtyLabel}
             </p>
           </div>
           <div className="flex gap-[10px] items-center">
             {options.map((opt) => {
               const selected = opt.id === activeId;
+              const committed = opt.id === currentOptionId;
               return (
                 <button
                   key={opt.id}
                   onClick={() => handleSwatchClick(opt.id)}
-                  className="shrink-0 cursor-pointer"
+                  className="shrink-0 cursor-pointer relative"
                   style={{
                     width: 64,
                     height: 64,
@@ -643,23 +543,46 @@ function UpgradeBody({
                       />
                     )}
                   </div>
+                  {/* Committed-selection marker — same 20×20 Checkbox used
+                      by the Add-on line item, tucked into the swatch's
+                      bottom-left corner with a comfortable inset from the
+                      thumbnail edge. Replaces the old "Option Selected"
+                      pill below the sheet. */}
+                  {committed && (
+                    <div className="absolute" style={{ left: 5, bottom: 5 }}>
+                      <Checkbox checked={true} />
+                    </div>
+                  )}
                 </button>
               );
             })}
           </div>
           {/* Price label for the currently-active swatch — typography matches
               the qty line ("24 ea.") above so the two read as a pair. */}
-          <p className="text-[14px] md:text-[16px] text-[#737373] tracking-[-0.04em]">
+          <p className="text-[16px] text-[#737373] tracking-[-0.04em]">
             {formatOptionPriceLabel(active.priceDelta)}
           </p>
         </div>
 
-        {/* Active option title + description */}
-        <div className="flex flex-col gap-4 w-full">
-          <p className="text-[16px] font-semibold text-[#262626]" style={{ letterSpacing: '-0.64px' }}>
-            {active.title}
-          </p>
-          <p className="text-[12px] text-[#262626] font-light">{active.description}</p>
+        {/* Active option title + description — stacked in a single grid
+            cell so the sheet's height tracks the tallest option, preventing
+            layout jumps when the user clicks between swatches. Inactive
+            options stay laid out (`visibility: hidden`) so they keep
+            reserving their height in the cell. */}
+        <div className="grid grid-cols-1 w-full">
+          {options.map((opt) => (
+            <div
+              key={opt.id}
+              className="flex flex-col gap-4 w-full"
+              style={{ gridArea: '1 / 1', visibility: opt.id === activeId ? 'visible' : 'hidden' }}
+              aria-hidden={opt.id !== activeId}
+            >
+              <p className="text-[16px] font-semibold text-[#262626]" style={{ letterSpacing: '-0.64px' }}>
+                {opt.title}
+              </p>
+              <p className="text-[12px] sm:text-[14px] text-[#262626] font-light">{opt.description}</p>
+            </div>
+          ))}
         </div>
 
       </div>
@@ -719,11 +642,12 @@ function UpgradeBody({
               <div className="flex gap-[10px] items-center">
                 {options.map((opt) => {
                   const selected = opt.id === activeId;
+                  const committed = opt.id === currentOptionId;
                   return (
                     <button
                       key={opt.id}
                       onClick={() => handleSwatchClick(opt.id)}
-                      className="shrink-0 cursor-pointer"
+                      className="shrink-0 cursor-pointer relative"
                       style={{
                         width: 64,
                         height: 64,
@@ -744,6 +668,15 @@ function UpgradeBody({
                           />
                         )}
                       </div>
+                      {/* Committed-selection marker — same 20×20 Checkbox
+                          used by the Add-on line item, tucked into the
+                          swatch's bottom-left corner with a comfortable inset
+                          from the thumbnail edge. */}
+                      {committed && (
+                        <div className="absolute" style={{ left: 5, bottom: 5 }}>
+                          <Checkbox checked={true} />
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -756,39 +689,29 @@ function UpgradeBody({
               </p>
             </div>
 
-            {/* Active option title + description */}
-            <div className="flex flex-col gap-4">
-              <p className="text-[20px] font-semibold text-[#262626]" style={{ letterSpacing: '-0.8px' }}>
-                {active.title}
-              </p>
-              <p className="text-[14px] xl:text-[16px] text-[#262626] font-light">{active.description}</p>
+            {/* Active option title + description — stacked in a single
+                grid cell so the sheet's height tracks the tallest option,
+                preventing layout jumps when the user clicks between
+                swatches. Inactive options stay laid out
+                (`visibility: hidden`) so they keep reserving their height
+                in the cell. */}
+            <div className="grid grid-cols-1">
+              {options.map((opt) => (
+                <div
+                  key={opt.id}
+                  className="flex flex-col gap-4"
+                  style={{ gridArea: '1 / 1', visibility: opt.id === activeId ? 'visible' : 'hidden' }}
+                  aria-hidden={opt.id !== activeId}
+                >
+                  <p className="text-[16px] xl:text-[20px] font-semibold text-[#262626] tracking-[-0.04em]">
+                    {opt.title}
+                  </p>
+                  <p className="text-[14px] xl:text-[16px] text-[#262626] font-light">{opt.description}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* CTA — anchored to the bottom of the right column via `mt-auto`
-              so it sits flush with the bottom of the image on the left, even
-              when the description text is short. Omitted in readOnly mode
-              (browse-only context). */}
-          {!readOnly && (
-              <button
-                onClick={handleSelectThisOption}
-                disabled={isActiveTheCurrentSelection}
-                className="flex items-center justify-center rounded-[4px] cursor-pointer mt-auto w-full"
-                style={{
-                  height: 44,
-                  padding: '6px 16px',
-                  backgroundColor: isActiveTheCurrentSelection ? '#737373' : '#262626',
-                  color: isActiveTheCurrentSelection ? '#333' : '#fff',
-                  fontFamily: 'Roboto, sans-serif',
-                  fontWeight: 600,
-                  fontSize: 14,
-                  lineHeight: '18px',
-                  cursor: isActiveTheCurrentSelection ? 'default' : 'pointer',
-                }}
-              >
-                {isActiveTheCurrentSelection ? 'Option Selected' : 'Select This Option'}
-              </button>
-            )}
         </div>
       </div>
     </div>
@@ -823,31 +746,34 @@ function AddonBody({
         )}
 
         <div className="flex flex-col gap-4 w-full">
-          <div className="flex flex-col">
-            <p className="text-[12px] font-semibold text-[#262626]">Add-on</p>
+          <div className="flex flex-col gap-1">
+            <p className="text-[14px] font-semibold text-[#262626]">Add-on</p>
             <p
               className="text-[16px] font-semibold text-[#262626]"
               style={{ letterSpacing: '-0.64px' }}
             >
               {name}
             </p>
+            <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
+              {qtyLabel}
+            </p>
           </div>
-          <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
-            {qtyLabel}
-          </p>
-          <p className="text-[12px] text-[#262626] font-light">{description}</p>
+          {/* Checkbox row sits between qty and description so the user can
+              commit the add-on without scrolling past the long description.
+              Trailing price hugs the label as a quick reminder of cost. */}
+          <button
+            onClick={onToggle}
+            className="flex items-center gap-3 w-full bg-transparent border-0 p-0 cursor-pointer"
+          >
+            <Checkbox checked={selected} />
+            <span className="text-[16px] text-[#262626]">{selected ? 'Added' : 'Add to Selection'}</span>
+            <span className="text-[16px] text-[#bfbfbf]">|</span>
+            <span className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
+              {formatPriceDelta(priceDelta)}
+            </span>
+          </button>
+          <p className="text-[12px] sm:text-[14px] text-[#262626] font-light">{description}</p>
         </div>
-
-        {/* Checkbox row: [Checkbox] [Add to Selection] | +$450 */}
-        <button
-          onClick={onToggle}
-          className="flex items-center gap-3 w-full bg-transparent border-0 p-0 cursor-pointer"
-        >
-          <Checkbox checked={selected} />
-          <span className="text-[12px] font-semibold text-[#262626]">Add to Selection</span>
-          <span className="text-[12px] text-[#bfbfbf]">|</span>
-          <span className="text-[12px] text-[#262626] font-light">{formatPriceDelta(priceDelta)}</span>
-        </button>
       </div>
 
       {/* Desktop (lg+) */}
@@ -866,40 +792,36 @@ function AddonBody({
           )}
         </div>
 
-        {/* Right column */}
+        {/* Right column — mirrors the XS-M layout: heading group, then the
+            inline commit button with trailing price, then the description.
+            The old standalone +$priceDelta line and bottom Add-to-Selection
+            button are dropped so the desktop variant reads the same as
+            mobile. */}
         <div className="flex-[4] min-w-0 flex flex-col gap-6 self-stretch">
-          <div className="flex flex-col gap-8">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <p className="text-[16px] font-semibold text-[#262626]">Add-on</p>
-                <p
-                  className="text-[20px] font-semibold text-[#262626]"
-                  style={{ letterSpacing: '-0.8px' }}
-                >
-                  {name}
-                </p>
-              </div>
-              <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
-                {qtyLabel}
-              </p>
-              <p className="text-[12px] text-[#262626] font-light">{description}</p>
-            </div>
-            <p className="text-[24px] text-[#262626] font-light">{formatPriceDelta(priceDelta)}</p>
+          <div className="flex flex-col gap-1">
+            <p className="text-[16px] font-semibold text-[#262626]">Add-on</p>
+            <p
+              className="text-[20px] font-semibold text-[#262626]"
+              style={{ letterSpacing: '-0.8px' }}
+            >
+              {name}
+            </p>
+            <p className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
+              {qtyLabel}
+            </p>
           </div>
-
-          {/* Checkbox + label (desktop has no extra Add/Close buttons - top X closes) */}
           <button
             onClick={onToggle}
-            className="flex items-center gap-3 h-11 bg-transparent border-0 p-0 cursor-pointer self-start"
+            className="flex items-center gap-3 w-full bg-transparent border-0 p-0 cursor-pointer"
           >
             <Checkbox checked={selected} />
-            <span
-              className="text-[14px] font-semibold text-[#262626]"
-              style={{ fontFamily: 'Roboto, sans-serif', lineHeight: '18px' }}
-            >
-              {selected ? 'Added to Selection' : 'Add to Selection'}
+            <span className="text-[16px] text-[#262626]">{selected ? 'Added' : 'Add to Selection'}</span>
+            <span className="text-[16px] text-[#bfbfbf]">|</span>
+            <span className="text-[16px] text-[#737373]" style={{ letterSpacing: '-0.64px' }}>
+              {formatPriceDelta(priceDelta)}
             </span>
           </button>
+          <p className="text-[14px] xl:text-[16px] text-[#262626] font-light">{description}</p>
         </div>
       </div>
     </div>

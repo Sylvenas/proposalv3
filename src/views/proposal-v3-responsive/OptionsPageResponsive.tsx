@@ -1244,7 +1244,13 @@ function OptionsPageContent() {
         readOnly: opts?.readOnly,
         onSelect: (id) => {
           setUpgradeSelections((prev) => ({ ...prev, [key]: id }));
-          setProductDetail(null);
+          // Keep the sheet open and switch the CTA to its "Option Selected"
+          // state so the user can continue browsing the other swatches.
+          setProductDetail((prev) =>
+            prev && prev.kind === 'upgrade'
+              ? { ...prev, currentOptionId: id }
+              : prev
+          );
         },
       });
       return;
