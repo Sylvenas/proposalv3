@@ -114,11 +114,14 @@ function Checkbox({ checked }: { checked: boolean }) {
         // delay on first toggle because the browser fetches the file the
         // moment the user clicks. The vector is tiny, so inlining it keeps
         // the checkmark render instant.
+        // The SVG fills the 20×20 box; the path is drawn centered in its
+        // 16×16 viewBox and the default xMidYMid preserveAspectRatio
+        // centers it in both axes — important on iOS Safari, which renders
+        // asymmetric `inset` percentages slightly off-pixel.
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
-          className="absolute"
-          style={{ inset: '18.75% 21.88% 25% 18.75%' }}
+          className="absolute inset-0 w-full h-full"
         >
           <path
             d="M3 8.5l3 3 7-7"
