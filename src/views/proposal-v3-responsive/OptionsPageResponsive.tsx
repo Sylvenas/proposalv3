@@ -1908,7 +1908,12 @@ function OptionsPageContent() {
                 {opt.products.map((p) => (
                   <ProductLineItem
                     key={p.name}
-                    name={p.name}
+                    // For upgradeable products, surface the Standard Option's
+                    // title (the baseline / first option) instead of the
+                    // generic product name — comparison rows read better when
+                    // the spec-level wording matches what a user would see
+                    // after committing.
+                    name={p.upgradeOptions?.[0]?.title ?? p.name}
                     qty={p.qty}
                     unit={p.unit}
                     showThumb
