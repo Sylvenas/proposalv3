@@ -264,15 +264,22 @@ type InvoicesData = {
 
 // ── Enumerate-mode builder ───────────────────────────────────────────────────
 // QA preset that surfaces every status × due-date variant the Invoices &
-// Payments tab can render. Produces 7 invoices in this fixed order:
-//   1. Paid (paid-on date)
-//   2. Partially Paid · normal future due date
-//   3. Partially Paid · Due Today
-//   4. Partially Paid · Overdue
-//   5. Unpaid          · normal future due date
-//   6. Unpaid          · Due Today
-//   7. Unpaid          · Overdue
-// Each invoice's amount = contractTotal / 7 (rounded), with the first
+// Payments tab can render. Produces 14 invoices in this fixed order:
+//   1.  Paid       · paid-on date
+//   2.  Processing · fully covered, future due
+//   3.  Returned   · Overdue           (half received)
+//   4.  Returned   · Due Today
+//   5.  Returned   · normal future
+//   6.  Returned   · no due date
+//   7.  Partial    · Overdue
+//   8.  Partial    · Due Today
+//   9.  Partial    · normal future
+//   10. Partial    · no due date
+//   11. Unpaid     · Overdue
+//   12. Unpaid     · Due Today
+//   13. Unpaid     · normal future
+//   14. Unpaid     · no due date
+// Each invoice's amount = contractTotal / 14 (rounded), with the first
 // invoice absorbing any rounding remainder so the per-invoice amounts sum
 // to contractTotal. Partial invoices receive ~50% of their amount.
 //
@@ -312,22 +319,25 @@ function buildEnumeratedInvoicesData(
   // PROCESSING is only ever "fully covered" — by system rule there's no
   // "partially paid + still processing" state, so the half-covered blue
   // PROCESSING rows that used to live here have been removed.
+  // Paid invoices always render "Paid on {date}" regardless of dueState, so
+  // the old (paid · none) row was visually identical to the (paid · normal)
+  // case — that combination has been dropped to keep each enumerated row
+  // unique. The remaining 14 invoices renumber 1..14 contiguously.
   const specs: Spec[] = [
     { number: 1,  label: 'Deposit (5%)', status: 'paid',       dueState: 'normal',  dueDate: PAID_ON_DATE },
-    { number: 2,  label: 'Balance (5%)', status: 'paid',       dueState: 'none',    dueDate: '' },
-    { number: 3,  label: 'Balance (5%)', status: 'processing', dueState: 'normal',  dueDate: FUTURE_DATE },                          // green — fully covered
-    { number: 4,  label: 'Balance (5%)', status: 'returned',   dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },
-    { number: 5,  label: 'Balance (5%)', status: 'returned',   dueState: 'today',   dueDate: TODAY },
-    { number: 6,  label: 'Balance (5%)', status: 'returned',   dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 7,  label: 'Balance (5%)', status: 'returned',   dueState: 'none',    dueDate: '' },
-    { number: 8,  label: 'Balance (5%)', status: 'partial',    dueState: 'overdue', dueDate: OVERDUE_DATE },
-    { number: 9,  label: 'Balance (5%)', status: 'partial',    dueState: 'today',   dueDate: TODAY },
-    { number: 10, label: 'Balance (5%)', status: 'partial',    dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 11, label: 'Balance (5%)', status: 'partial',    dueState: 'none',    dueDate: '' },
-    { number: 12, label: 'Balance (5%)', status: 'unpaid',     dueState: 'overdue', dueDate: OVERDUE_DATE },
-    { number: 13, label: 'Balance (5%)', status: 'unpaid',     dueState: 'today',   dueDate: TODAY },
-    { number: 14, label: 'Balance (5%)', status: 'unpaid',     dueState: 'normal',  dueDate: FUTURE_DATE },
-    { number: 15, label: 'Balance (5%)', status: 'unpaid',     dueState: 'none',    dueDate: '' },
+    { number: 2,  label: 'Balance (5%)', status: 'processing', dueState: 'normal',  dueDate: FUTURE_DATE },                          // green — fully covered
+    { number: 3,  label: 'Balance (5%)', status: 'returned',   dueState: 'overdue', dueDate: OVERDUE_DATE, halfReceived: true },
+    { number: 4,  label: 'Balance (5%)', status: 'returned',   dueState: 'today',   dueDate: TODAY },
+    { number: 5,  label: 'Balance (5%)', status: 'returned',   dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 6,  label: 'Balance (5%)', status: 'returned',   dueState: 'none',    dueDate: '' },
+    { number: 7,  label: 'Balance (5%)', status: 'partial',    dueState: 'overdue', dueDate: OVERDUE_DATE },
+    { number: 8,  label: 'Balance (5%)', status: 'partial',    dueState: 'today',   dueDate: TODAY },
+    { number: 9,  label: 'Balance (5%)', status: 'partial',    dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 10, label: 'Balance (5%)', status: 'partial',    dueState: 'none',    dueDate: '' },
+    { number: 11, label: 'Balance (5%)', status: 'unpaid',     dueState: 'overdue', dueDate: OVERDUE_DATE },
+    { number: 12, label: 'Balance (5%)', status: 'unpaid',     dueState: 'today',   dueDate: TODAY },
+    { number: 13, label: 'Balance (5%)', status: 'unpaid',     dueState: 'normal',  dueDate: FUTURE_DATE },
+    { number: 14, label: 'Balance (5%)', status: 'unpaid',     dueState: 'none',    dueDate: '' },
   ];
 
   // Even split with the remainder folded into invoice #1.
@@ -401,36 +411,32 @@ function buildEnumeratedInvoicesData(
   // Newest first; IDs descend with realistic non-uniform gaps (as if other
   // customers' payments slot between ours in a global sequence).
   const paymentSeeds: PaymentSeed[] = [
-    // Processing demo — single full-coverage ACH against invoice #3 (green
+    // Processing demo — single full-coverage ACH against invoice #2 (green
     // PROCESSING). The half-covered blue PROCESSING rows that used to live
     // here are gone (the system has no "partial + processing" state), so
     // there's only one processing seed left.
-    { paymentId: '2204', paidOn: 'May 8, 2026',  paidOnFull: 'May 8, 2026, 9:12:33 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 3 },
-    // Invoice #4 (Returned, Overdue): one ACH transfer settled (#2151),
+    { paymentId: '2204', paidOn: 'May 8, 2026',  paidOnFull: 'May 8, 2026, 9:12:33 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'processing', appliedToInvoice: 2 },
+    // Invoice #3 (Returned, Overdue): one ACH transfer settled (#2151),
     // the other (#2155) was returned by the bank. The pair leaves the
     // invoice half-received with PAYMENT RETURNED status.
-    { paymentId: '2155', paidOn: 'May 5, 2026',  paidOnFull: 'May 5, 2026, 3:18:54 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 4 },
-    { paymentId: '2151', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 9:11:04 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 4 },
-    // Invoices #5-#7 (Returned, no funds received): each has a single ACH
+    { paymentId: '2155', paidOn: 'May 5, 2026',  paidOnFull: 'May 5, 2026, 3:18:54 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 3 },
+    { paymentId: '2151', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 9:11:04 a.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 3 },
+    // Invoices #4-#6 (Returned, no funds received): each has a single ACH
     // transfer the bank reversed. The payment record carries the full
     // invoice amount as the attempted figure; nothing actually landed on
     // the invoice (received stays at 0). One returned ACH per invoice
     // keeps the records list aligned with the invoice list.
-    { paymentId: '2150', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 2:33:18 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 5 },
-    { paymentId: '2148', paidOn: 'May 3, 2026',  paidOnFull: 'May 3, 2026, 11:57:42 a.m.',    method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 6 },
-    { paymentId: '2146', paidOn: 'May 2, 2026',  paidOnFull: 'May 2, 2026, 4:09:27 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 7 },
-    { paymentId: '2143', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 11:02:14 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 10 },
-    { paymentId: '2129', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:48:09 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 9 },
-    { paymentId: '2118', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:31:22 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 8 },
-    // Half-payment record for invoice #11 (partial, no due date) — the
+    { paymentId: '2150', paidOn: 'May 4, 2026',  paidOnFull: 'May 4, 2026, 2:33:18 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 4 },
+    { paymentId: '2148', paidOn: 'May 3, 2026',  paidOnFull: 'May 3, 2026, 11:57:42 a.m.',    method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 5 },
+    { paymentId: '2146', paidOn: 'May 2, 2026',  paidOnFull: 'May 2, 2026, 4:09:27 p.m.',     method: 'Bank Transfer (ACH)',  processedWith: 'ArcSite Payment', status: 'returned',   appliedToInvoice: 6 },
+    { paymentId: '2143', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 11:02:14 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 9 },
+    { paymentId: '2129', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:48:09 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 8 },
+    { paymentId: '2118', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:31:22 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 7 },
+    // Half-payment record for invoice #10 (partial, no due date) — the
     // spec gives this row $416 received, so it needs a matching payment
     // record. Without it, the Progress bar's "received" total under-
     // counts the invoice list by $416.
-    { paymentId: '2117', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:18:55 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 11 },
-    // Full-payment record for invoice #2 (paid, no due date) — same
-    // reason: the spec marks #2 as paid in full ($832 received) but the
-    // record-backed totals would otherwise miss it.
-    { paymentId: '2095', paidOn: PAID_ON_DATE,    paidOnFull: 'May 1, 2026, 9:34:12 a.m.',   method: 'Check',                 processedWith: 'Manual Entry',    status: 'completed', appliedToInvoice: 2 },
+    { paymentId: '2117', paidOn: PARTIAL_PAID_ON, paidOnFull: 'Apr 28, 2026, 10:18:55 a.m.', method: 'Credit Card (***4242)', processedWith: 'ArcSite Payment', status: 'completed', appliedToInvoice: 10 },
     { paymentId: '2094', paidOn: PAID_ON_DATE,    paidOnFull: 'May 1, 2026, 9:14:00 a.m.',   method: 'Check',                 processedWith: 'Manual Entry',    status: 'completed', appliedToInvoice: 1 },
   ];
 
@@ -944,19 +950,25 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
   // "Paid on {date}" on the date line — the status pill ("PAID" vs.
   // "PROCESSING") carries the clearance distinction.
   const isFullyCovered = inv.received >= inv.amount && inv.received > 0;
-  const dateText =
-    inv.dueState === 'none'
-      ? '—'
-      : isFullyCovered
-      ? `Paid on ${paidOnDate(inv.number) ?? inv.dueDate}`
-      : inv.dueState === 'overdue'
-      ? `Overdue · ${inv.dueDate}`
-      : inv.dueState === 'today'
-      ? `${inv.dueDate} (Today)`
-      : inv.dueDate;
-  const dateColor =
-    inv.dueState === 'none' ? '#737373'
-    : isFullyCovered ? '#262626'
+  // Fully-covered invoices surface the real payment date — checked before
+  // the `dueState === 'none'` branch so a paid invoice without an original
+  // due date still shows when the money landed instead of a dash. Wording
+  // follows the clearance state: cleared funds read "Paid on …"; an
+  // in-flight ACH (PROCESSING) reads "Submitted on …" since the money
+  // hasn't actually settled yet.
+  const fullyCoveredPrefix = inv.status === 'processing' ? 'Submitted on' : 'Paid on';
+  const dateText = isFullyCovered
+    ? `${fullyCoveredPrefix} ${paidOnDate(inv.number) ?? inv.dueDate}`
+    : inv.dueState === 'none'
+    ? '—'
+    : inv.dueState === 'overdue'
+    ? `Overdue · ${inv.dueDate}`
+    : inv.dueState === 'today'
+    ? `${inv.dueDate} (Today)`
+    : inv.dueDate;
+  const dateColor = isFullyCovered
+    ? '#262626'
+    : inv.dueState === 'none'    ? '#737373'
     : inv.dueState === 'overdue' ? '#d41a32'
     : inv.dueState === 'today'   ? '#d97706'
     : '#262626';
@@ -1604,16 +1616,15 @@ function DesktopInvoiceRow({
           amount): green "Paid on …"; partial / partly-processing: due date
           with overdue/today badge; unpaid: plain due date. */}
       <div className="relative flex items-center" style={{ width: cs(155), gap: cs(12) }}>
+        {/* Fully-covered — surface the real payment date even when the
+            invoice has no original due date. Wording follows the clearance
+            state: a paid invoice reads "Paid on …"; an in-flight ACH that
+            covers the full amount but hasn't cleared yet reads
+            "Submitted on …", since the funds aren't actually paid yet. */}
         {isFullyCovered && (
-          inv.dueState === 'none' ? (
-            <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal" style={{ color: '#737373' }}>
-              —
-            </p>
-          ) : (
-            <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal" style={{ color: '#04b50b' }}>
-              Paid on {paidOnDate(inv.number) ?? inv.dueDate}
-            </p>
-          )
+          <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal" style={{ color: '#04b50b' }}>
+            {inv.status === 'processing' ? 'Submitted on' : 'Paid on'} {paidOnDate(inv.number) ?? inv.dueDate}
+          </p>
         )}
         {(inv.status === 'partial' || (inv.status === 'processing' && !isFullyCovered)) && (
           <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] whitespace-nowrap leading-normal overflow-hidden text-ellipsis">

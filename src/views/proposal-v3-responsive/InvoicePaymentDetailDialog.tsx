@@ -354,9 +354,11 @@ function InvoiceContent({
       {/* Date row — fully-covered invoices (paid OR processing-with-received≥
           amount) show the closing payment's date (`payments` is newest-first,
           so payments[0] is what tipped the invoice over); everything else
-          shows the upcoming due date. */}
+          shows the upcoming due date. An in-flight ACH (PROCESSING) hasn't
+          actually settled yet, so the label reads "Submitted On" to mirror
+          the wording used in the invoice list. */}
       {remaining === 0 && invoice.payments.length > 0 ? (
-        <FieldRow label="Paid On">
+        <FieldRow label={invoice.status === 'processing' ? 'Submitted On' : 'Paid On'}>
           <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
             {invoice.payments[0].paidOn}
           </p>
