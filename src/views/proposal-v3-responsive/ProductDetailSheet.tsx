@@ -80,13 +80,13 @@ function formatOptionPriceLabel(n: number): string {
 // --- Sub-components ---------------------------------------------------------
 // Matches the Invoice / Payment Detail Modal close button:
 // transparent background, 4px-radius hover hit area, 16x16 stroke icon.
-function CloseButton({ onClick }: { onClick: () => void }) {
+export function CloseButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label="Close"
-      className="flex items-center justify-center bg-transparent border-0 cursor-pointer rounded-[4px] hover:bg-[rgba(0,0,0,0.04)]"
+      className="flex items-center justify-center border-0 cursor-pointer rounded-[4px] bg-[#f0f0f0] hover:bg-[#e6e6e6]"
       style={{ width: 32, height: 32 }}
     >
       <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -101,7 +101,7 @@ function CloseButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function Checkbox({ checked }: { checked: boolean }) {
+export function Checkbox({ checked }: { checked: boolean }) {
   return (
     <div className="relative shrink-0" style={{ width: 20, height: 20 }}>
       <div

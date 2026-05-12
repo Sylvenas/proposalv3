@@ -12,9 +12,12 @@ import type { FenceOption as SummaryFenceOption, AddonItem } from './SummaryPage
 import { DEFAULT_ADDONS } from './SummaryPageResponsive';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
+import ScrollHintArrows from './ScrollHintArrows';
 import { DevConsoleProvider, useDevConsole } from './DevConsoleContext';
 import DevConsole from './DevConsole';
 import ProductDetailSheet, {
+  Checkbox,
+  CloseButton,
   NoImageThumb,
   type ProductDetailContent,
   type UpgradeOption,
@@ -24,41 +27,35 @@ import ProductDetailSheet, {
 // For each [data-card-container], finds all [data-card-section="X"] elements,
 // resets their heights, measures the tallest, then applies that height to all.
 // Runs on mount and on every resize (also handles image-load reflows).
+const CARD_SECTION_TYPES = ['name', 'features', 'time', 'price'] as const;
+
+function syncCardSectionHeights() {
+  const containers = document.querySelectorAll<HTMLElement>('[data-card-container]');
+  containers.forEach((container) => {
+    CARD_SECTION_TYPES.forEach((type) => {
+      const els = [
+        ...container.querySelectorAll<HTMLElement>(`[data-card-section="${type}"]`),
+      ];
+      if (els.length === 0) return;
+      // 1. Reset to natural height so we can re-measure
+      els.forEach((el) => { el.style.height = 'auto'; });
+      // 2. Measure (elements with display:none have height 0 — intentional)
+      const max = Math.max(...els.map((el) => el.getBoundingClientRect().height));
+      // 3. Apply max height to all (including hidden ones, harmless)
+      if (max > 0) {
+        els.forEach((el) => { el.style.height = `${max}px`; });
+      }
+    });
+  });
+}
+
 function useSyncCardSectionHeights() {
   useEffect(() => {
-    const SECTION_TYPES = ['name', 'features', 'time', 'price'] as const;
-
-    const sync = () => {
-      const containers = document.querySelectorAll<HTMLElement>('[data-card-container]');
-
-      containers.forEach((container) => {
-        SECTION_TYPES.forEach((type) => {
-          const els = [
-            ...container.querySelectorAll<HTMLElement>(`[data-card-section="${type}"]`),
-          ];
-          if (els.length === 0) return;
-
-          // 1. Reset to natural height so we can re-measure
-          els.forEach((el) => { el.style.height = 'auto'; });
-
-          // 2. Measure (elements with display:none have height 0 — intentional)
-          const max = Math.max(...els.map((el) => el.getBoundingClientRect().height));
-
-          // 3. Apply max height to all (including hidden ones, harmless)
-          if (max > 0) {
-            els.forEach((el) => { el.style.height = `${max}px`; });
-          }
-        });
-      });
-    };
-
     // Run once after first paint (images may not be loaded yet, handled by ResizeObserver)
-    const rafId = requestAnimationFrame(sync);
-
+    const rafId = requestAnimationFrame(syncCardSectionHeights);
     // Re-run on any resize (viewport change OR image load reflowing layout)
-    const ro = new ResizeObserver(() => requestAnimationFrame(sync));
+    const ro = new ResizeObserver(() => requestAnimationFrame(syncCardSectionHeights));
     ro.observe(document.documentElement);
-
     return () => {
       cancelAnimationFrame(rafId);
       ro.disconnect();
@@ -628,14 +625,41 @@ function OptionCard({
   onSelect,
   onChangeOption,
   changeOptionVisibleOnLg = false,
+  selectLabel,
+  selectDisabled = false,
+  bottomCta,
+  selected = false,
 }: {
   opt: FenceOption;
   onSelect: () => void;
   onChangeOption?: () => void;
   changeOptionVisibleOnLg?: boolean;
+  /** Override the Select button label (e.g. "Included in Comparison"). */
+  selectLabel?: string;
+  /** Render the Select button in its disabled state — no click handler,
+   *  greyed bg/text, not-allowed cursor. Used in the Change Option picker
+   *  for options already in the comparison list. */
+  selectDisabled?: boolean;
+  /** When provided, replaces the entire bottom CTA block (Select + optional
+   *  Change Option) with this node. Used by the Change Option picker's
+   *  checkbox variant to swap the button for an inline checkbox row. */
+  bottomCta?: React.ReactNode;
+  /** When true, wraps the card in a 2px black border — used by the
+   *  Change Option picker's checkbox variant to mark options currently in
+   *  the comparison list. Uses border (not outline) so the stroke renders
+   *  INSIDE the card's box and isn't clipped by the scroll container's
+   *  overflow-x-auto at the edges. A transparent 2px border is reserved
+   *  in the unselected state so toggling doesn't shift card content. */
+  selected?: boolean;
 }) {
   return (
-    <div className="flex flex-col">
+    <div
+      className="flex flex-col"
+      style={{
+        border: '2px solid',
+        borderColor: selected ? '#000000' : 'transparent',
+      }}
+    >
       {/* Hero image — aspect ratio 800:471 */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '800 / 471' }}>
         <img
@@ -689,28 +713,38 @@ function OptionCard({
           </p>
         </div>
 
-        {/* CTAs — Select (always) + Change Option (comparison overflow only) */}
-        <div className="flex flex-col gap-4 md:gap-3 w-full">
-          <button
-            onClick={onSelect}
-            className="w-full h-10 bg-[#d41a32] text-white text-[14px] font-semibold rounded-[4px] flex items-center justify-center cursor-pointer"
-            style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
-          >
-            Select
-          </button>
-          {/* Change Option — shown only when handler provided AND overflow exists.
-              Hidden on lg+ because lg+ has enough slots to show all options (no overflow).
-              Figma: h-40px, white bg, border #d9d9d9, 14px text, color rgba(0,0,0,0.85) */}
-          {onChangeOption && (
+        {/* CTAs — Select (always) + Change Option (comparison overflow only).
+            When `bottomCta` is provided (e.g. Change Option picker's checkbox
+            variant) it replaces the whole block. */}
+        {bottomCta ?? (
+          <div className="flex flex-col gap-4 md:gap-3 w-full">
             <button
-              onClick={onChangeOption}
-              className={`${changeOptionVisibleOnLg ? '' : 'lg:hidden '}w-full h-10 bg-white border border-solid border-[#d9d9d9] text-[14px] rounded-[4px] flex items-center justify-center cursor-pointer`}
-              style={{ fontFamily: 'Segoe UI, sans-serif', color: 'rgba(0,0,0,0.85)' }}
+              onClick={selectDisabled ? undefined : onSelect}
+              disabled={selectDisabled}
+              className={[
+                'w-full h-10 text-[14px] font-semibold rounded-[4px] flex items-center justify-center',
+                selectDisabled
+                  ? 'bg-[#f5f5f5] text-[rgba(0,0,0,0.25)] cursor-not-allowed'
+                  : 'bg-[#d41a32] text-white cursor-pointer',
+              ].join(' ')}
+              style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
             >
-              Change Option
+              {selectLabel ?? 'Select'}
             </button>
-          )}
-        </div>
+            {/* Change Option — shown only when handler provided AND overflow exists.
+                Hidden on lg+ because lg+ has enough slots to show all options (no overflow).
+                Figma: h-40px, white bg, border #d9d9d9, 14px text, color rgba(0,0,0,0.85) */}
+            {onChangeOption && (
+              <button
+                onClick={onChangeOption}
+                className={`${changeOptionVisibleOnLg ? '' : 'lg:hidden '}w-full h-10 bg-white border border-solid border-[#d9d9d9] text-[14px] rounded-[4px] flex items-center justify-center cursor-pointer`}
+                style={{ fontFamily: 'Segoe UI, sans-serif', color: 'rgba(0,0,0,0.85)' }}
+              >
+                Change Option
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1112,6 +1146,8 @@ function StickyComparisonHeader({
   isInPair,
   isInTriple,
   lgHasOverflow,
+  lgShowsTwo,
+  onClickOption,
 }: {
   options: FenceOption[];
   visible: boolean;
@@ -1121,6 +1157,12 @@ function StickyComparisonHeader({
   isInTriple: (id: number) => boolean;
   /** True when total options > 3 (lg+ also runs out of slots). */
   lgHasOverflow: boolean;
+  /** True when lg+ shows exactly two columns (picker-driven 2-option
+   *  comparison). Switches the lg+ layout from flex-equal-fill to a
+   *  2-col grid capped at 720px each, matching the comparison table below. */
+  lgShowsTwo: boolean;
+  /** Click handler: opens the centered option-card modal for the clicked option. */
+  onClickOption: (opt: FenceOption) => void;
 }) {
   return (
     <div
@@ -1133,7 +1175,12 @@ function StickyComparisonHeader({
       }}
     >
       <div
-        className="mx-auto flex items-center gap-4 md:gap-3 px-4 sm:px-6 md:px-4 lg:px-6 py-2 md:py-3"
+        className={[
+          'mx-auto flex items-center gap-4 md:gap-3 px-4 sm:px-6 md:px-4 lg:px-6 py-2 md:py-3',
+          lgShowsTwo
+            ? 'lg:grid lg:grid-cols-[repeat(2,minmax(0,720px))] lg:justify-center'
+            : '',
+        ].join(' ')}
         style={{ minWidth: 360, maxWidth: 2160 }}
       >
         {options.map((opt) => {
@@ -1144,12 +1191,14 @@ function StickyComparisonHeader({
           if (md && !lg) extra += ' lg:hidden';
           else if (!md && lg) extra += ' lg:flex';
           return (
-          <div
+          <button
             key={opt.id}
-            className={`flex flex-1 items-center gap-1 px-2 min-w-0${extra}`}
+            type="button"
+            onClick={() => onClickOption(opt)}
+            className={`flex flex-1 items-center gap-1 px-2 min-w-0 cursor-pointer bg-transparent border-0${extra}`}
           >
             <p
-              className="flex-1 font-semibold text-[14px] text-[#262626] truncate leading-normal"
+              className="flex-1 font-semibold text-[14px] text-[#262626] truncate leading-normal text-left"
               style={{ fontFamily: 'Segoe UI, sans-serif' }}
             >
               {opt.label}
@@ -1160,7 +1209,7 @@ function StickyComparisonHeader({
               className="rotate-90 shrink-0"
               style={{ width: 16, height: 16 }}
             />
-          </div>
+          </button>
           );
         })}
       </div>
@@ -1182,6 +1231,151 @@ export default function OptionsPageResponsive() {
       <DevConsole />
     </DevConsoleProvider>
   );
+}
+
+// ── useOverflowScroll ─────────────────────────────────────────────────────────
+// Manages a horizontally-scrolling option list with an OverflowNavigation
+// indicator. Returns:
+//   • setScrollNode: callback ref for the scroll container
+//   • visibility: boolean[] of per-slot full-visibility (drives indicator bar)
+//   • hasOverflow: true when scrollWidth > clientWidth (drives nav visibility)
+//   • canPrev / canNext: scroll-edge state (drives Prev/Next disabled)
+//   • scrollByCard(direction): smooth-scroll by exactly one card stride,
+//     pre-emptively predicting the next visibility array so the indicator
+//     animates in a single 300ms pass instead of two.
+// Slots must self-identify with `data-slot-index={index}` so the
+// IntersectionObserver can map each entry back to its array position.
+// The hook is used both for the page's primary "All Options" list and for the
+// horizontally-scrolling option list inside the Change Option picker on lg+.
+function useOverflowScroll(optionsLength: number) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+  const setScrollNode = useCallback((el: HTMLDivElement | null) => {
+    scrollRef.current = el;
+    setScrollEl(el);
+  }, []);
+  const [visibility, setVisibility] = useState<boolean[]>(() =>
+    Array.from({ length: optionsLength }, () => false)
+  );
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+  const animatingRef = useRef(false);
+  const animatingTimeoutRef = useRef<number | null>(null);
+
+  // Reset visibility array when the slot count changes.
+  useEffect(() => {
+    setVisibility(Array.from({ length: optionsLength }, () => false));
+  }, [optionsLength]);
+
+  // IntersectionObserver — per-slot full-visibility.
+  useEffect(() => {
+    const root = scrollEl;
+    if (!root) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (animatingRef.current) return;
+        setVisibility((prev) => {
+          const next = [...prev];
+          let changed = false;
+          for (const entry of entries) {
+            const idxAttr = (entry.target as HTMLElement).dataset.slotIndex;
+            const idx = idxAttr == null ? -1 : parseInt(idxAttr, 10);
+            if (idx >= 0 && idx < next.length) {
+              const v = entry.intersectionRatio >= 0.99;
+              if (next[idx] !== v) {
+                next[idx] = v;
+                changed = true;
+              }
+            }
+          }
+          return changed ? next : prev;
+        });
+      },
+      { root, threshold: [0, 0.99, 1] }
+    );
+    root.querySelectorAll<HTMLElement>('[data-slot-index]').forEach((el) =>
+      observer.observe(el)
+    );
+    return () => observer.disconnect();
+  }, [scrollEl, optionsLength]);
+
+  // Scroll position + overflow detection.
+  useEffect(() => {
+    const root = scrollEl;
+    if (!root) return;
+    let rafId = 0;
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        if (!root.isConnected) return;
+        const overflow = root.scrollWidth > root.clientWidth + 1;
+        setHasOverflow(overflow);
+        setCanPrev(root.scrollLeft > 1);
+        setCanNext(root.scrollLeft + root.clientWidth < root.scrollWidth - 1);
+      });
+    };
+    scheduleUpdate();
+    root.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    const ro = new ResizeObserver(scheduleUpdate);
+    ro.observe(root);
+    root
+      .querySelectorAll<HTMLElement>('[data-slot-index]')
+      .forEach((el) => ro.observe(el));
+    const mqlMd = window.matchMedia('(min-width: 768px)');
+    const mqlLg = window.matchMedia('(min-width: 1024px)');
+    mqlMd.addEventListener('change', scheduleUpdate);
+    mqlLg.addEventListener('change', scheduleUpdate);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      root.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      ro.disconnect();
+      mqlMd.removeEventListener('change', scheduleUpdate);
+      mqlLg.removeEventListener('change', scheduleUpdate);
+    };
+  }, [scrollEl, optionsLength]);
+
+  const scrollByCard = useCallback((direction: 1 | -1) => {
+    const root = scrollRef.current;
+    if (!root) return;
+    const slots = root.querySelectorAll<HTMLElement>('[data-slot-index]');
+    if (slots.length < 2) return;
+    const stride =
+      slots[1].getBoundingClientRect().left -
+      slots[0].getBoundingClientRect().left;
+    root.scrollBy({ left: stride * direction, behavior: 'smooth' });
+    setVisibility((prev) => {
+      const firstVisible = prev.indexOf(true);
+      const lastVisible = prev.lastIndexOf(true);
+      if (firstVisible < 0) return prev;
+      const nextFirst = firstVisible + direction;
+      const nextLast = lastVisible + direction;
+      if (nextFirst < 0 || nextLast >= prev.length) return prev;
+      const next = prev.map(() => false);
+      for (let i = nextFirst; i <= nextLast; i++) next[i] = true;
+      return next;
+    });
+    animatingRef.current = true;
+    if (animatingTimeoutRef.current !== null) {
+      window.clearTimeout(animatingTimeoutRef.current);
+    }
+    animatingTimeoutRef.current = window.setTimeout(() => {
+      animatingRef.current = false;
+      animatingTimeoutRef.current = null;
+    }, INDICATOR_ANIM_MS + 50);
+  }, []);
+
+  return {
+    setScrollNode,
+    visibility,
+    hasOverflow,
+    canPrev,
+    canNext,
+    scrollByCard,
+  };
 }
 
 function OptionsPageContent() {
@@ -1269,197 +1463,11 @@ function OptionsPageContent() {
         'A quality component included in this option. Detailed specifications and product imagery for this line item will appear here.',
     });
   };
-  // ── Section 1 horizontal-scroll state ──────────────────────────────────────
-  // Tracks:
-  //   1. Per-option full-visibility (drives OverflowNavigation's indicator
-  //      merging behavior AND PrimaryOptionSlot's click interception).
-  //   2. Whether the list actually overflows horizontally (drives nav visibility).
-  //   3. Whether the scroll is at its left/right edge (drives prev/next disabled).
-  // Callback-ref pattern: we need BOTH a ref (for synchronous access inside
-  // click handlers like scrollPrimaryByCard) AND a reactive state (for the
-  // useEffects that observe the scroll container). Why both:
-  // - OptionsPageResponsive early-returns <SummaryPageResponsive/> when an
-  //   option is selected, which unmounts the scroll container div. Returning
-  //   later re-mounts a NEW div. A plain `useRef` + `useEffect([])` would
-  //   leave the observers attached to the stale (detached) div, so overflow
-  //   detection on resize silently reads invalid values. Storing the element
-  //   in state re-triggers the observer setup every time the div re-mounts.
-  const primaryScrollRef = useRef<HTMLDivElement | null>(null);
-  const [primaryScrollEl, setPrimaryScrollEl] = useState<HTMLDivElement | null>(null);
-  const setPrimaryScrollNode = useCallback((el: HTMLDivElement | null) => {
-    primaryScrollRef.current = el;
-    setPrimaryScrollEl(el);
-  }, []);
-  // Default `false` (conservative): before the IntersectionObserver fires its
-  // first callback, show dots — not a (potentially wrong) merged pill. The
-  // observer corrects to `true` for any slot that's actually fully visible.
-  const [primaryVisibility, setPrimaryVisibility] = useState<boolean[]>(
-    () => OPTIONS.map(() => false)
-  );
-  const [primaryHasOverflow, setPrimaryHasOverflow] = useState(false);
-  const [primaryCanPrev, setPrimaryCanPrev] = useState(false);
-  const [primaryCanNext, setPrimaryCanNext] = useState(false);
-
-  // When the user clicks Prev/Next we set visibility to the *predicted* final
-  // state immediately, so the bar animates once (matching scroll duration)
-  // rather than in two sequential phases. During this window we must ignore
-  // IntersectionObserver callbacks — otherwise the intermediate [F,T,F] state
-  // it reports mid-scroll would cancel and re-trigger the animation.
-  const primaryAnimatingRef = useRef(false);
-  const primaryAnimatingTimeoutRef = useRef<number | null>(null);
-
-  // Observe each slot's intersection with the scroll container.
-  // Slots identify themselves via `data-slot-index`.
-  // Depends on `primaryScrollEl` so it re-runs when the scroll container is
-  // re-mounted (e.g. after returning from the Summary page).
-  useEffect(() => {
-    const root = primaryScrollEl;
-    if (!root) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Ignore observer updates during a click-driven bar animation window
-        // — the predicted visibility is already in state, and intermediate
-        // ratios from the in-flight scroll would trigger extra animations.
-        if (primaryAnimatingRef.current) return;
-        setPrimaryVisibility((prev) => {
-          const next = [...prev];
-          let changed = false;
-          for (const entry of entries) {
-            const idxAttr = (entry.target as HTMLElement).dataset.slotIndex;
-            const idx = idxAttr == null ? -1 : parseInt(idxAttr, 10);
-            if (idx >= 0 && idx < next.length) {
-              // 0.99 tolerates sub-pixel rounding from calc()
-              const v = entry.intersectionRatio >= 0.99;
-              if (next[idx] !== v) {
-                next[idx] = v;
-                changed = true;
-              }
-            }
-          }
-          // Skip re-render when nothing actually changed.
-          return changed ? next : prev;
-        });
-      },
-      { root, threshold: [0, 0.99, 1] }
-    );
-
-    root.querySelectorAll<HTMLElement>('[data-slot-index]').forEach((el) =>
-      observer.observe(el)
-    );
-    return () => observer.disconnect();
-    // optionCount is in deps so the observer re-binds when the DevConsole
-    // changes the count: existing slots' intersection ratios may not cross a
-    // threshold (e.g. lg-grid → lg-scroll keeps slots 0–2 at ratio 1) so the
-    // observer wouldn't fire on its own, AND any newly-added slot wouldn't be
-    // observed until we explicitly re-attach.
-  }, [primaryScrollEl, optionCount]);
-
-  // Track scroll position & overflow state (for nav visibility + button disabled state).
-  //
-  // Robustness notes (overflow detection across breakpoint changes):
-  //  - ResizeObserver only fires on box-size changes. When the layout switches
-  //    from L+ grid (3-col, no overflow) to M flex-row (2-col + 1/8 peek),
-  //    the root's clientWidth is still 100% of its parent and may barely
-  //    change — but scrollWidth jumps from clientWidth to ~1.5× it. Observing
-  //    only the root misses this. We also observe each child slot: the child
-  //    widths change dramatically (grid auto → fixed calc()) so their Resize
-  //    events reliably fire on breakpoint crossings.
-  //  - rAF-throttle: multiple triggers (resize/scroll/RO/MQL) in one tick all
-  //    collapse to a single DOM read after layout settles.
-  //  - Media-query listeners for md and lg act as a final safety net for any
-  //    browser where the above events fire before CSS reflow completes.
-  //
-  // Depends on `primaryScrollEl` so listeners re-bind to a newly-mounted
-  // scroll container after returning from the Summary page.
-  useEffect(() => {
-    const root = primaryScrollEl;
-    if (!root) return;
-
-    let rafId = 0;
-    const scheduleUpdate = () => {
-      if (rafId) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = 0;
-        if (!root.isConnected) return;
-        const overflow = root.scrollWidth > root.clientWidth + 1;
-        setPrimaryHasOverflow(overflow);
-        setPrimaryCanPrev(root.scrollLeft > 1);
-        setPrimaryCanNext(root.scrollLeft + root.clientWidth < root.scrollWidth - 1);
-      });
-    };
-
-    scheduleUpdate();
-    root.addEventListener('scroll', scheduleUpdate, { passive: true });
-    window.addEventListener('resize', scheduleUpdate);
-
-    // Observe root + each slot. Slot-level observation catches layout-mode
-    // switches (grid → flex) that don't change the root's own box size.
-    const ro = new ResizeObserver(scheduleUpdate);
-    ro.observe(root);
-    root
-      .querySelectorAll<HTMLElement>('[data-slot-index]')
-      .forEach((el) => ro.observe(el));
-
-    // Explicit breakpoint listeners as a final safety net.
-    const mqlMd = window.matchMedia('(min-width: 768px)');
-    const mqlLg = window.matchMedia('(min-width: 1024px)');
-    mqlMd.addEventListener('change', scheduleUpdate);
-    mqlLg.addEventListener('change', scheduleUpdate);
-
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      root.removeEventListener('scroll', scheduleUpdate);
-      window.removeEventListener('resize', scheduleUpdate);
-      ro.disconnect();
-      mqlMd.removeEventListener('change', scheduleUpdate);
-      mqlLg.removeEventListener('change', scheduleUpdate);
-    };
-    // optionCount in deps so we re-observe each slot when the DevConsole
-    // changes the count (a new slot needs to be added to the ResizeObserver,
-    // and a removed slot dropped) and recompute overflow state immediately.
-  }, [primaryScrollEl, optionCount]);
-
-  // Scroll by one card "stride" (card width + gap). Measured from actual DOM.
-  // Also: predict the final visibility array and set it immediately, so the
-  // bar runs a SINGLE 300ms animation that lines up with the native smooth
-  // scroll — instead of two sequential animations triggered mid-scroll by
-  // the IntersectionObserver.
-  const scrollPrimaryByCard = (direction: 1 | -1) => {
-    const root = primaryScrollRef.current;
-    if (!root) return;
-    const slots = root.querySelectorAll<HTMLElement>('[data-slot-index]');
-    if (slots.length < 2) return;
-    const stride =
-      slots[1].getBoundingClientRect().left - slots[0].getBoundingClientRect().left;
-    root.scrollBy({ left: stride * direction, behavior: 'smooth' });
-
-    // Predict new visibility: shift the current visible run by one slot in
-    // the scroll direction. If prediction exceeds bounds, leave state alone.
-    setPrimaryVisibility((prev) => {
-      const firstVisible = prev.indexOf(true);
-      const lastVisible = prev.lastIndexOf(true);
-      if (firstVisible < 0) return prev;
-      const nextFirst = firstVisible + direction;
-      const nextLast = lastVisible + direction;
-      if (nextFirst < 0 || nextLast >= prev.length) return prev;
-      const next = prev.map(() => false);
-      for (let i = nextFirst; i <= nextLast; i++) next[i] = true;
-      return next;
-    });
-
-    // Block observer-driven updates for the duration of the animation so the
-    // intermediate [F,T,F] ratios don't override our prediction. Use a slight
-    // buffer beyond INDICATOR_ANIM_MS to ensure the bar anim has fully settled.
-    primaryAnimatingRef.current = true;
-    if (primaryAnimatingTimeoutRef.current !== null) {
-      window.clearTimeout(primaryAnimatingTimeoutRef.current);
-    }
-    primaryAnimatingTimeoutRef.current = window.setTimeout(() => {
-      primaryAnimatingRef.current = false;
-      primaryAnimatingTimeoutRef.current = null;
-    }, INDICATOR_ANIM_MS + 50);
-  };
+  // Primary "All Options" list — horizontal-scroll nav state. Uses a
+  // callback-ref under the hood (see useOverflowScroll) so the observers
+  // re-attach when the scroll container is re-mounted after returning from
+  // the Summary page.
+  const primary = useOverflowScroll(OPTIONS.length);
 
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1523,7 +1531,6 @@ function OptionsPageContent() {
   // an option that no longer exists.
   useEffect(() => {
     const sliced = ALL_OPTIONS.slice(0, optionCount);
-    setPrimaryVisibility(sliced.map(() => false));
     setComparisonPair([
       sliced[0]?.id ?? 0,
       optionCount >= 2 ? sliced[1]!.id : sliced[0]?.id ?? 0,
@@ -1548,10 +1555,116 @@ function OptionsPageContent() {
   // lg+ overflow: the lg-grid runs out of its 3 fixed cols too.
   const hasOverflow = OPTIONS.length > 2;
   const lgHasOverflow = OPTIONS.length > 3;
-  // Change Option button: stub for now; menu is a future iteration.
-  const openChangeOptionMenu = (_optId: number) => {
-    // no-op — menu will be implemented in a later iteration
+  // ── Change Option picker (bottom sheet < lg / centered modal lg+) ──────────
+  // Opened by any "Change Option" CTA in the comparison cards (and inside the
+  // sticky-header option-card modal). Presents the full option list:
+  //   < lg: bottom sheet — vertical card list (mirror of the page's mobile
+  //          "Primary All Option List" at the top of OptionsPage)
+  //   lg+ : centered modal — horizontal card list (mirror of the page's
+  //          desktop layout)
+  // Clicking Select on any card in the picker selects that option (advancing
+  // to the Summary page) and dismisses the picker.
+  const [changeOptionOpen, setChangeOptionOpen] = useState(false);
+  // The option whose "Change Option" button opened the picker. Used to
+  // determine which other comparison-list options should be locked out
+  // (since they're already on screen, only the triggering slot is
+  // available to receive a new option).
+  const [changeOptionTriggerId, setChangeOptionTriggerId] = useState<number | null>(null);
+  const openChangeOptionMenu = (optId: number) => {
+    setChangeOptionTriggerId(optId);
+    setChangeOptionOpen(true);
   };
+  // Second independent scroll-nav instance for the picker's lg+ horizontal
+  // list (the OverflowNavigation indicator + Prev/Next buttons).
+  const pickerScroll = useOverflowScroll(OPTIONS.length);
+  useEffect(() => {
+    if (!changeOptionOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setChangeOptionOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Equalise card-section heights inside the newly-mounted picker. The
+    // global useSyncCardSectionHeights hook only re-runs on document-element
+    // resize; mounting a new container doesn't trigger it on its own. Two
+    // rAFs so the cards' images / fonts can settle before measuring.
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(syncCardSectionHeights);
+    });
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      cancelAnimationFrame(rafId);
+    };
+  }, [changeOptionOpen]);
+  // Staged-selection state — only used by the checkbox variant. Picks are
+  // batched into this array and applied to the live comparison list only
+  // when the user clicks "Compare Options" in the bottom control bar.
+  // Initial state on each open: the FULL current comparison list (every
+  // currently-shown option pre-checked, including the trigger). The first
+  // pick of an unchecked card replaces the trigger's slot (see the card
+  // click handler).
+  const [stagedSelection, setStagedSelection] = useState<number[]>([]);
+  // Ref for the picker's internal scroll area — wires the shared
+  // ScrollHintArrows (used in the Invoice / Make-Payment sheets) so the
+  // user sees bouncing chevrons when there's more content above/below
+  // and the scrollbar itself is hidden.
+  const pickerScrollAreaRef = useRef<HTMLDivElement | null>(null);
+  // XS-M only: the bottom bar collapses the pill list into a compact
+  // "X/N options ↑" toggle by default; tapping it expands the footer
+  // upward to reveal the pills stacked vertically. Reset on every open.
+  const [mobilePillsExpanded, setMobilePillsExpanded] = useState(false);
+  useEffect(() => {
+    if (!changeOptionOpen) setMobilePillsExpanded(false);
+  }, [changeOptionOpen]);
+  useEffect(() => {
+    if (!changeOptionOpen) return;
+    const baseList = isLgUp
+      ? lgHasOverflow
+        ? comparisonTriple
+        : OPTIONS.map((o) => o.id)
+      : hasOverflow
+      ? comparisonPair
+      : OPTIONS.map((o) => o.id);
+    setStagedSelection(baseList);
+    // Intentionally only reacts to picker open — once open, the picker
+    // owns staged state until commit/dismiss.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeOptionOpen]);
+
+  // ── Sticky-header option-card modal ────────────────────────────────────────
+  // Clicking an option button in the sticky comparison header opens that
+  // option's card as a centered modal. The CTA composition depends on whether
+  // the comparison table is currently showing every option at the active
+  // breakpoint:
+  //   • All options visible (no overflow at current bp) → only Select
+  //   • Some options hidden (overflow at current bp)   → Select + Change Option
+  // Breakpoint is tracked via a `(min-width: 1024px)` MQL — lg is the only
+  // breakpoint where the visible-count differs (2 → 3).
+  const [headerModalOpt, setHeaderModalOpt] = useState<FenceOption | null>(null);
+  const [isLgUp, setIsLgUp] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsLgUp(mql.matches);
+    sync();
+    mql.addEventListener('change', sync);
+    return () => mql.removeEventListener('change', sync);
+  }, []);
+  useEffect(() => {
+    if (!headerModalOpt) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setHeaderModalOpt(null);
+    };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [headerModalOpt]);
+  const headerModalOverflowAtCurrentBp = isLgUp ? lgHasOverflow : hasOverflow;
 
   // Per-option visibility classes for items in the comparison grids. The grid
   // itself stays at `grid-cols-2 lg:grid-cols-3` (when overflow exists) — we
@@ -1567,18 +1680,48 @@ function OptionsPageContent() {
     return ' hidden';
   }
 
-  const comparisonOptions = OPTIONS; // rendered with CSS visibility per column
+  // Order the comparison rendering by the current-breakpoint's comparison
+  // list (comparisonTriple on lg+ when there's lg-overflow, comparisonPair
+  // otherwise). Items NOT in the comparison list fall to the end in their
+  // original OPTIONS order — they're hidden via comparisonItemVisibilityClass
+  // anyway, but a stable order keeps DOM diffing happy. This makes the
+  // committed pill order from the Change Option picker actually drive the
+  // column order shown in the comparison cards / parameter rows / product
+  // rows.
+  const comparisonOrderedIds = isLgUp
+    ? lgHasOverflow
+      ? comparisonTriple
+      : OPTIONS.map((o) => o.id)
+    : hasOverflow
+    ? comparisonPair
+    : OPTIONS.map((o) => o.id);
+  const comparisonOptions = [...OPTIONS].sort((a, b) => {
+    const ai = comparisonOrderedIds.indexOf(a.id);
+    const bi = comparisonOrderedIds.indexOf(b.id);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
 
   // Comparison grid layout: 3+ options use 2-col on <lg (showing the pair) +
   // 3-col on lg+; with exactly 2 options we drop the lg-3-col override so the
   // table fills the container instead of leaving an empty third column.
   //
+  // Picker-driven 2-option case on lg+: when the user commits a 2-option
+  // comparison from the Change Option picker (comparisonTriple length 2),
+  // also drop the lg-3-col override so no empty column appears.
+  //
   // 2-option cap: cards/columns are capped at 720px each. Beyond that, the
   // grid stops growing and `justify-center` keeps it centered in the wider
   // container so cards don't balloon on very large viewports.
+  const lgComparisonShowsTwo =
+    lgHasOverflow && comparisonTriple.length === 2;
   const comparisonGridClass =
-    OPTIONS.length === 2
-      ? 'grid grid-cols-[repeat(2,minmax(0,720px))] gap-4 md:gap-3 justify-center'
+    OPTIONS.length === 2 || lgComparisonShowsTwo
+      ? OPTIONS.length === 2
+        ? 'grid grid-cols-[repeat(2,minmax(0,720px))] gap-4 md:gap-3 justify-center'
+        : 'grid grid-cols-2 lg:grid-cols-[repeat(2,minmax(0,720px))] gap-4 md:gap-3 lg:justify-center'
       : 'grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3';
 
   // When an option is selected, render either Summary (pre-approval) or
@@ -1665,11 +1808,13 @@ function OptionsPageContent() {
       )}
       <PageHeader onShowCover={() => setCurtainMounted(true)} />
       <StickyComparisonHeader
-        options={OPTIONS}
+        options={comparisonOptions}
         visible={stickyVisible}
         isInPair={isInPair}
         isInTriple={isInTriple}
         lgHasOverflow={lgHasOverflow}
+        lgShowsTwo={lgComparisonShowsTwo}
+        onClickOption={(opt) => setHeaderModalOpt(opt)}
       />
       {/*
         Width clamp: min 360px, max 2160px, centred.
@@ -1709,7 +1854,7 @@ function OptionsPageContent() {
           overflowing cards as fully visible.
         */}
         <div
-          ref={setPrimaryScrollNode}
+          ref={primary.setScrollNode}
           data-card-container
           className={
             // 2-option mode: 2-col grid that fills the container, capped at
@@ -1732,7 +1877,7 @@ function OptionsPageContent() {
               opt={opt}
               index={i}
               totalOptions={OPTIONS.length}
-              isFullyVisible={primaryVisibility[i] ?? true}
+              isFullyVisible={primary.visibility[i] ?? true}
               onSelect={() => selectOption(opt)}
             />
           ))}
@@ -1746,14 +1891,14 @@ function OptionsPageContent() {
             Spacing: total gap between the list and nav = Spacing M
               Low density (XS/S):   24px  = parent gap-4 (16) + mt-2 (8)
               Medium density (md+): 16px  = parent gap-3 (12) + md:mt-1 (4) */}
-        {primaryHasOverflow && (
+        {primary.hasOverflow && (
           <div className="mt-2 md:mt-1">
             <OverflowNavigation
-              visibility={primaryVisibility}
-              canPrev={primaryCanPrev}
-              canNext={primaryCanNext}
-              onPrev={() => scrollPrimaryByCard(-1)}
-              onNext={() => scrollPrimaryByCard(1)}
+              visibility={primary.visibility}
+              canPrev={primary.canPrev}
+              canNext={primary.canNext}
+              onPrev={() => primary.scrollByCard(-1)}
+              onNext={() => primary.scrollByCard(1)}
             />
           </div>
         )}
@@ -1973,6 +2118,509 @@ function OptionsPageContent() {
 
       </div>
       </div>
+
+      {/* Sticky-header option-card modal — clicking an option in the sticky
+          comparison header opens its card centered on screen. Includes a
+          Change Option CTA only when the comparison table is overflowing at
+          the current breakpoint (can't show every option simultaneously). */}
+      {headerModalOpt && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 bg-black/60"
+          style={{
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+          onClick={() => setHeaderModalOpt(null)}
+        >
+          <div
+            className="relative w-full max-w-[420px] max-h-full overflow-hidden"
+            style={{
+              borderRadius: 8,
+              boxShadow:
+                '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.20)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button — anchored top-right inside the card, 12px from edges,
+                matching ProductDetailSheet's CloseButton component for visual
+                consistency across modals. */}
+            <div className="absolute top-3 right-3 z-10">
+              <CloseButton onClick={() => setHeaderModalOpt(null)} />
+            </div>
+            <OptionCard
+              opt={headerModalOpt}
+              onSelect={() => {
+                const opt = headerModalOpt;
+                setHeaderModalOpt(null);
+                selectOption(opt);
+              }}
+              onChangeOption={
+                headerModalOverflowAtCurrentBp
+                  ? () => {
+                      openChangeOptionMenu(headerModalOpt.id);
+                      setHeaderModalOpt(null);
+                    }
+                  : undefined
+              }
+              changeOptionVisibleOnLg={lgHasOverflow}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Change Option picker — < lg renders a bottom sheet with a vertical
+          card list; lg+ renders a centered modal with a horizontal card list,
+          mirroring the page's primary all-option list at each breakpoint. */}
+      {changeOptionOpen && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/60 flex flex-col justify-end lg:items-center lg:justify-center lg:p-6"
+          style={{
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+          onClick={() => setChangeOptionOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full h-full lg:w-5/6 lg:max-w-[1800px] lg:h-auto lg:max-h-[85vh] flex flex-col"
+            style={{
+              boxShadow:
+                '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.20)',
+            }}
+          >
+            {/* Scrollable area — cards + overflow nav. min-h-0 lets the
+                flex child actually shrink (and thus scroll) when the
+                modal hits its 85vh cap; without it, content would push
+                the control bar off-screen on short viewports. The bottom
+                control bar (rendered below this block) stays pinned.
+                Wrapped in a `relative` parent so the bouncing
+                ScrollHintArrows can anchor to the viewport edges; the
+                scrollbar itself is hidden via `scrollbar-none`. */}
+            <div className="relative flex-1 min-h-0 flex flex-col">
+            <div ref={pickerScrollAreaRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-none">
+            {/* Option list — vertical < lg, horizontal lg+. Layout matches
+                the page-top primary list at each breakpoint. Tagged with
+                `data-card-container` so useSyncCardSectionHeights equalises
+                title / features / time / price band heights across cards,
+                matching the page's primary list behavior. Dismissal: tap
+                backdrop or press Escape — no explicit close button. */}
+            <div className="px-4 lg:px-8 pt-4 lg:pt-8 pb-4 lg:pb-6">
+            {/* Padding wrapper preserves the modal's left/right inset even
+                when the 4+ option list scrolls horizontally — the scroll
+                container (data-card-container) sits inside this wrapper, so
+                its scrollable area is already inset from the modal edges. */}
+            <div
+              ref={pickerScroll.setScrollNode}
+              data-card-container
+              className={
+                // Layout per option count:
+                //   2 options: 1-col on XS, 2-col on S+ (sm+, md+, lg+)
+                //   3 options: stacked on XS, 2-col on S–M (sm/md), 3-col on lg+
+                //   4+: stacked on XS, 2-col on S–M (sm/md), horizontal-scroll
+                //       3.125-peek on lg+
+                OPTIONS.length === 2
+                  ? 'grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-3'
+                  : OPTIONS.length === 3
+                  ? 'flex flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-3'
+                  : 'flex flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-3 lg:flex lg:flex-row lg:overflow-x-auto scrollbar-none'
+              }
+            >
+              {OPTIONS.map((opt, i) => {
+                const useCheckbox =
+                  config.changeOptionInteraction === 'checkbox';
+                const maxSlots = isLgUp ? 3 : 2;
+                // Source-of-truth for "is this option currently included":
+                //  • Checkbox mode → staged selection (the picker batches
+                //    edits, commits on Compare Options)
+                //  • Button mode  → live comparison list (each click is
+                //    immediate)
+                const comparisonIds = useCheckbox
+                  ? stagedSelection
+                  : isLgUp
+                  ? lgHasOverflow
+                    ? comparisonTriple
+                    : []
+                  : hasOverflow
+                  ? comparisonPair
+                  : [];
+                const isTrigger = opt.id === changeOptionTriggerId;
+                const inComparison = comparisonIds.includes(opt.id);
+                // Three CTA states per row:
+                //  • Trigger row → disabled "To Be Replaced" — this is the
+                //    slot the user is swapping out
+                //  • Already in comparison (non-trigger) → disabled
+                //    "Included in Comparison"
+                //  • Not in comparison → "Add to Comparison" — swaps this
+                //    option for the trigger inside the comparison list, then
+                //    closes the picker (no Summary navigation).
+                const lockedAsIncluded = !isTrigger && inComparison;
+                const isAddToComparison =
+                  !isTrigger &&
+                  !inComparison &&
+                  changeOptionTriggerId !== null;
+                const swapTriggerWith = (newId: number) => {
+                  if (isLgUp) {
+                    setComparisonTriple((prev) =>
+                      prev.map((id) =>
+                        id === changeOptionTriggerId ? newId : id
+                      )
+                    );
+                  } else {
+                    setComparisonPair(
+                      (prev) =>
+                        [
+                          prev[0] === changeOptionTriggerId
+                            ? newId
+                            : prev[0],
+                          prev[1] === changeOptionTriggerId
+                            ? newId
+                            : prev[1],
+                        ] as [number, number]
+                    );
+                  }
+                };
+                // After a swap we keep the picker open so the user can
+                // continue auditioning options for the same comparison slot.
+                // The newly-swapped-in option becomes the trigger, so a
+                // subsequent click swaps THAT back out (continuous toggle
+                // for the slot).
+                const handleAddToComparison = () => {
+                  swapTriggerWith(opt.id);
+                  setChangeOptionTriggerId(opt.id);
+                };
+                const handleSelect = isAddToComparison
+                  ? handleAddToComparison
+                  : () => {
+                      setChangeOptionOpen(false);
+                      selectOption(opt);
+                    };
+                const ctaDisabled = lockedAsIncluded || isTrigger;
+                const ctaLabel = isTrigger
+                  ? 'To Be Replaced'
+                  : lockedAsIncluded
+                  ? 'Included in Comparison'
+                  : isAddToComparison
+                  ? 'Add to Comparison'
+                  : undefined;
+                // Checkbox variant — DevConsole-toggled alternative to the
+                // button CTA. Each card swaps its bottom button block for an
+                // inline checkbox row (reusing the addon-sheet's Checkbox).
+                // The whole card is the click target; the checkbox row is
+                // purely a visual indicator. Semantics: clicking an
+                // unchecked card appends its id to staged selection; once
+                // staged is full, the next click replaces the LAST entry —
+                // matching the bottom control bar's pill slot behavior.
+                // Already-checked cards are non-interactive (use the X on a
+                // pill to free that slot).
+                const checkboxChecked = inComparison;
+                const checkboxRow = useCheckbox ? (
+                  <div className="flex items-center gap-3 w-full">
+                    <Checkbox checked={checkboxChecked} />
+                    <span className="text-[16px] font-semibold text-[#262626]">
+                      Add to Comparison
+                    </span>
+                  </div>
+                ) : undefined;
+                const cardClickable = useCheckbox;
+                const handleCheckboxCardClick = () => {
+                  setStagedSelection((prev) => {
+                    // Toggle: checked card → remove from staged
+                    if (prev.includes(opt.id)) {
+                      return prev.filter((x) => x !== opt.id);
+                    }
+                    // Unchecked with a free slot (user X'd one out) →
+                    // append; trigger position is untouched
+                    if (prev.length < maxSlots) return [...prev, opt.id];
+                    // Unchecked, all slots full → replace the trigger's
+                    // slot (or the last slot if the trigger has already
+                    // been swapped out earlier). The just-swapped-in
+                    // option becomes the new trigger so subsequent clicks
+                    // continue to replace the SAME slot — a continuous
+                    // swap-in-place behavior for that comparison column.
+                    const triggerIdx = prev.indexOf(
+                      changeOptionTriggerId ?? -1
+                    );
+                    const replaceIdx =
+                      triggerIdx >= 0 ? triggerIdx : prev.length - 1;
+                    const next = [...prev];
+                    next[replaceIdx] = opt.id;
+                    setChangeOptionTriggerId(opt.id);
+                    return next;
+                  });
+                };
+                return (
+                  <div
+                    key={opt.id}
+                    data-slot-index={i}
+                    onClick={cardClickable ? handleCheckboxCardClick : undefined}
+                    className={[
+                      OPTIONS.length >= 4
+                        ? 'lg:shrink-0 lg:w-[calc((100%-36px)/3.125)]'
+                        : '',
+                      cardClickable
+                        ? 'cursor-pointer'
+                        : useCheckbox
+                        ? 'cursor-not-allowed'
+                        : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <OptionCard
+                      opt={opt}
+                      onSelect={handleSelect}
+                      selectDisabled={ctaDisabled}
+                      selectLabel={ctaLabel}
+                      bottomCta={checkboxRow}
+                      selected={useCheckbox && checkboxChecked}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            </div>
+            {/* OverflowNavigation — only shown when the picker's list actually
+                overflows (lg+ with 4+ options). Mirrors the page-top primary
+                list's nav placement. */}
+            {pickerScroll.hasOverflow && (
+              <div className="px-4 lg:px-8 pb-4 lg:pb-6">
+                <OverflowNavigation
+                  visibility={pickerScroll.visibility}
+                  canPrev={pickerScroll.canPrev}
+                  canNext={pickerScroll.canNext}
+                  onPrev={() => pickerScroll.scrollByCard(-1)}
+                  onNext={() => pickerScroll.scrollByCard(1)}
+                />
+              </div>
+            )}
+            </div>
+            {/* Bouncing chevrons fade in/out based on remaining scrollable
+                content above (top) and below (bottom). Same component used
+                in Invoice / Make-Payment sheets. */}
+            <ScrollHintArrows targetRef={pickerScrollAreaRef} />
+            </div>
+            {/* Bottom toolbar — diverges per interaction mode.
+                Checkbox mode: pill slots (one per comparison-table column at
+                  the current breakpoint), Compare Options commit button,
+                  and a close X. Picks are applied only on Compare Options;
+                  X / backdrop / Escape discard.
+                Button mode: simple centred Cancel — selection is already
+                  live, the bar just closes the picker. */}
+            {config.changeOptionInteraction === 'checkbox' ? (
+              (() => {
+                // Build the pill nodes ONCE, then re-render them in both
+                // the lg+ horizontal row and (when expanded) the XS-M
+                // vertical stack. Each pill is full-width inside its
+                // container thanks to `flex-1 min-w-0`.
+                const slotCount = isLgUp ? 3 : 2;
+                const renderPill = (slotIdx: number) => {
+                  const id = stagedSelection[slotIdx];
+                  const opt =
+                    id != null
+                      ? OPTIONS.find((o) => o.id === id) ?? null
+                      : null;
+                  if (opt) {
+                    return (
+                      <div
+                        key={slotIdx}
+                        className="flex items-center gap-2 h-10 px-3 border border-solid border-[#262626] rounded-[4px] w-full lg:w-auto lg:flex-1 min-w-0"
+                      >
+                        <span
+                          className="flex-1 truncate text-[14px] text-[#262626]"
+                          style={{ fontFamily: 'Segoe UI, sans-serif' }}
+                        >
+                          {opt.label}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${opt.label}`}
+                          onClick={() =>
+                            setStagedSelection((prev) =>
+                              prev.filter((x) => x !== opt.id)
+                            )
+                          }
+                          className="shrink-0 flex items-center justify-center bg-transparent border-0 cursor-pointer"
+                          style={{ width: 20, height: 20 }}
+                        >
+                          <svg
+                            width={12}
+                            height={12}
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 3L13 13M13 3L3 13"
+                              stroke="#262626"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={slotIdx}
+                      className="flex items-center h-10 px-3 border border-solid border-[#d9d9d9] rounded-[4px] w-full lg:w-auto lg:flex-1 min-w-0"
+                    >
+                      <span
+                        className="text-[14px] text-[#bfbfbf]"
+                        style={{ fontFamily: 'Segoe UI, sans-serif' }}
+                      >
+                        Choose a option
+                      </span>
+                    </div>
+                  );
+                };
+                const pillNodes = Array.from({ length: slotCount }).map(
+                  (_, i) => renderPill(i)
+                );
+                return (
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-2 px-4 lg:px-8 pb-4 lg:pb-8 pt-6 lg:pt-8">
+                {/* XS-M: compact "X/N options" toggle (with a chevron) —
+                    tapping it expands the footer upward to reveal the
+                    pills vertically stacked. Hidden on lg+. */}
+                <div className="lg:hidden flex flex-col gap-2 w-full">
+                  {mobilePillsExpanded && (
+                    <div className="flex flex-col gap-2 w-full">{pillNodes}</div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMobilePillsExpanded((v) => !v)
+                    }
+                    className={[
+                      // px-3 (no negative margin) so the label aligns with
+                      // the pill labels above (pills are w-full + px-3 →
+                      // text sits at 12px from the container's left edge).
+                      'self-start flex items-center gap-1 h-10 px-3 border-0 rounded-[4px] cursor-pointer transition-colors',
+                      // Highlighted bg while expanded; subtle hover when
+                      // collapsed.
+                      mobilePillsExpanded
+                        ? 'bg-[#f0f0f0]'
+                        : 'bg-transparent hover:bg-[#f0f0f0]',
+                    ].join(' ')}
+                    aria-expanded={mobilePillsExpanded}
+                  >
+                    <span
+                      className="text-[14px] text-[#262626]"
+                      style={{ fontFamily: 'Segoe UI, sans-serif' }}
+                    >
+                      {stagedSelection.length}/{slotCount} options
+                    </span>
+                    <svg
+                      width={12}
+                      height={12}
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      aria-hidden="true"
+                      style={{
+                        transform: mobilePillsExpanded
+                          ? 'rotate(180deg)'
+                          : 'none',
+                        transition: 'transform 150ms ease-out',
+                      }}
+                    >
+                      <path
+                        d="M3 8 L6 4 L9 8"
+                        stroke="#262626"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                {/* lg+: original horizontal pills row, locked to the
+                    width of 2 option cards + 1 12px gap above so the
+                    pills span the same extent as 2 OptionCards. */}
+                <div className="hidden lg:flex items-center gap-2 lg:flex-none lg:w-[calc((100%-36px)*2/3.125+12px)] min-w-0 overflow-x-auto scrollbar-none">
+                  {pillNodes}
+                </div>
+                {/* Action buttons row.
+                    XS-M: wrapper is a full-width flex row hosting Cancel
+                      + Compare Options as equal-width buttons (matches
+                      the SignatureOverlay confirm pattern). The Close X
+                      is hidden — Cancel handles dismissal.
+                    lg+: `lg:contents` dissolves this wrapper so Compare
+                      Options and Close X become direct flex children of
+                      the outer row, allowing `lg:ml-auto` to push them
+                      to the right edge. */}
+                <div className="flex gap-2 w-full lg:contents">
+                  <button
+                    type="button"
+                    onClick={() => setChangeOptionOpen(false)}
+                    className="flex-1 lg:hidden h-10 bg-white border border-solid border-[#d9d9d9] text-[14px] rounded-[4px] flex items-center justify-center cursor-pointer"
+                    style={{ fontFamily: 'Segoe UI, sans-serif', color: 'rgba(0,0,0,0.85)' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={stagedSelection.length < 2}
+                    onClick={() => {
+                      if (isLgUp) {
+                        // lg+ supports a 2- OR 3-option comparison. We
+                        // just commit whatever the user staged (length
+                        // is already gated to >= 2 by the disabled check).
+                        setComparisonTriple(stagedSelection);
+                      } else {
+                        setComparisonPair([
+                          stagedSelection[0],
+                          stagedSelection[1],
+                        ] as [number, number]);
+                      }
+                      setChangeOptionOpen(false);
+                    }}
+                    className="flex-1 lg:flex-none lg:shrink-0 lg:ml-auto h-10 lg:px-6 text-[14px] font-semibold rounded-[4px] flex items-center justify-center bg-[#d41a32] text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
+                  >
+                    Compare Options
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={() => setChangeOptionOpen(false)}
+                    className="hidden lg:flex shrink-0 items-center justify-center border border-solid border-[#d9d9d9] rounded-[4px] bg-white cursor-pointer"
+                    style={{ width: 40, height: 40 }}
+                  >
+                    <svg
+                      width={16}
+                      height={16}
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 3L13 13M13 3L3 13"
+                        stroke="#262626"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+                );
+              })()
+            ) : (
+              <div className="px-4 lg:px-8 pb-4 lg:pb-8 flex lg:justify-center">
+                <button
+                  type="button"
+                  onClick={() => setChangeOptionOpen(false)}
+                  className="w-full lg:w-[240px] h-10 bg-white border border-solid border-[#d9d9d9] text-[14px] rounded-[4px] flex items-center justify-center cursor-pointer"
+                  style={{ fontFamily: 'Segoe UI, sans-serif', color: 'rgba(0,0,0,0.85)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Product Detail bottom sheet — opened by clicking a product line item in
           the comparison section. Closed via backdrop, X (desktop), Close (mobile),

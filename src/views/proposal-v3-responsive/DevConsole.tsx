@@ -67,6 +67,16 @@ export default function DevConsole() {
                 onChange={(v) => setConfig((c) => ({ ...c, optionCount: v }))}
               />
             </Section>
+            <Section title="Change Option Interaction">
+              <ToggleRow
+                value={config.changeOptionInteraction}
+                options={[
+                  { label: 'Checkbox', value: 'checkbox' as const },
+                  { label: 'Button', value: 'button' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, changeOptionInteraction: v }))}
+              />
+            </Section>
           </Cluster>
 
           <Cluster title="Summary Page">

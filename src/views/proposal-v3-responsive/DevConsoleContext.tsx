@@ -12,6 +12,7 @@ export type PaymentResult = 'success' | 'failure';
 export type PaymentCompletionIndication = 'check' | 'seal';
 export type InvoiceMode = 'happyPath' | 'enumerate';
 export type PaymentInfoInput = 'prefilled' | 'blank';
+export type ChangeOptionInteraction = 'button' | 'checkbox';
 
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
@@ -40,6 +41,11 @@ export type DevConfig = {
    *  Confirm and Pay flow) or with empty fields ('blank' — exercises the
    *  validation states). */
   paymentInfoInput: PaymentInfoInput;
+  /** UI treatment for the "Change Option" affordance on the comparison
+   *  page. 'button' (default) shows a per-card Change Option CTA that
+   *  opens the picker sheet/modal; 'checkbox' (TBD) will use inline
+   *  checkboxes for direct multi-select swapping. */
+  changeOptionInteraction: ChangeOptionInteraction;
 };
 
 type DevConsoleContextValue = {
@@ -61,6 +67,7 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     paymentCompletionIndication: 'seal',
     invoiceMode: 'happyPath',
     paymentInfoInput: 'prefilled',
+    changeOptionInteraction: 'checkbox',
   });
   const [isOpen, setIsOpen] = useState(false);
 
