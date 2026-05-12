@@ -17,7 +17,6 @@ import { DevConsoleProvider, useDevConsole } from './DevConsoleContext';
 import DevConsole from './DevConsole';
 import ProductDetailSheet, {
   Checkbox,
-  CloseButton,
   NoImageThumb,
   type ProductDetailContent,
   type UpgradeOption,
@@ -1147,7 +1146,8 @@ function StickyComparisonHeader({
   isInTriple,
   lgHasOverflow,
   lgShowsTwo,
-  onClickOption,
+  onSelectOption,
+  onChangeOption,
 }: {
   options: FenceOption[];
   visible: boolean;
@@ -1161,11 +1161,48 @@ function StickyComparisonHeader({
    *  comparison). Switches the lg+ layout from flex-equal-fill to a
    *  2-col grid capped at 720px each, matching the comparison table below. */
   lgShowsTwo: boolean;
-  /** Click handler: opens the centered option-card modal for the clicked option. */
-  onClickOption: (opt: FenceOption) => void;
+  /** "Select This Option" → commit this option (go to Summary). */
+  onSelectOption: (opt: FenceOption) => void;
+  /** "Change Option" → open the Change Option picker. */
+  onChangeOption: (opt: FenceOption) => void;
 }) {
+  // Which header button currently shows its dropdown menu (null = none).
+  // Click again to toggle off; click outside the bar closes it too.
+  const [openId, setOpenId] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Close the dropdown whenever the header itself hides.
+  useEffect(() => {
+    if (!visible) setOpenId(null);
+  }, [visible]);
+  // Outside-click handling — intercept on the DOCUMENT capture phase so
+  // we run BEFORE React's root-level event listeners. The first click
+  // outside the sticky header closes the menu and is swallowed
+  // (stopPropagation + stopImmediatePropagation + preventDefault), so the
+  // click never reaches the underlying page or any React onClick handler.
+  useEffect(() => {
+    if (openId === null) return;
+    const onCapture = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (target && containerRef.current?.contains(target)) {
+        // Click inside the sticky header — let it through (e.g. clicking
+        // another header button, or a menu item).
+        return;
+      }
+      setOpenId(null);
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    };
+    document.addEventListener('mousedown', onCapture, true);
+    document.addEventListener('click', onCapture, true);
+    return () => {
+      document.removeEventListener('mousedown', onCapture, true);
+      document.removeEventListener('click', onCapture, true);
+    };
+  }, [openId]);
   return (
     <div
+      ref={containerRef}
       className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-[0px_4px_3px_0px_rgba(123,123,123,0.1)]"
       style={{
         borderBottomWidth: '0.5px',
@@ -1174,9 +1211,13 @@ function StickyComparisonHeader({
         transition: 'transform 200ms ease-out',
       }}
     >
+      {/* Inner row — items-stretch so each slot fills the full header
+          height (no vertical padding here; padding lives on the buttons
+          below). This makes each button's clickable hot area span the
+          full sticky-header height. */}
       <div
         className={[
-          'mx-auto flex items-center gap-4 md:gap-3 px-4 sm:px-6 md:px-4 lg:px-6 py-2 md:py-3',
+          'mx-auto flex items-stretch gap-4 md:gap-3 px-4 sm:px-6 md:px-4 lg:px-6',
           lgShowsTwo
             ? 'lg:grid lg:grid-cols-[repeat(2,minmax(0,720px))] lg:justify-center'
             : '',
@@ -1190,26 +1231,83 @@ function StickyComparisonHeader({
           if (!md) extra += ' hidden';
           if (md && !lg) extra += ' lg:hidden';
           else if (!md && lg) extra += ' lg:flex';
+          const isOpen = openId === opt.id;
           return (
-          <button
+          // Slot wrapper is the positioning context for the dropdown
+          // menu — the menu uses `top-full w-full` so it inherits the
+          // slot's width, matching the comparison column width below.
+          <div
             key={opt.id}
-            type="button"
-            onClick={() => onClickOption(opt)}
-            className={`flex flex-1 items-center gap-1 px-2 min-w-0 cursor-pointer bg-transparent border-0${extra}`}
+            className={`relative flex flex-1 min-w-0${extra}`}
           >
-            <p
-              className="flex-1 font-semibold text-[14px] text-[#262626] truncate leading-normal text-left"
-              style={{ fontFamily: 'Segoe UI, sans-serif' }}
+            <button
+              type="button"
+              onClick={() => setOpenId(isOpen ? null : opt.id)}
+              className={[
+                'flex flex-1 items-center gap-1 px-2 py-2 md:py-3 min-w-0 cursor-pointer border-0 transition-colors',
+                isOpen ? 'bg-[#f0f0f0]' : 'bg-transparent hover:bg-[#f5f5f5]',
+              ].join(' ')}
+              aria-expanded={isOpen}
+              aria-haspopup="menu"
             >
-              {opt.label}
-            </p>
-            <img
-              src={IMG_DROPDOWN_ICON}
-              alt=""
-              className="rotate-90 shrink-0"
-              style={{ width: 16, height: 16 }}
-            />
-          </button>
+              <p
+                className="flex-1 font-semibold text-[14px] text-[#262626] truncate leading-normal text-left"
+                style={{ fontFamily: 'Segoe UI, sans-serif' }}
+              >
+                {opt.label}
+              </p>
+              <img
+                src={IMG_DROPDOWN_ICON}
+                alt=""
+                className="rotate-90 shrink-0"
+                style={{
+                  width: 16,
+                  height: 16,
+                  transform: isOpen ? 'rotate(-90deg)' : undefined,
+                  transition: 'transform 150ms ease-out',
+                }}
+              />
+            </button>
+            {isOpen && (
+              <div
+                role="menu"
+                // top-[calc(100%+0.5px)] clears the header's 0.5px
+                // border-bottom so the menu's top edge aligns flush with
+                // the header's bottom edge instead of overlapping the
+                // border.
+                className="absolute top-[calc(100%+0.5px)] left-0 w-full bg-white border border-solid border-[#d9d9d9] flex flex-col z-10"
+                style={{
+                  boxShadow:
+                    '0px 2px 4px rgba(0,0,0,0.06), 0px 4px 16px rgba(0,0,0,0.10)',
+                }}
+              >
+                <button
+                  role="menuitem"
+                  type="button"
+                  onClick={() => {
+                    setOpenId(null);
+                    onSelectOption(opt);
+                  }}
+                  className="flex items-center w-full px-3 py-3 text-left text-[14px] text-[#262626] bg-white hover:bg-[#f5f5f5] border-0 cursor-pointer"
+                  style={{ fontFamily: 'Segoe UI, sans-serif' }}
+                >
+                  Select This Option
+                </button>
+                <button
+                  role="menuitem"
+                  type="button"
+                  onClick={() => {
+                    setOpenId(null);
+                    onChangeOption(opt);
+                  }}
+                  className="flex items-center w-full px-3 py-3 text-left text-[14px] text-[#262626] bg-white hover:bg-[#f5f5f5] border-0 cursor-pointer border-t border-solid border-[#f0f0f0]"
+                  style={{ fontFamily: 'Segoe UI, sans-serif' }}
+                >
+                  Change Option
+                </button>
+              </div>
+            )}
+          </div>
           );
         })}
       </div>
@@ -1633,16 +1731,9 @@ function OptionsPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [changeOptionOpen]);
 
-  // ── Sticky-header option-card modal ────────────────────────────────────────
-  // Clicking an option button in the sticky comparison header opens that
-  // option's card as a centered modal. The CTA composition depends on whether
-  // the comparison table is currently showing every option at the active
-  // breakpoint:
-  //   • All options visible (no overflow at current bp) → only Select
-  //   • Some options hidden (overflow at current bp)   → Select + Change Option
-  // Breakpoint is tracked via a `(min-width: 1024px)` MQL — lg is the only
-  // breakpoint where the visible-count differs (2 → 3).
-  const [headerModalOpt, setHeaderModalOpt] = useState<FenceOption | null>(null);
+  // Track lg+ breakpoint reactively (used by the picker's slot logic and a
+  // few other layout decisions). Kept as React state via an MQL listener
+  // so resizes across the lg boundary trigger re-renders.
   const [isLgUp, setIsLgUp] = useState(false);
   useEffect(() => {
     const mql = window.matchMedia('(min-width: 1024px)');
@@ -1651,20 +1742,6 @@ function OptionsPageContent() {
     mql.addEventListener('change', sync);
     return () => mql.removeEventListener('change', sync);
   }, []);
-  useEffect(() => {
-    if (!headerModalOpt) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setHeaderModalOpt(null);
-    };
-    window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [headerModalOpt]);
-  const headerModalOverflowAtCurrentBp = isLgUp ? lgHasOverflow : hasOverflow;
 
   // Per-option visibility classes for items in the comparison grids. The grid
   // itself stays at `grid-cols-2 lg:grid-cols-3` (when overflow exists) — we
@@ -1814,7 +1891,8 @@ function OptionsPageContent() {
         isInTriple={isInTriple}
         lgHasOverflow={lgHasOverflow}
         lgShowsTwo={lgComparisonShowsTwo}
-        onClickOption={(opt) => setHeaderModalOpt(opt)}
+        onSelectOption={(opt) => selectOption(opt)}
+        onChangeOption={(opt) => openChangeOptionMenu(opt.id)}
       />
       {/*
         Width clamp: min 360px, max 2160px, centred.
@@ -2119,61 +2197,12 @@ function OptionsPageContent() {
       </div>
       </div>
 
-      {/* Sticky-header option-card modal — clicking an option in the sticky
-          comparison header opens its card centered on screen. Includes a
-          Change Option CTA only when the comparison table is overflowing at
-          the current breakpoint (can't show every option simultaneously). */}
-      {headerModalOpt && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 bg-black/60"
-          style={{
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-          }}
-          onClick={() => setHeaderModalOpt(null)}
-        >
-          <div
-            className="relative w-full max-w-[420px] max-h-full overflow-hidden"
-            style={{
-              borderRadius: 8,
-              boxShadow:
-                '0px 2px 4px rgba(0,0,0,0.12), 0px 4px 24px rgba(0,0,0,0.20)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close button — anchored top-right inside the card, 12px from edges,
-                matching ProductDetailSheet's CloseButton component for visual
-                consistency across modals. */}
-            <div className="absolute top-3 right-3 z-10">
-              <CloseButton onClick={() => setHeaderModalOpt(null)} />
-            </div>
-            <OptionCard
-              opt={headerModalOpt}
-              onSelect={() => {
-                const opt = headerModalOpt;
-                setHeaderModalOpt(null);
-                selectOption(opt);
-              }}
-              onChangeOption={
-                headerModalOverflowAtCurrentBp
-                  ? () => {
-                      openChangeOptionMenu(headerModalOpt.id);
-                      setHeaderModalOpt(null);
-                    }
-                  : undefined
-              }
-              changeOptionVisibleOnLg={lgHasOverflow}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Change Option picker — < lg renders a bottom sheet with a vertical
           card list; lg+ renders a centered modal with a horizontal card list,
           mirroring the page's primary all-option list at each breakpoint. */}
       {changeOptionOpen && (
         <div
-          className="fixed inset-0 z-[70] bg-black/60 flex flex-col justify-end lg:items-center lg:justify-center lg:p-6"
+          className="fixed inset-0 z-[70] bg-black/60 flex flex-col justify-end pt-[38px] md:pt-[46px] lg:items-center lg:justify-center lg:p-6"
           style={{
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
