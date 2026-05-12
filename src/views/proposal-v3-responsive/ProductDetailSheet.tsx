@@ -387,7 +387,7 @@ function ProductBody({
       </div>
 
       {/* Desktop (lg+) */}
-      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1440px] mx-auto items-start">
+      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1680px] mx-auto items-start">
         {/* Left column - image / placeholder */}
         <div className="flex-[8] min-w-0 flex flex-col gap-3">
           {hasImages ? (
@@ -610,7 +610,7 @@ function UpgradeBody({
       </div>
 
       {/* Desktop (lg+) */}
-      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1440px] mx-auto items-start">
+      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1680px] mx-auto items-start">
         {/* Left column: hero + thumbs */}
         <div className="flex-[8] min-w-0 flex flex-col gap-3">
           {hasImages ? (
@@ -798,7 +798,7 @@ function AddonBody({
       </div>
 
       {/* Desktop (lg+) */}
-      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1440px] mx-auto items-start">
+      <div className="hidden lg:flex gap-8 px-12 py-12 w-full max-w-[1680px] mx-auto items-start">
         {/* Left column: image / placeholder */}
         <div className="flex-[8] min-w-0">
           {hasImages ? (

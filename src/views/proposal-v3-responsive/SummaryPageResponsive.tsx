@@ -428,6 +428,12 @@ type ProductItem = {
 };
 
 function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () => void }) {
+  // Surface the Change CTA whenever the item has real upgrade options to
+  // choose from. We derive it here (not at the call site) so that every
+  // ProductsSection map — primary, secondary, or any future grouping —
+  // automatically renders the upgrade affordance without having to remember
+  // to set `hasUpgrade` explicitly.
+  const hasUpgrade = item.hasUpgrade || (item.upgradeOptions?.length ?? 0) > 0;
   return (
     <div
       className={`bg-white border-t-[0.5px] border-[rgba(0,0,0,0.1)] flex gap-2 items-start py-3 w-full ${
@@ -461,7 +467,7 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
           <span style={{ width: 32 }}>{item.unit}</span>
         </div>
         {/* Row 3: upgrade control */}
-        {item.hasUpgrade && (
+        {hasUpgrade && (
           <div className="flex items-center">
             <span
               className="text-[14px] font-semibold text-[#262626] tracking-[-0.56px] whitespace-nowrap overflow-hidden text-ellipsis"
@@ -499,7 +505,7 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
         </div>
         {/* Upgrade control — w-80px */}
         <div className="flex items-center justify-end shrink-0" style={{ width: 80 }}>
-          {item.hasUpgrade && (
+          {hasUpgrade && (
             <div className="flex items-start">
               <span
                 className="text-[16px] font-semibold text-[#262626] tracking-[-0.64px] whitespace-nowrap"
@@ -604,11 +610,9 @@ function ProductsSection({
     },
   ];
 
-  // Change pill is driven entirely by real upgradeOptions on the product.
-  const primaryItems: ProductItem[] = products.map((p) => ({
-    ...p,
-    hasUpgrade: !!p.upgradeOptions?.length,
-  }));
+  // Change pill is derived inside ProductLineItem directly from
+  // `upgradeOptions`, so we don't need to massage the products array here.
+  const primaryItems: ProductItem[] = products;
 
   return (
     <SectionCard label="Included Products">
