@@ -979,8 +979,23 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
       onClick={onOpen}
       className="bg-[#fafafa] flex gap-2 items-stretch w-full overflow-hidden text-left p-0 border-0 cursor-pointer"
     >
-      {/* Left status bar */}
-      <div className="shrink-0" style={{ width: 5, background: barColor }} />
+      {/* Left status bar — processing uses the same hatched fill (light-green
+          base + dark-green diagonal stripes) as the desktop row's strip and
+          the desktop progress-bar processing slice, so the in-flight state
+          reads the same across breakpoints. */}
+      {inv.status === 'processing' ? (
+        <div
+          className="shrink-0"
+          style={{
+            width: 5,
+            backgroundColor: '#c4ecc6',
+            backgroundImage:
+              'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
+          }}
+        />
+      ) : (
+        <div className="shrink-0" style={{ width: 5, background: barColor }} />
+      )}
       {/* Content */}
       <div className="flex flex-col gap-2 items-start py-2 flex-1 min-w-0 pr-2">
         {/* Row 1: INVOICE #N · STATUS */}
