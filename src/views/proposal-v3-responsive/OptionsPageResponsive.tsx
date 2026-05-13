@@ -21,6 +21,9 @@ import ProductDetailSheet, {
   type ProductDetailContent,
   type UpgradeOption,
 } from './ProductDetailSheet';
+import PaymentScheduleDialog, {
+  type PaymentScheduleData,
+} from './PaymentScheduleDialog';
 
 // ── Equal-height hook ─────────────────────────────────────────────────────────
 // For each [data-card-container], finds all [data-card-section="X"] elements,
@@ -840,14 +843,17 @@ function CardBanner({
 function ComparisonParam({
   label,
   value,
+  onClick,
 }: {
   label: string;
   value: string;
+  onClick?: () => void;
 }) {
   return (
     <div
-      className="flex flex-col border-t border-t-[rgba(0,0,0,0.1)] w-full py-3 md:py-2"
+      className={`flex flex-col border-t border-t-[rgba(0,0,0,0.1)] w-full py-3 md:py-2${onClick ? ' cursor-pointer' : ''}`}
       style={{ borderTopWidth: '0.5px' }}
+      onClick={onClick}
     >
       <p
         className="text-[10px] md:text-[12px] text-[#737373] tracking-[-0.1px]"
@@ -1597,6 +1603,25 @@ function OptionsPageContent() {
   // Opened by clicking a product line item in the comparison section. Three
   // variants render off the same sheet: Product / Upgrade / Add-on.
   const [productDetail, setProductDetail] = useState<ProductDetailContent | null>(null);
+  // ── Payment Schedule dialog state ──────────────────────────────────────────
+  // Opened by clicking the Contract Total or Estimated Monthly Payment row in
+  // any option's comparison column. Snapshot at click-time so the dialog stays
+  // stable even if the user navigates underneath.
+  const [scheduleData, setScheduleData] = useState<PaymentScheduleData | null>(null);
+  const openSchedule = (opt: FenceOption) => {
+    const contractTotalNum = Number(opt.contractTotal.replace(/[^0-9.]/g, '')) || 0;
+    const monthlyNum = Number(opt.monthly.replace(/[^0-9.]/g, '')) || 0;
+    setScheduleData({
+      optionLabel: opt.label,
+      projectName: 'Henderson Backyard Fence',
+      contractTotal: contractTotalNum,
+      monthly: monthlyNum,
+      loanAmount: Math.round(contractTotalNum),
+      termMonths: 12,
+      apr: 4,
+    });
+  };
+  const closeSchedule = () => setScheduleData(null);
   // Per-product selection of the upgrade option, keyed by `${optionId}:${productName}`.
   // The first option in `upgradeOptions` is the baseline (no override needed).
   const [upgradeSelections, setUpgradeSelections] = useState<Record<string, string>>({});
@@ -1611,7 +1636,14 @@ function OptionsPageContent() {
     const qtyLabel = `${p.qty} ${p.unit}`;
     // Upgrade variant whenever the product has options. The comparison-table
     // caller passes readOnly so the sheet is browse-only (no Select CTA).
-    if (p.upgradeOptions && p.upgradeOptions.length > 0) {
+    // When DevConsole upgrades = 'disable', collapse to the default option's
+    // product detail (no swatch picker) so the sheet matches the line-item
+    // representation elsewhere.
+    if (
+      p.upgradeOptions &&
+      p.upgradeOptions.length > 0 &&
+      config.upgrades !== 'disable'
+    ) {
       const key = upgradeKey(optId, p.name);
       const currentOptionId = upgradeSelections[key] ?? p.upgradeOptions[0].id;
       setProductDetail({
@@ -1637,14 +1669,17 @@ function OptionsPageContent() {
     // For products without their own description, fall back to the default
     // (= first) upgrade option's description so upgradeable products still
     // surface meaningful copy when opened via Product variant.
-    const fallbackFromUpgrade = p.upgradeOptions?.[0]?.description;
+    const defaultUpgrade = p.upgradeOptions?.[0];
     setProductDetail({
       kind: 'product',
-      category: p.name,
+      // When the product carries upgrade options (and we landed here because
+      // DevConsole disabled upgrades), surface the default option's title so
+      // the sheet header matches the comparison-row label.
+      category: defaultUpgrade?.title ?? p.name,
       qtyLabel,
       description:
         p.description ??
-        fallbackFromUpgrade ??
+        defaultUpgrade?.description ??
         'A quality component included in this option. Detailed specifications and product imagery for this line item will appear here.',
     });
   };
@@ -2181,10 +2216,15 @@ function OptionsPageContent() {
                 key={opt.id}
                 className={`bg-white flex flex-col${comparisonItemVisibilityClass(opt.id, 'flex')}`}
               >
-                <ComparisonParam label="Contract Total" value={opt.contractTotal} />
+                <ComparisonParam
+                  label="Contract Total"
+                  value={opt.contractTotal}
+                  onClick={() => openSchedule(opt)}
+                />
                 <ComparisonParam
                   label="Estimated Monthly Payment Starting at"
                   value={opt.monthly}
+                  onClick={() => openSchedule(opt)}
                 />
                 {config.constructionTimeInfo === 'include' && (
                   <ComparisonParam
@@ -2747,6 +2787,15 @@ function OptionsPageContent() {
         open={!!productDetail}
         content={productDetail}
         onClose={() => setProductDetail(null)}
+      />
+
+      {/* Payment Schedule dialog — opened by clicking Contract Total or
+          Estimated Monthly Payment in any option's comparison column. */}
+      <PaymentScheduleDialog
+        data={scheduleData}
+        onClose={closeSchedule}
+        financingExcluded={config.financingEstimation === 'excluded'}
+        scheduledPaymentsCount={config.scheduledPaymentsCount}
       />
     </div>
   );

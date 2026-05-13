@@ -511,16 +511,25 @@ export default function PaymentScheduleDialog({
           <div className="rounded-full bg-[#d9d9d9]" style={{ width: 36, height: 4 }} />
         </div>
 
-        {/* Sticky top — Payment Schedule section label. Stays pinned so the
-            Scheduled Payments list (and the financing summary that follows
-            on mobile) is the only part that scrolls. Bottom padding owns
-            the visible gap between the label and the scroll viewport so
-            even mid-scroll the first item never butts against the label.
-            Wheel-forwarding lives at the window level (see effect below)
-            so wheeling over the label, backdrop, etc. all scroll the list. */}
-        <div className="shrink-0 px-4 sm:px-6 pt-6 pb-4">
+        {/* Sticky top — Option label / "Payment Schedule" title / project name.
+            Mirrors the invoice-info header in InvoicePaymentDetailDialog
+            (small uppercase eyebrow, semibold title, project subtitle).
+            Stays pinned so the Scheduled Payments list (and the financing
+            summary that follows on mobile) is the only part that scrolls.
+            Bottom padding owns the visible gap between the header and the
+            scroll viewport so even mid-scroll the first item never butts
+            against it. Wheel-forwarding lives at the window level (see
+            effect below) so wheeling over the header, backdrop, etc. all
+            scroll the list. */}
+        <div className="shrink-0 px-4 sm:px-6 pt-6 pb-4 flex flex-col gap-1">
           <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
             Payment Schedule
+          </p>
+          <p className="text-[16px] sm:text-[18px] font-semibold text-[#262626] leading-normal">
+            {last.optionLabel}
+          </p>
+          <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
+            {last.projectName}
           </p>
         </div>
 
