@@ -530,6 +530,7 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
 function ProductsSection({
   products,
   upgradeSelections,
+  upgradesEnabled = true,
   onOpenDetail,
 }: {
   products: ProductItem[];
@@ -537,8 +538,27 @@ function ProductsSection({
    *  has been swapped to a non-default option, the line item displays that
    *  option's title instead of the generic product name. */
   upgradeSelections: Record<string, string>;
+  /** When false (DevConsole → Upgrade = Disable), upgradeable line items
+   *  collapse to their default option as a plain product — no Change pill,
+   *  and tapping opens the standard product detail (no swatch picker). */
+  upgradesEnabled?: boolean;
   onOpenDetail?: (item: ProductItem) => void;
 }) {
+  // Collapse an upgradeable product to its default option as a plain
+  // product. Used when DevConsole disables upgrades — strips
+  // `upgradeOptions` so downstream code (line-item Change pill,
+  // openProductDetail) treats the item as a generic product.
+  const stripUpgrade = (p: ProductItem): ProductItem => {
+    if (!p.upgradeOptions || p.upgradeOptions.length === 0) return p;
+    const def = p.upgradeOptions[0];
+    return {
+      ...p,
+      name: def.title,
+      description: def.description,
+      hasUpgrade: false,
+      upgradeOptions: undefined,
+    };
+  };
   // Resolve which label the line item should render: if the product has
   // upgrade options, surface the currently-selected option's title. Falls
   // back to the default (first) option's title when the user hasn't
@@ -614,7 +634,12 @@ function ProductsSection({
 
   // Change pill is derived inside ProductLineItem directly from
   // `upgradeOptions`, so we don't need to massage the products array here.
-  const primaryItems: ProductItem[] = products;
+  const primaryItems: ProductItem[] = upgradesEnabled
+    ? products
+    : products.map(stripUpgrade);
+  const renderedSecondaryItems: ProductItem[] = upgradesEnabled
+    ? secondaryItems
+    : secondaryItems.map(stripUpgrade);
 
   return (
     <SectionCard label="Included Products">
@@ -632,8 +657,8 @@ function ProductsSection({
         </div>
         {/* Category 2 */}
         <div className="flex flex-col items-start overflow-hidden w-full">
-          <CategoryLabel name="Category Name" count={secondaryItems.length} />
-          {secondaryItems.map((p, i) => (
+          <CategoryLabel name="Category Name" count={renderedSecondaryItems.length} />
+          {renderedSecondaryItems.map((p, i) => (
             <ProductLineItem
               key={i}
               item={{ ...p, name: resolveLabel(p) }}
@@ -1022,6 +1047,10 @@ function SummaryContent({
   /** When true, omit the Estimated Monthly Payment row from the summary. */
   financingExcluded: boolean;
 }) {
+  // Mobile (< lg) only — toggled by the "Read more" link to swap the
+  // single-line truncated disclaimer for the full ①②-paragraph version
+  // (the same content shown on lg+). Desktop is always expanded.
+  const [readMoreExpanded, setReadMoreExpanded] = useState(false);
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
 
@@ -1148,42 +1177,52 @@ function SummaryContent({
         {/* Disclaimers — pt-6 固定 */}
         <div className="flex flex-col items-start pt-6 w-full">
 
-          {/* Mobile (< lg): 仅注释①，单行截断，"Read more" 行内 */}
-          <div className="lg:hidden flex gap-3 items-start w-full">
-            <p className="flex-[1_0_0] min-w-0 text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] overflow-hidden text-ellipsis whitespace-nowrap"
-              style={{ fontWeight: 300 }}>
-              <span style={{ fontSize: 7.74 }}>1 </span>
-              Total project pricing is subject to change based on applicable taxes, fees, payment timing,
-              and any final project adjustments. The final amount presented at the time of payment will control.
-            </p>
-            <div className="shrink-0 flex flex-col justify-center text-[12px] text-[rgba(0,0,0,0.85)] text-center">
-              <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
-                Read more
-              </span>
+          {/* 默认仅注释①、单行截断 + "Read more"；点击后展开
+              注释①②的完整文本，并在底部显示 "Show less" 折叠回去。 */}
+          {readMoreExpanded ? (
+            <div className="flex flex-col gap-3 items-start w-full">
+              <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
+                style={{ fontWeight: 300 }}>
+                <span style={{ fontSize: 7.74 }}>1 </span>
+                Total project pricing is subject to change based on applicable taxes, fees, payment timing,
+                and any final project adjustments. The final amount presented at the time of payment will control.
+              </p>
+              <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
+                style={{ fontWeight: 300 }}>
+                <span style={{ fontSize: 7.74 }}>2 </span>
+                Any monthly payment information shown is an estimate only and is not a financing offer.
+                Final payment amounts, interest rates, and loan terms are subject to lender review and will
+                be confirmed during the formal application process.
+              </p>
+              <button
+                type="button"
+                onClick={() => setReadMoreExpanded(false)}
+                className="bg-transparent border-0 p-0 cursor-pointer text-[12px] text-[rgba(0,0,0,0.85)] text-center"
+              >
+                <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
+                  Show less
+                </span>
+              </button>
             </div>
-          </div>
-
-          {/* Desktop (lg+): 注释①②完整展开 flex-col，"Read more" 在下方 */}
-          <div className="hidden lg:flex flex-col gap-3 items-start w-full">
-            <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
-              style={{ fontWeight: 300 }}>
-              <span style={{ fontSize: 7.74 }}>1 </span>
-              Total project pricing is subject to change based on applicable taxes, fees, payment timing,
-              and any final project adjustments. The final amount presented at the time of payment will control.
-            </p>
-            <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
-              style={{ fontWeight: 300 }}>
-              <span style={{ fontSize: 7.74 }}>2 </span>
-              Any monthly payment information shown is an estimate only and is not a financing offer.
-              Final payment amounts, interest rates, and loan terms are subject to lender review and will
-              be confirmed during the formal application process.
-            </p>
-            <div className="text-[12px] text-[rgba(0,0,0,0.85)] text-center">
-              <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
-                Read more
-              </span>
+          ) : (
+            <div className="flex gap-3 items-start w-full">
+              <p className="flex-[1_0_0] min-w-0 text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontWeight: 300 }}>
+                <span style={{ fontSize: 7.74 }}>1 </span>
+                Total project pricing is subject to change based on applicable taxes, fees, payment timing,
+                and any final project adjustments. The final amount presented at the time of payment will control.
+              </p>
+              <button
+                type="button"
+                onClick={() => setReadMoreExpanded(true)}
+                className="shrink-0 bg-transparent border-0 p-0 cursor-pointer flex flex-col justify-center text-[12px] text-[rgba(0,0,0,0.85)] text-center"
+              >
+                <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
+                  Read more
+                </span>
+              </button>
             </div>
-          </div>
+          )}
 
         </div>
       </div>
@@ -1471,16 +1510,19 @@ export default function SummaryPageResponsive({
             <ProductsSection
               products={option.products}
               upgradeSelections={upgradeSelections}
+              upgradesEnabled={devConfig.upgrades === 'enable'}
               onOpenDetail={openProductDetail}
             />
-            <AddonsSection
-              addons={addons}
-              onToggle={toggleAddon}
-              onOpenDetail={(id) => {
-                setProductDetail(null);
-                setAddonDetailId(id);
-              }}
-            />
+            {devConfig.addonsSection === 'include' && (
+              <AddonsSection
+                addons={addons}
+                onToggle={toggleAddon}
+                onOpenDetail={(id) => {
+                  setProductDetail(null);
+                  setAddonDetailId(id);
+                }}
+              />
+            )}
             {/* Back to Top — inside Scope Details on L+ */}
             <div className="hidden lg:flex lg:justify-center">
               <BackToTopButton onClick={scrollToTop} />

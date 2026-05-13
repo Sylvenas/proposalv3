@@ -948,6 +948,7 @@ function ProjectHomeDetails({
   extraPayments = [],
   paymentCompletionIndication = 'seal',
   invoiceMode = 'happyPath',
+  financingService = 'enable',
 }: {
   option: FenceOption;
   financials: Financials;
@@ -965,9 +966,17 @@ function ProjectHomeDetails({
    *  Invoices & Payments tab; keeps Payment Progress / Next Payment in
    *  sync with the synthetic enumerate-mode invoices. */
   invoiceMode?: 'happyPath' | 'enumerate';
+  /** Whether the Financing Service CTA is offered. When 'disable', the
+   *  second outlined button instead reads "View Invoice & Payment Record"
+   *  and jumps to the Invoices & Payments tab. */
+  financingService?: 'enable' | 'disable';
 }) {
   // ── Payment progress ─────────────────────────────────────────────────────
   const [contactSalesOpen, setContactSalesOpen] = useState(false);
+  // Mobile (< lg) only — toggled by the "Read more" / "Show less" buttons
+  // to swap the single-line truncated note ① for the full ①② disclaimer
+  // text (note ② only when there's still a balance owed).
+  const [readMoreExpanded, setReadMoreExpanded] = useState(false);
 
   // Paid amount = sum of `amountApplied` across all payment records (single
   // source of truth — exported from InvoicesPaymentsSection so the figure
@@ -1168,15 +1177,30 @@ function ProjectHomeDetails({
                 </span>
               </button>
 
-              {/* Financing Service */}
-              <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
-                <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-                  <img src={IMG_CALCULATOR} alt="" style={{ width: 14.9, height: 20 }} />
-                </div>
-                <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
-                  Financing Service
-                </span>
-              </button>
+              {/* Financing Service — when disabled via DevConsole, the slot
+                  becomes a shortcut to the Invoices & Payments tab. */}
+              {financingService === 'enable' ? (
+                <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
+                  <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                    <img src={IMG_CALCULATOR} alt="" style={{ width: 14.9, height: 20 }} />
+                  </div>
+                  <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                    Financing Service
+                  </span>
+                </button>
+              ) : (
+                <button
+                  onClick={onShowPaymentRecords}
+                  className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
+                >
+                  <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                    <CreditCardIcon />
+                  </div>
+                  <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                    Invoice &amp; Payment Record
+                  </span>
+                </button>
+              )}
             </>
           ) : (
             // All invoices paid — Make A Payment / Financing are hidden in
@@ -1225,12 +1249,14 @@ function ProjectHomeDetails({
           {/* Payment Schedule & Records — link-style, gutter gap from bordered
               buttons. Redundant once all invoices are paid because the
               outlined "View Invoices & Payments" CTA above already routes
-              there, so we hide it in that state. */}
-          {nextDue && (
+              there, so we hide it in that state. Also hidden when
+              Financing Service is disabled — the outlined "Invoice &
+              Payment Record" button replaces this link's destination. */}
+          {nextDue && financingService === 'enable' && (
             <button onClick={onShowPaymentRecords} className="bg-transparent border-0 flex gap-[8px] items-center justify-start px-0 py-1 w-full cursor-pointer mt-4 lg:mt-3">
               <CreditCardIcon />
               <span className="text-[14px] text-[rgba(0,0,0,0.85)] whitespace-nowrap" style={{ lineHeight: '18px' }}>
-                Payment Schedule &amp; Records
+                View Invoice &amp; Payment Record
               </span>
             </button>
           )}
@@ -1238,45 +1264,53 @@ function ProjectHomeDetails({
         {/* Disclaimers */}
         <div className="flex flex-col items-start pt-6 w-full">
 
-          {/* Mobile (< lg): note ① only, single-line truncated + "Read more" inline */}
-          <div className="lg:hidden flex gap-3 items-start w-full">
-            <p className="flex-[1_0_0] min-w-0 text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] overflow-hidden text-ellipsis whitespace-nowrap"
-              style={{ fontWeight: 300 }}>
-              <span style={{ fontSize: 7.74 }}>1 </span>
-              Total project pricing is subject to change based on applicable taxes, fees, payment timing,
-              and any final project adjustments. The final amount presented at the time of payment will control.
-            </p>
-            <div className="shrink-0 flex flex-col justify-center text-[12px] text-[rgba(0,0,0,0.85)] text-center">
-              <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
-                Read more
-              </span>
-            </div>
-          </div>
-
-          {/* Desktop (lg+): notes ①② fully expanded + "Read more" below.
-              Note ② (financing-offer disclaimer) is only relevant while
-              there's still a balance owed — it's hidden once the contract
-              is paid in full. */}
-          <div className="hidden lg:flex flex-col gap-3 items-start w-full">
-            <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]" style={{ fontWeight: 300 }}>
-              <span style={{ fontSize: 7.74 }}>1 </span>
-              Total project pricing is subject to change based on applicable taxes, fees, payment timing,
-              and any final project adjustments. The final amount presented at the time of payment will control.
-            </p>
-            {nextDue && (
+          {/* 默认仅注释①、单行截断 + "Read more"；点击后展开完整
+              ①(②) 文本，并在底部显示 "Show less" 折叠回去。注释②
+              仅在还有未结清账单时展示。 */}
+          {readMoreExpanded ? (
+            <div className="flex flex-col gap-3 items-start w-full">
               <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]" style={{ fontWeight: 300 }}>
-                <span style={{ fontSize: 7.74 }}>2 </span>
-                Any monthly payment information shown is an estimate only and is not a financing offer.
-                Final payment amounts, interest rates, and loan terms are subject to lender review and will
-                be confirmed during the formal application process.
+                <span style={{ fontSize: 7.74 }}>1 </span>
+                Total project pricing is subject to change based on applicable taxes, fees, payment timing,
+                and any final project adjustments. The final amount presented at the time of payment will control.
               </p>
-            )}
-            <div className="text-[12px] text-[rgba(0,0,0,0.85)] text-center">
-              <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
-                Read more
-              </span>
+              {nextDue && (
+                <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]" style={{ fontWeight: 300 }}>
+                  <span style={{ fontSize: 7.74 }}>2 </span>
+                  Any monthly payment information shown is an estimate only and is not a financing offer.
+                  Final payment amounts, interest rates, and loan terms are subject to lender review and will
+                  be confirmed during the formal application process.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setReadMoreExpanded(false)}
+                className="bg-transparent border-0 p-0 cursor-pointer text-[12px] text-[rgba(0,0,0,0.85)] text-center"
+              >
+                <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
+                  Show less
+                </span>
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex gap-3 items-start w-full">
+              <p className="flex-[1_0_0] min-w-0 text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] overflow-hidden text-ellipsis whitespace-nowrap"
+                style={{ fontWeight: 300 }}>
+                <span style={{ fontSize: 7.74 }}>1 </span>
+                Total project pricing is subject to change based on applicable taxes, fees, payment timing,
+                and any final project adjustments. The final amount presented at the time of payment will control.
+              </p>
+              <button
+                type="button"
+                onClick={() => setReadMoreExpanded(true)}
+                className="shrink-0 bg-transparent border-0 p-0 cursor-pointer flex flex-col justify-center text-[12px] text-[rgba(0,0,0,0.85)] text-center"
+              >
+                <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
+                  Read more
+                </span>
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
@@ -1605,6 +1639,7 @@ export default function ProjectHubPageResponsive({
                 extraPayments={extraPayments}
                 paymentCompletionIndication={devConfig.paymentCompletionIndication}
                 invoiceMode={devConfig.invoiceMode}
+                financingService={devConfig.financingService}
               />
             </div>
 
@@ -1634,7 +1669,7 @@ export default function ProjectHubPageResponsive({
               <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
                 <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
                   <ProjectHomeTitleBlock approvedAt={approvedAt} />
-                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} onShowPaymentRecords={() => setActiveTab('invoices')} extraPayments={extraPayments} paymentCompletionIndication={devConfig.paymentCompletionIndication} invoiceMode={devConfig.invoiceMode} />
+                  <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} onShowPaymentRecords={() => setActiveTab('invoices')} extraPayments={extraPayments} paymentCompletionIndication={devConfig.paymentCompletionIndication} invoiceMode={devConfig.invoiceMode} financingService={devConfig.financingService} />
                 </div>
               </div>
             </div>
