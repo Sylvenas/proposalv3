@@ -511,36 +511,32 @@ export default function PaymentScheduleDialog({
           <div className="rounded-full bg-[#d9d9d9]" style={{ width: 36, height: 4 }} />
         </div>
 
-        {/* Sticky top — Option label / "Payment Schedule" title / project name.
-            Mirrors the invoice-info header in InvoicePaymentDetailDialog
-            (small uppercase eyebrow, semibold title, project subtitle).
-            Stays pinned so the Scheduled Payments list (and the financing
-            summary that follows on mobile) is the only part that scrolls.
-            Bottom padding owns the visible gap between the header and the
-            scroll viewport so even mid-scroll the first item never butts
-            against it. Wheel-forwarding lives at the window level (see
-            effect below) so wheeling over the header, backdrop, etc. all
-            scroll the list. */}
-        <div className="shrink-0 px-4 sm:px-6 pt-6 pb-4 flex flex-col gap-1">
-          <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-            Payment Schedule
-          </p>
-          <p className="text-[16px] sm:text-[18px] font-semibold text-[#262626] leading-normal">
-            {last.optionLabel}
-          </p>
-          <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
-            {last.projectName}
-          </p>
-        </div>
-
         {/* Scrolling body — native scrollbar hidden; the bouncing chevrons
             from ScrollHintArrows are the only affordance signalling more
-            content above/below. */}
+            content above/below. The info header (Payment Schedule eyebrow
+            / option label / project name) lives inside the viewport on
+            mobile so it scrolls away with the list rather than staying
+            pinned to the top of the sheet. */}
         <div className="relative flex-1 min-h-0 flex flex-col">
           <div
             ref={sheetScrollRef}
-            className="payment-schedule-scroll flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pb-4"
+            className="payment-schedule-scroll flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pt-6 pb-4"
           >
+            {/* Info header — mirrors the invoice-info block in
+                InvoicePaymentDetailDialog (small uppercase eyebrow,
+                semibold title, project subtitle). Scrolls with the list. */}
+            <div className="flex flex-col gap-1 w-full pb-4">
+              <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
+                Payment Schedule
+              </p>
+              <p className="text-[16px] sm:text-[18px] font-semibold text-[#262626] leading-normal">
+                {last.optionLabel}
+              </p>
+              <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
+                {last.projectName}
+              </p>
+            </div>
+
             {/* Schedule line items */}
             <div className="flex flex-col gap-2 w-full">
               {schedule.map((s, i) => (
