@@ -6,6 +6,7 @@ import BackToTopButton from './BackToTopButton';
 import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
 import ContractDocSection from './ContractDocSection';
 import InvoicesPaymentsSection, {
+  buildInvoicesData,
   computeNextPaymentAmount,
   computePaymentBreakdown,
   computeTotalAmountApplied,
@@ -13,6 +14,7 @@ import InvoicesPaymentsSection, {
   getNextDueInvoice,
   type ExtraPaymentSpec,
 } from './InvoicesPaymentsSection';
+import InvoicePaymentDetailDialog, { type DetailContent } from './InvoicePaymentDetailDialog';
 import WorkInProgressSection from './WorkInProgressSection';
 import MakePaymentDialog, {
   type ConfirmedPaymentInfo,
@@ -843,6 +845,7 @@ function ProjectHubStickyFooter({
   nextPaymentPercent,
   nextPaymentDueDate,
   onMakePayment,
+  onShowNextInvoice,
 }: {
   visible: boolean;
   nextPaymentAmount: number;
@@ -852,6 +855,8 @@ function ProjectHubStickyFooter({
   /** Display string for the next invoice's due date. */
   nextPaymentDueDate: string;
   onMakePayment: () => void;
+  /** Tap the pricing column to open the next-due invoice's detail dialog. */
+  onShowNextInvoice: () => void;
 }) {
   return (
     <div
@@ -863,8 +868,14 @@ function ProjectHubStickyFooter({
         transition: 'transform 0.3s ease',
       }}
     >
-      {/* Pricing — flex-1 */}
-      <div className="flex flex-1 flex-col items-start min-w-0">
+      {/* Pricing — flex-1. Tapping anywhere on this column opens the Payment
+          Schedule dialog so the user can see the full breakdown without
+          hunting for a separate entry point. */}
+      <button
+        type="button"
+        onClick={onShowNextInvoice}
+        className="flex flex-1 flex-col items-start min-w-0 bg-transparent border-0 p-0 cursor-pointer text-left"
+      >
         {/* Next payment amount + info icon */}
         <div className="flex gap-1 items-center w-full shrink-0">
           <p className="text-[20px] sm:text-[24px] font-semibold text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
@@ -879,7 +890,7 @@ function ProjectHubStickyFooter({
         >
           Next Payment - {nextPaymentPercent}% balance due at project completion {nextPaymentDueDate}
         </p>
-      </div>
+      </button>
 
       {/* Make A Payment — XS px=12px, S/M px=32px */}
       <div className="flex items-center self-stretch">
@@ -1367,6 +1378,29 @@ export default function ProjectHubPageResponsive({
   const nextDueInvoice    = getNextDueInvoice(financials.contractTotal, extraPayments, devConfig.invoiceMode);
   const nextPaymentAmount = nextDueInvoice?.remaining ?? 0;
 
+  // ── Next-payment invoice detail dialog state ──────────────────────────────
+  // Driven by the sticky footer's pricing tile. Surfaces the SAME
+  // InvoicePaymentDetailDialog used inside the Invoices & Payments tab so
+  // the user lands on the next-due invoice's detail (status, amounts, due
+  // date, payment records) wherever they tap from.
+  const [footerDetail, setFooterDetail] = useState<DetailContent | null>(null);
+  const openNextInvoice = useCallback(() => {
+    const invData = buildInvoicesData(
+      financials.contractTotal,
+      extraPayments,
+      devConfig.invoiceMode,
+    );
+    // Pick the same invoice the footer's `$xxx` amount comes from — the
+    // first not-fully-paid one — falling back to the first invoice in
+    // 'enumerate' mode where every state is on display.
+    const nextInv =
+      invData.INVOICES.find((inv) => inv.received < inv.amount) ??
+      invData.INVOICES[0];
+    if (!nextInv) return;
+    setFooterDetail({ type: 'invoice', invoice: invData.toInvoiceDetail(nextInv) });
+  }, [financials.contractTotal, extraPayments, devConfig.invoiceMode]);
+  const closeFooterDetail = useCallback(() => setFooterDetail(null), []);
+
   // ── Make-A-Payment dialog state ───────────────────────────────────────────
   // Non-null = open. Targets the FIRST not-fully-paid invoice — its
   // remaining balance becomes the payable amount, and its label appears in
@@ -1642,6 +1676,24 @@ export default function ProjectHubPageResponsive({
         nextPaymentPercent={stickyFooterPercent}
         nextPaymentDueDate={stickyFooterDueDate}
         onMakePayment={openMakePayment}
+        onShowNextInvoice={openNextInvoice}
+      />
+
+      {/* Next-invoice detail dialog — opened from the sticky footer's
+          pricing tile. Uses the same InvoicePaymentDetailDialog the
+          Invoices & Payments tab uses internally, but the state lives
+          here so the dialog works on every tab. */}
+      <InvoicePaymentDetailDialog
+        content={footerDetail}
+        onClose={closeFooterDetail}
+        onMakePayment={
+          footerDetail?.type === 'invoice'
+            ? () => {
+                closeFooterDetail();
+                openMakePayment();
+              }
+            : undefined
+        }
       />
 
       {/* Make-A-Payment utility dialog — sheet on XS/S/M, centered modal on L+ */}

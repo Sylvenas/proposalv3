@@ -90,6 +90,26 @@ export default function DevConsole() {
                 onChange={(v) => setConfig((c) => ({ ...c, signatureRequired: v }))}
               />
             </Section>
+            <Section title="Financing Estimation">
+              <ToggleRow
+                value={config.financingEstimation}
+                options={[
+                  { label: 'Included', value: 'included' as const },
+                  { label: 'Excluded', value: 'excluded' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, financingEstimation: v }))}
+              />
+            </Section>
+            <Section title="Number of Scheduled Payments">
+              <ToggleRow
+                value={config.scheduledPaymentsCount}
+                options={[
+                  { label: 'Common', value: 'common' as const },
+                  { label: 'Overflow', value: 'overflow' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, scheduledPaymentsCount: v }))}
+              />
+            </Section>
           </Cluster>
 
           <Cluster title="Project Hub">
