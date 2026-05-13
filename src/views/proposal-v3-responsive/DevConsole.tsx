@@ -70,7 +70,7 @@ export default function DevConsole() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6">
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6 scrollbar-none">
           <Cluster title="Preset">
             <ToggleRow
               value={config.preset}
