@@ -648,7 +648,7 @@ function buildEnumeratedInvoicesData(
   };
 }
 
-function buildInvoicesData(
+export function buildInvoicesData(
   contractTotal: number,
   extraPayments: ExtraPaymentSpec[] = [],
   mode: InvoiceMode = 'happyPath',

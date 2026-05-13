@@ -13,6 +13,8 @@ export type PaymentCompletionIndication = 'check' | 'seal';
 export type InvoiceMode = 'happyPath' | 'enumerate';
 export type PaymentInfoInput = 'prefilled' | 'blank';
 export type ChangeOptionInteraction = 'button' | 'checkbox';
+export type FinancingEstimation = 'included' | 'excluded';
+export type ScheduledPaymentsCount = 'common' | 'overflow';
 
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
@@ -46,6 +48,16 @@ export type DevConfig = {
    *  opens the picker sheet/modal; 'checkbox' (TBD) will use inline
    *  checkboxes for direct multi-select swapping. */
   changeOptionInteraction: ChangeOptionInteraction;
+  /** Whether the Summary page surfaces monthly-payment financing estimates.
+   *  'included' (default) keeps the Estimated Monthly Payment row in the
+   *  Summary section + the right-column estimation panel in the Payment
+   *  Schedule dialog. 'excluded' hides all financing copy across both. */
+  financingEstimation: FinancingEstimation;
+  /** Length of the schedule rendered in the Payment Schedule dialog.
+   *  'common' (default) shows the standard 3-step 20/60/20 split.
+   *  'overflow' shows a 6-step demo schedule used to verify scroll /
+   *  overflow handling on both the bottom sheet and the desktop modal. */
+  scheduledPaymentsCount: ScheduledPaymentsCount;
 };
 
 type DevConsoleContextValue = {
@@ -68,6 +80,8 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     invoiceMode: 'happyPath',
     paymentInfoInput: 'prefilled',
     changeOptionInteraction: 'checkbox',
+    financingEstimation: 'included',
+    scheduledPaymentsCount: 'common',
   });
   const [isOpen, setIsOpen] = useState(false);
 

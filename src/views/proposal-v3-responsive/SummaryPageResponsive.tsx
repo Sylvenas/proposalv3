@@ -10,6 +10,8 @@ import ProductDetailSheet, {
   type ProductDetailContent,
   type UpgradeOption,
 } from './ProductDetailSheet';
+import PaymentScheduleDialog, { type PaymentScheduleData } from './PaymentScheduleDialog';
+import { useDevConsole } from './DevConsoleContext';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -923,12 +925,15 @@ function StickyFooter({
   onScrollToSummary,
   onSignApprove,
   approveLabel,
+  onViewSchedule,
 }: {
   visible: boolean;
   financials: Financials;
   onScrollToSummary: () => void;
   onSignApprove: () => void;
   approveLabel: string;
+  /** Tap the pricing column to open the Payment Schedule dialog. */
+  onViewSchedule: () => void;
 }) {
   return (
     <div
@@ -940,8 +945,14 @@ function StickyFooter({
         transition: 'transform 0.3s ease',
       }}
     >
-      {/* Pricing — flex-1 */}
-      <div className="flex flex-1 flex-col items-start min-w-0">
+      {/* Pricing — flex-1. Tapping the column opens the Payment Schedule
+          dialog (mirrors the Project Hub footer's pricing tile behaviour
+          — but pre-approve it lands on the schedule, not an invoice). */}
+      <button
+        type="button"
+        onClick={onViewSchedule}
+        className="flex flex-1 flex-col items-start min-w-0 bg-transparent border-0 p-0 cursor-pointer text-left"
+      >
         {/* Contract Total + info icon */}
         <div className="flex gap-1 items-center w-full shrink-0">
           <p className="text-[20px] sm:text-[24px] font-semibold text-[#262626] leading-normal overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
@@ -956,7 +967,7 @@ function StickyFooter({
         >
           Starting at <AnimatedDollar value={financials.monthly} decimals={2} /> / mo
         </p>
-      </div>
+      </button>
 
       {/* Summary button — XS px=12px, S/M px=32px */}
       <div className="flex items-center self-stretch">
@@ -999,12 +1010,17 @@ function SummaryContent({
   financials,
   onSignApprove,
   approveLabel,
+  onViewSchedule,
+  financingExcluded,
 }: {
   option: FenceOption;
   ctaRef?: React.RefObject<HTMLDivElement | null>;
   financials: Financials;
   onSignApprove: () => void;
   approveLabel: string;
+  onViewSchedule: () => void;
+  /** When true, omit the Estimated Monthly Payment row from the summary. */
+  financingExcluded: boolean;
 }) {
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
@@ -1025,21 +1041,23 @@ function SummaryContent({
             <AnimatedDollar value={financials.contractTotal} decimals={2} />
           </p>
         </div>
-        {/* Monthly */}
-        <div className="flex flex-col items-start w-full">
-          {/* Label — Font S: 12px (M/L) → 14px (XL+) */}
-          <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
-            <span className="leading-normal">Estimated Monthly Payment </span>
-            <span className="leading-normal" style={{ fontSize: 7.74 }}>2</span>
-          </p>
-          {/* Value — Monthly Payment: XS=16px, S-L=20px, XL-XXL=24px */}
-          <p
-            className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
-            style={{ fontWeight: 300 }}
-          >
-            <AnimatedDollar value={financials.monthly} decimals={2} suffix=" / mo" />
-          </p>
-        </div>
+        {/* Monthly — hidden when DevConsole → Financing Estimation = Excluded. */}
+        {!financingExcluded && (
+          <div className="flex flex-col items-start w-full">
+            {/* Label — Font S: 12px (M/L) → 14px (XL+) */}
+            <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
+              <span className="leading-normal">Estimated Monthly Payment </span>
+              <span className="leading-normal" style={{ fontSize: 7.74 }}>2</span>
+            </p>
+            {/* Value — Monthly Payment: XS=16px, S-L=20px, XL-XXL=24px */}
+            <p
+              className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
+              style={{ fontWeight: 300 }}
+            >
+              <AnimatedDollar value={financials.monthly} decimals={2} suffix=" / mo" />
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Breakdowns — same spacing/font logic as Contract Amount */}
@@ -1096,14 +1114,21 @@ function SummaryContent({
               {approveLabel}
             </span>
           </button>
-          {/* Explore Payment & Financing */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
+          {/* View Payment Schedule */}
+          <button
+            onClick={onViewSchedule}
+            className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
+          >
             <div className="flex h-full items-center px-[5px] shrink-0">
-              <img src={IMG_CALCULATOR} alt="" style={{ width: 14.9, height: 20 }} />
+              <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
+                <rect x="1" y="1" width="18" height="14" rx="2" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
+                <line x1="1" y1="5.5" x2="19" y2="5.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
+                <rect x="3" y="9" width="4" height="3" rx="0.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1" />
+              </svg>
             </div>
             <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
               style={{ lineHeight: '18px' }}>
-              Explore Payment &amp; Financing
+              View Payment Schedule
             </span>
           </button>
           {/* Contact Sales — icon + behavior driven by DevConsole salesContact */}
@@ -1196,6 +1221,11 @@ export default function SummaryPageResponsive({
   signatureRequired?: boolean;
 }) {
   const approveCtaLabel = signatureRequired ? 'Sign & Approve' : 'Approve';
+  // DevConsole → Summary Page → Financing Estimation. When 'excluded', hide
+  // every monthly-payment / loan affordance on this page and inside the
+  // Payment Schedule dialog.
+  const { config: devConfig } = useDevConsole();
+  const financingExcluded = devConfig.financingEstimation === 'excluded';
   // Title shown in place of `option.label` whenever singleOptionMode is on.
   // Matches the "FENCE REPLACEMENT PROPOSAL" copy used on the cover page and
   // on the post-approval Project Hub.
@@ -1283,6 +1313,23 @@ export default function SummaryPageResponsive({
 
   // ── Computed financials ────────────────────────────────────────────────────
   const financials = computeFinancials(option.baseMaterials, addons);
+
+  // ── Payment-schedule dialog state ─────────────────────────────────────────
+  // Non-null = open. Data snapshot at click-time so the dialog content stays
+  // stable across an addon toggle while it's still showing.
+  const [scheduleData, setScheduleData] = useState<PaymentScheduleData | null>(null);
+  const openSchedule = () => {
+    setScheduleData({
+      optionLabel:   titleOverride ?? option.label,
+      projectName:   'Henderson Backyard Fence',
+      contractTotal: financials.contractTotal,
+      monthly:       financials.monthly,
+      loanAmount:    Math.round(financials.contractTotal),
+      termMonths:    12,
+      apr:           4,
+    });
+  };
+  const closeSchedule = () => setScheduleData(null);
 
   // ── Sticky header: show when top title scrolls out; hide when bottom title fully visible ──
   const topTitleRef    = useRef<HTMLDivElement>(null);
@@ -1462,6 +1509,8 @@ export default function SummaryPageResponsive({
                 financials={financials}
                 onSignApprove={onRequestSign}
                 approveLabel={approveCtaLabel}
+                onViewSchedule={openSchedule}
+                financingExcluded={financingExcluded}
               />
             </div>
 
@@ -1481,6 +1530,8 @@ export default function SummaryPageResponsive({
                 financials={financials}
                 onSignApprove={onRequestSign}
                 approveLabel={approveCtaLabel}
+                onViewSchedule={openSchedule}
+                financingExcluded={financingExcluded}
               />
             </div>
           </div>
@@ -1503,6 +1554,7 @@ export default function SummaryPageResponsive({
         }
         onSignApprove={onRequestSign}
         approveLabel={approveCtaLabel}
+        onViewSchedule={openSchedule}
       />
 
       {/* Product / Upgrade / Add-on detail bottom sheet — opened by tapping a
@@ -1512,6 +1564,14 @@ export default function SummaryPageResponsive({
         open={sheetContent !== null}
         content={sheetContent}
         onClose={closeSheet}
+      />
+
+      {/* Payment Schedule dialog — bottom sheet on XS-M, two-column modal on L+ */}
+      <PaymentScheduleDialog
+        data={scheduleData}
+        onClose={closeSchedule}
+        financingExcluded={financingExcluded}
+        scheduledPaymentsCount={devConfig.scheduledPaymentsCount}
       />
     </div>
   );
