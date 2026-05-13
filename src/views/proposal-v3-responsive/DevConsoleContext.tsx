@@ -15,10 +15,13 @@ export type PaymentInfoInput = 'prefilled' | 'blank';
 export type ChangeOptionInteraction = 'button' | 'checkbox';
 export type FinancingEstimation = 'included' | 'excluded';
 export type ScheduledPaymentsCount = 'common' | 'overflow';
+export type OptionImage = 'include' | 'exclude';
 
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
   optionCount: number;
+  /** Which option is marked as recommended. 0 = none, 1..optionCount = index. */
+  recommendedOption: number;
   /** Whether the cover page exposes an "Inspection Report" CTA. */
   inspectionReport: boolean;
   /** Whether approval requires a hand-drawn signature. When false, the
@@ -58,6 +61,13 @@ export type DevConfig = {
    *  'overflow' shows a 6-step demo schedule used to verify scroll /
    *  overflow handling on both the bottom sheet and the desktop modal. */
   scheduledPaymentsCount: ScheduledPaymentsCount;
+  /** Whether the Option Cards on the comparison page show their hero image.
+   *  'include' (default) renders the photo. 'exclude' hides the photo and
+   *  replaces it with a flat color banner above the card content; the banner
+   *  color is driven by `recommendedOption` (theme red for the recommended
+   *  option / when none is set; desaturated red for non-recommended cards
+   *  when a recommendation exists). */
+  optionImage: OptionImage;
 };
 
 type DevConsoleContextValue = {
@@ -73,6 +83,7 @@ const DevConsoleCtx = createContext<DevConsoleContextValue | null>(null);
 export function DevConsoleProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfigState] = useState<DevConfig>({
     optionCount: 3,
+    recommendedOption: 0,
     inspectionReport: false,
     signatureRequired: false,
     paymentResult: 'success',
@@ -82,6 +93,7 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     changeOptionInteraction: 'checkbox',
     financingEstimation: 'included',
     scheduledPaymentsCount: 'common',
+    optionImage: 'include',
   });
   const [isOpen, setIsOpen] = useState(false);
 

@@ -48,7 +48,7 @@ function syncCardSectionHeights() {
   });
 }
 
-function useSyncCardSectionHeights() {
+function useSyncCardSectionHeights(...deps: unknown[]) {
   useEffect(() => {
     // Run once after first paint (images may not be loaded yet, handled by ResizeObserver)
     const rafId = requestAnimationFrame(syncCardSectionHeights);
@@ -59,7 +59,11 @@ function useSyncCardSectionHeights() {
       cancelAnimationFrame(rafId);
       ro.disconnect();
     };
-  }, []);
+    // Re-run when callers pass deps that affect card content layout (e.g.
+    // DevConsole's Option Image toggle swaps the image for a banner without
+    // changing document height, so the ResizeObserver above doesn't fire).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 }
 
 // ── Asset URLs (local, served from /public/images/proposal-v3-responsive/) ────
@@ -651,6 +655,10 @@ function OptionCard({
    *  in the unselected state so toggling doesn't shift card content. */
   selected?: boolean;
 }) {
+  const { config } = useDevConsole();
+  const isRecommended = config.recommendedOption === opt.id;
+  const imageExcluded = config.optionImage === 'exclude';
+  const someoneRecommended = config.recommendedOption !== 0;
   return (
     <div
       className="flex flex-col"
@@ -659,14 +667,19 @@ function OptionCard({
         borderColor: selected ? '#000000' : 'transparent',
       }}
     >
-      {/* Hero image — aspect ratio 800:471 */}
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '800 / 471' }}>
-        <img
-          src={opt.image}
-          alt={opt.label}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      </div>
+      {imageExcluded ? (
+        <CardBanner isRecommended={isRecommended} compact={!someoneRecommended} />
+      ) : (
+        /* Hero image — aspect ratio 800:471 */
+        <div className="relative w-full overflow-hidden" style={{ aspectRatio: '800 / 471' }}>
+          <img
+            src={opt.image}
+            alt={opt.label}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {isRecommended && <RecommendedBadge />}
+        </div>
+      )}
 
       {/* Card details */}
       <div
@@ -745,6 +758,78 @@ function OptionCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Recommended label ─────────────────────────────────────────────────────────
+// Inner icon + text used by both the floating image pill (`RecommendedBadge`)
+// and the inline banner (`CardBanner`) so the typography stays consistent.
+// Figma node 1084:24272: 10×10 thumb-up icon (scaled responsively to 12–14px),
+// Barlow Semi Condensed SemiBold 12/14 → 13/15 → 14/16 white.
+function RecommendedLabel({ color = 'white' }: { color?: string }) {
+  return (
+    <div
+      className="flex items-center gap-[4px]"
+      style={{ fontFamily: 'var(--font-barlow-semi-condensed), sans-serif', color }}
+    >
+      <svg
+        viewBox="0 0 10 10"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        className="block w-[12px] h-[12px] md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]"
+      >
+        <path
+          d="M0.833333 3.75H2.08333V8.75H0.833333C0.722827 8.75 0.616846 8.7061 0.538706 8.62796C0.460565 8.54982 0.416667 8.44384 0.416667 8.33333V4.16667C0.416667 4.05616 0.460565 3.95018 0.538706 3.87204C0.616846 3.7939 0.722827 3.75 0.833333 3.75ZM3.03875 3.21125L5.70542 0.544584C5.74086 0.509039 5.78794 0.487486 5.83801 0.483888C5.88807 0.48029 5.93776 0.494889 5.97792 0.525L6.33333 0.791667C6.43204 0.865769 6.5066 0.967439 6.54761 1.08386C6.58861 1.20027 6.59423 1.32623 6.56375 1.44583L6.08333 3.33333H8.75C8.97101 3.33333 9.18298 3.42113 9.33926 3.57741C9.49554 3.73369 9.58333 3.94565 9.58333 4.16667V5.04333C9.58345 5.15223 9.56221 5.2601 9.52083 5.36083L8.23125 8.49208C8.19979 8.56842 8.14636 8.6337 8.07774 8.67962C8.00912 8.72554 7.9284 8.75003 7.84583 8.75H3.33333C3.22283 8.75 3.11685 8.7061 3.03871 8.62796C2.96057 8.54982 2.91667 8.44384 2.91667 8.33333V3.50583C2.91669 3.39534 2.9606 3.28937 3.03875 3.21125Z"
+          fill="currentColor"
+        />
+      </svg>
+      <p className="text-[12px] leading-[14px] md:text-[13px] md:leading-[15px] lg:text-[14px] lg:leading-[16px] font-semibold whitespace-nowrap">
+        RECOMMENDED
+      </p>
+    </div>
+  );
+}
+
+// ── Recommended badge ─────────────────────────────────────────────────────────
+// Red pill in the bottom-left of the option card image. Visibility is driven by
+// DevConsole's `recommendedOption` (matching the option's `id`).
+function RecommendedBadge() {
+  return (
+    <div className="absolute bottom-3 left-4 md:left-6 bg-[#d41a32] rounded-[2px] px-[6px] py-[5px]">
+      <RecommendedLabel />
+    </div>
+  );
+}
+
+// ── Card banner (image-excluded mode) ─────────────────────────────────────────
+// Replaces the hero image when DevConsole's Option Image toggle is 'exclude'.
+// All banners share the same neutral grey; the recommended option additionally
+// renders the secondary-grey label inline, left-aligned with the card's text.
+// `compact` collapses the banner to half height — used when no option is
+// flagged recommended, so the banners read more as a decorative divider.
+function CardBanner({
+  isRecommended,
+  compact,
+}: {
+  isRecommended: boolean;
+  compact: boolean;
+}) {
+  return (
+    <div
+      className="w-full flex items-center px-4 md:px-6"
+      style={{
+        backgroundColor: '#e5e5e5',
+        height: compact ? '20px' : '40px',
+      }}
+    >
+      {!compact && (
+        // Reserve label-sized space so all (non-compact) banners share height.
+        <div style={{ visibility: isRecommended ? 'visible' : 'hidden' }}>
+          <RecommendedLabel color="#737373" />
+        </div>
+      )}
     </div>
   );
 }
@@ -1483,7 +1568,7 @@ function OptionsPageContent() {
   // this trimmed array, so widget logic (overflow detection, comparison pair,
   // sticky header, etc.) automatically adapts.
   const OPTIONS = ALL_OPTIONS.slice(0, optionCount);
-  useSyncCardSectionHeights();
+  useSyncCardSectionHeights(config.optionImage, config.recommendedOption, optionCount);
   const stickyVisible = useStickyHeader();
   const [curtainMounted, setCurtainMounted] = useState(true);
   const [selectedOption, setSelectedOption] = useState<FenceOption | null>(null);

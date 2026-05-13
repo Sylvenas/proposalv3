@@ -64,7 +64,37 @@ export default function DevConsole() {
               <ToggleRow
                 value={config.optionCount}
                 options={[1, 2, 3, 4].map((n) => ({ label: String(n), value: n }))}
-                onChange={(v) => setConfig((c) => ({ ...c, optionCount: v }))}
+                onChange={(v) =>
+                  setConfig((c) => ({
+                    ...c,
+                    optionCount: v,
+                    recommendedOption: c.recommendedOption > v ? 0 : c.recommendedOption,
+                  }))
+                }
+              />
+            </Section>
+            <Section title="Option Image">
+              <ToggleRow
+                value={config.optionImage}
+                options={[
+                  { label: 'Include', value: 'include' as const },
+                  { label: 'Exclude', value: 'exclude' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, optionImage: v }))}
+              />
+            </Section>
+            <Section title="Recommended Option">
+              <ToggleRow
+                value={config.recommendedOption}
+                options={[
+                  { label: 'None', value: 0 },
+                  ...[1, 2, 3, 4].map((n) => ({
+                    label: `#${n}`,
+                    value: n,
+                    disabled: config.optionCount < 2 || n > config.optionCount,
+                  })),
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, recommendedOption: v }))}
               />
             </Section>
             <Section title="Change Option Interaction">
@@ -190,21 +220,24 @@ function ToggleRow<T>({
   onChange,
 }: {
   value: T;
-  options: { label: string; value: T }[];
+  options: { label: string; value: T; disabled?: boolean }[];
   onChange: (next: T) => void;
 }) {
   return (
     <div className="flex gap-2">
-      {options.map(({ label, value: optionValue }) => {
+      {options.map(({ label, value: optionValue, disabled }) => {
         const active = value === optionValue;
         return (
           <button
             key={label}
             onClick={() => onChange(optionValue)}
-            className={`flex-1 h-10 rounded-[4px] text-[14px] font-semibold border cursor-pointer ${
-              active
-                ? 'bg-[#262626] text-white border-[#262626]'
-                : 'bg-white text-[#262626] border-[#d9d9d9]'
+            disabled={disabled}
+            className={`flex-1 h-10 rounded-[4px] text-[14px] font-semibold border ${
+              disabled
+                ? 'bg-white text-[#bfbfbf] border-[#f0f0f0] cursor-not-allowed'
+                : active
+                  ? 'bg-[#262626] text-white border-[#262626] cursor-pointer'
+                  : 'bg-white text-[#262626] border-[#d9d9d9] cursor-pointer'
             }`}
           >
             {label}

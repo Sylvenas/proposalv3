@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Barlow_Semi_Condensed } from 'next/font/google';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -6,13 +7,20 @@ export const metadata: Metadata = {
   description: 'ArcSite Proposal Prototype',
 };
 
+const barlowSemiCondensed = Barlow_Semi_Condensed({
+  subsets: ['latin'],
+  weight: ['600'],
+  variable: '--font-barlow-semi-condensed',
+  display: 'swap',
+});
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={barlowSemiCondensed.variable}>
       <head>
         {/* Disable browser scroll restoration, reset to top, and whitewash the
             html background before React hydrates. The whitewash is needed because
