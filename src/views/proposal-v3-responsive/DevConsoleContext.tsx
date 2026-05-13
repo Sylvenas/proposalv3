@@ -16,6 +16,11 @@ export type ChangeOptionInteraction = 'button' | 'checkbox';
 export type FinancingEstimation = 'included' | 'excluded';
 export type ScheduledPaymentsCount = 'common' | 'overflow';
 export type OptionImage = 'include' | 'exclude';
+export type FinancingService = 'enable' | 'disable';
+export type AddonsSectionVisibility = 'include' | 'exclude';
+export type Upgrades = 'enable' | 'disable';
+export type Preset = 'mvp' | 'future';
+export type ConstructionTimeInfo = 'include' | 'exclude';
 
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
@@ -68,6 +73,31 @@ export type DevConfig = {
    *  option / when none is set; desaturated red for non-recommended cards
    *  when a recommendation exists). */
   optionImage: OptionImage;
+  /** Whether the Financing Service CTA on Project Home is offered.
+   *  'enable' (default) renders the outlined "Financing Service" button
+   *  alongside Make A Payment. 'disable' replaces it with an outlined
+   *  "View Invoice & Payment Record" shortcut that jumps to the Invoices
+   *  & Payments tab. */
+  financingService: FinancingService;
+  /** Whether the Summary page renders the Add-ons section. 'include'
+   *  (default) keeps the section. 'exclude' hides the entire Add-ons
+   *  card from the Summary page. */
+  addonsSection: AddonsSectionVisibility;
+  /** Whether the Included Products line items expose their upgrade
+   *  swatches. 'enable' (default) keeps the Change pill + upgrade
+   *  bottom-sheet. 'disable' renders every upgradeable item as a plain
+   *  product locked to the default option's title and description. */
+  upgrades: Upgrades;
+  /** Active preset for the prototype demo. Selecting a preset bulk-applies
+   *  a curated set of overrides across the rest of the dev console toggles.
+   *  'future' (default) matches the original out-of-the-box values; 'mvp'
+   *  collapses the demo down to the smaller MVP-scope feature set. */
+  preset: Preset;
+  /** Whether the Option Cards and Comparison rows surface the estimated
+   *  construction time line. 'include' (default) keeps both rows; 'exclude'
+   *  hides the card-level "{n} Weeks Estimated Construction Time" row and
+   *  the matching ComparisonParam. */
+  constructionTimeInfo: ConstructionTimeInfo;
 };
 
 type DevConsoleContextValue = {
@@ -94,6 +124,11 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     financingEstimation: 'included',
     scheduledPaymentsCount: 'common',
     optionImage: 'include',
+    financingService: 'enable',
+    addonsSection: 'include',
+    upgrades: 'enable',
+    preset: 'future',
+    constructionTimeInfo: 'include',
   });
   const [isOpen, setIsOpen] = useState(false);
 

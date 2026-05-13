@@ -10,7 +10,32 @@
 // console reads top-to-bottom in the same order the user encounters those
 // pages in the prototype flow (Cover → Options → Summary).
 
-import { useDevConsole } from './DevConsoleContext';
+import { useDevConsole, type DevConfig, type Preset } from './DevConsoleContext';
+
+// Curated bundles bulk-applied when a Preset is selected. Each preset only
+// touches the small set of toggles that meaningfully differ between
+// scopes — anything not listed here is left untouched on the existing
+// config. Future Scope mirrors the out-of-the-box defaults; MVP collapses
+// the demo to a minimum-viable shape.
+const PRESETS: Record<Preset, Partial<DevConfig>> = {
+  future: {
+    optionImage: 'include',
+    recommendedOption: 0,
+    constructionTimeInfo: 'include',
+    upgrades: 'enable',
+    addonsSection: 'include',
+    financingService: 'enable',
+  },
+  mvp: {
+    inspectionReport: false,
+    optionImage: 'exclude',
+    recommendedOption: 1,
+    constructionTimeInfo: 'exclude',
+    upgrades: 'disable',
+    addonsSection: 'exclude',
+    financingService: 'disable',
+  },
+};
 
 export default function DevConsole() {
   const { config, setConfig, isOpen, close } = useDevConsole();
@@ -46,13 +71,26 @@ export default function DevConsole() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6">
+          <Cluster title="Preset">
+            <ToggleRow
+              value={config.preset}
+              options={[
+                { label: 'MVP', value: 'mvp' as const },
+                { label: 'Future Scope', value: 'future' as const },
+              ]}
+              onChange={(v) =>
+                setConfig((c) => ({ ...c, ...PRESETS[v], preset: v }))
+              }
+            />
+          </Cluster>
+
           <Cluster title="Cover Page">
             <Section title="Inspection Report">
               <ToggleRow
                 value={config.inspectionReport}
                 options={[
-                  { label: 'Exclude', value: false },
-                  { label: 'Include', value: true },
+                  { label: 'Excluded', value: false },
+                  { label: 'Included', value: true },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, inspectionReport: v }))}
               />
@@ -73,16 +111,6 @@ export default function DevConsole() {
                 }
               />
             </Section>
-            <Section title="Option Image">
-              <ToggleRow
-                value={config.optionImage}
-                options={[
-                  { label: 'Include', value: 'include' as const },
-                  { label: 'Exclude', value: 'exclude' as const },
-                ]}
-                onChange={(v) => setConfig((c) => ({ ...c, optionImage: v }))}
-              />
-            </Section>
             <Section title="Recommended Option">
               <ToggleRow
                 value={config.recommendedOption}
@@ -95,6 +123,26 @@ export default function DevConsole() {
                   })),
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, recommendedOption: v }))}
+              />
+            </Section>
+            <Section title="Option Image">
+              <ToggleRow
+                value={config.optionImage}
+                options={[
+                  { label: 'Included', value: 'include' as const },
+                  { label: 'Excluded', value: 'exclude' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, optionImage: v }))}
+              />
+            </Section>
+            <Section title="Construction Time Info">
+              <ToggleRow
+                value={config.constructionTimeInfo}
+                options={[
+                  { label: 'Included', value: 'include' as const },
+                  { label: 'Excluded', value: 'exclude' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, constructionTimeInfo: v }))}
               />
             </Section>
             <Section title="Change Option Interaction">
@@ -110,6 +158,26 @@ export default function DevConsole() {
           </Cluster>
 
           <Cluster title="Summary Page">
+            <Section title="Upgrade">
+              <ToggleRow
+                value={config.upgrades}
+                options={[
+                  { label: 'Enabled', value: 'enable' as const },
+                  { label: 'Disabled', value: 'disable' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, upgrades: v }))}
+              />
+            </Section>
+            <Section title="Add-on">
+              <ToggleRow
+                value={config.addonsSection}
+                options={[
+                  { label: 'Included', value: 'include' as const },
+                  { label: 'Excluded', value: 'exclude' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, addonsSection: v }))}
+              />
+            </Section>
             <Section title="Signature">
               <ToggleRow
                 value={config.signatureRequired}
@@ -143,6 +211,16 @@ export default function DevConsole() {
           </Cluster>
 
           <Cluster title="Project Hub">
+            <Section title="Financing Service">
+              <ToggleRow
+                value={config.financingService}
+                options={[
+                  { label: 'Enabled', value: 'enable' as const },
+                  { label: 'Disabled', value: 'disable' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, financingService: v }))}
+              />
+            </Section>
             <Section title="Payment Info Input">
               <ToggleRow
                 value={config.paymentInfoInput}
@@ -178,7 +256,7 @@ export default function DevConsole() {
                 value={config.invoiceMode}
                 options={[
                   { label: 'Happy Path', value: 'happyPath' as const },
-                  { label: 'Enumerate States', value: 'enumerate' as const },
+                  { label: 'Enumerated States', value: 'enumerate' as const },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, invoiceMode: v }))}
               />

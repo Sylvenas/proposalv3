@@ -709,13 +709,15 @@ function OptionCard({
           >
             {opt.features}
           </p>
-          <p
-            data-card-section="time"
-            className="text-[14px] text-[#262626] leading-normal tracking-[-0.14px] overflow-hidden"
-            style={{ fontFamily: 'Segoe UI, sans-serif' }}
-          >
-            {opt.constructionTime} Estimated Construction Time
-          </p>
+          {config.constructionTimeInfo === 'include' && (
+            <p
+              data-card-section="time"
+              className="text-[14px] text-[#262626] leading-normal tracking-[-0.14px] overflow-hidden"
+              style={{ fontFamily: 'Segoe UI, sans-serif' }}
+            >
+              {opt.constructionTime} Estimated Construction Time
+            </p>
+          )}
           <p
             data-card-section="price"
             className="font-semibold text-[20px] text-[#262626] tracking-[-0.2px] overflow-hidden"
@@ -2168,7 +2170,7 @@ function OptionsPageContent() {
             className="font-semibold text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] w-full leading-normal"
             style={{ fontFamily: 'Segoe UI, sans-serif' }}
           >
-            Schedule and Pricing
+            {config.constructionTimeInfo === 'include' ? 'Schedule and Pricing' : 'Pricing'}
           </p>
 
           {/* Param columns: 2-col on <lg (shows comparisonPair), 3-col on lg+
@@ -2184,10 +2186,12 @@ function OptionsPageContent() {
                   label="Estimated Monthly Payment Starting at"
                   value={opt.monthly}
                 />
-                <ComparisonParam
-                  label="Estimated Construction Time"
-                  value={opt.constructionTime}
-                />
+                {config.constructionTimeInfo === 'include' && (
+                  <ComparisonParam
+                    label="Estimated Construction Time"
+                    value={opt.constructionTime}
+                  />
+                )}
               </div>
             ))}
           </div>
