@@ -94,7 +94,7 @@ export default function DevConsole() {
             {/* Icon inherits the button's current text color via
                 `currentColor` so it flips to white on :active alongside
                 the label. */}
-            <RestartIcon size={16} fill="currentColor" />
+            <RestartIcon size={20} fill="currentColor" />
             Restart Userflow
           </button>
 
@@ -115,7 +115,7 @@ export default function DevConsole() {
             <ToggleRow
               value={config.proposalStatus}
               options={[
-                { label: 'Regular', value: 'regular' as const },
+                { label: 'Valid', value: 'regular' as const },
                 { label: 'Expired', value: 'expired' as const },
                 { label: 'Recalled', value: 'recalled' as const },
                 { label: 'Deleted', value: 'deleted' as const },

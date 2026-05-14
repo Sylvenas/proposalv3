@@ -1254,12 +1254,18 @@ function CoverPageContent({
                 onClick={() => setContactSalesOpen(true)}
                 aria-haspopup="dialog"
                 aria-expanded={contactSalesOpen}
-                className="flex-1 h-11 max-w-[240px] bg-white border border-solid border-[#262626] flex gap-[6px] items-center justify-center px-4 rounded-[4px] cursor-pointer"
+                className="flex-1 h-11 max-w-[240px] bg-white border border-solid border-[#262626] flex items-center justify-center px-4 rounded-[4px] cursor-pointer"
               >
-                <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-                  <PhoneIcon size={18} />
-                </div>
-                <span className="text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                {/* Text is the only flex child so it stays perfectly
+                    centered in the button; phone icon hangs off the
+                    left of the text via absolute positioning. */}
+                <span className="relative text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                  <span
+                    className="absolute right-full top-1/2 -translate-y-1/2 mr-[6px] flex items-center justify-center shrink-0"
+                    style={{ width: 20, height: 20 }}
+                  >
+                    <PhoneIcon size={18} />
+                  </span>
                   Contact Sales
                 </span>
               </button>
@@ -1346,6 +1352,15 @@ function CoverCurtain({
   const [dragY, setDragY] = useState(0);
   const [snappingBack, setSnappingBack] = useState(false);
   const touchStartY = useRef<number | null>(null);
+  const curtainRef = useRef<HTMLDivElement>(null);
+
+  // React synthetic events bubble through the React tree, not the DOM tree —
+  // so touches on portaled descendants (e.g. ContactSalesModal in document.body)
+  // would otherwise trigger curtain drag logic and a snap-back re-render, which
+  // on touchscreens can swallow the synthetic click on the portaled content.
+  // Gate on `currentTarget.contains(target)` to ignore those.
+  const isInsideCurtain = (e: React.TouchEvent) =>
+    curtainRef.current?.contains(e.target as Node) ?? false;
 
   // Lock body scroll while curtain is visible; restore on unmount.
   // scrollbar-gutter: stable (globals.css) keeps layout width constant,
@@ -1381,19 +1396,22 @@ function CoverCurtain({
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (recalled || dismissed) return;
+    if (!isInsideCurtain(e)) return;
     touchStartY.current = e.touches[0].clientY;
     setSnappingBack(false);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (recalled || touchStartY.current === null || dismissed) return;
+    if (!isInsideCurtain(e)) return;
     const delta = touchStartY.current - e.touches[0].clientY;
     // Only track upward drag (positive delta); ignore downward pulls
     setDragY(Math.max(0, delta));
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (recalled || touchStartY.current === null || dismissed) return;
+    if (!isInsideCurtain(e)) return;
     // Threshold: 20% of viewport height, capped at 120px
     const threshold = Math.min(120, window.innerHeight * 0.2);
     if (dragY >= threshold) {
@@ -1417,6 +1435,7 @@ function CoverCurtain({
 
   return (
     <div
+      ref={curtainRef}
       className="fixed inset-0 z-[100] bg-white flex items-center justify-center overflow-hidden"
       style={{ transform, transition }}
       onTouchStart={handleTouchStart}
