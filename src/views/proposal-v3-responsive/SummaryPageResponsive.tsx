@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import { ContactSalesModal } from './SalesContactCard';
-import { PhoneIcon } from './SvgIcons';
+import { CalendarIcon, PhoneIcon } from './SvgIcons';
 import ProductDetailSheet, {
   NoImageThumb,
   type ProductDetailContent,
@@ -943,6 +943,28 @@ function ContactSalesButton() {
   );
 }
 
+// ── Expired notice (Summary page) ───────────────────────────────────────────
+// Rendered below the OptionSummaryTitleBlock when Proposal Status = Expired.
+// Mirrors the yellow pill + body copy from the cover curtain so the expired
+// context follows the user through Summary; left-aligned to match the
+// surrounding Summary column rather than the centered cover treatment.
+function ExpiredNotice() {
+  return (
+    <div className="flex flex-col items-start gap-3 w-full">
+      <span className="inline-flex items-center gap-2 bg-[#facc15] text-[#262626] text-[14px] xl:text-[16px] px-3 py-2.5 xl:px-4 xl:py-3 rounded-[6px] leading-none">
+        <span>Expired on</span>
+        <span className="inline-flex items-center gap-1">
+          <CalendarIcon size={16} />
+          <span>April 30, 2026</span>
+        </span>
+      </span>
+      <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-light text-[#737373] leading-normal">
+        This proposal has expired. Some information may be out of date. Please contact your sales representative for an updated proposal.
+      </p>
+    </div>
+  );
+}
+
 
 function StickyFooter({
   visible,
@@ -951,6 +973,7 @@ function StickyFooter({
   onSignApprove,
   approveLabel,
   onViewSchedule,
+  expired = false,
 }: {
   visible: boolean;
   financials: Financials;
@@ -959,6 +982,9 @@ function StickyFooter({
   approveLabel: string;
   /** Tap the pricing column to open the Payment Schedule dialog. */
   onViewSchedule: () => void;
+  /** When true (Proposal Status = Expired), hide the Sign & Approve CTA —
+   *  the proposal isn't approvable in this state. */
+  expired?: boolean;
 }) {
   return (
     <div
@@ -1007,18 +1033,21 @@ function StickyFooter({
         </button>
       </div>
 
-      {/* Sign & Approve button — XS px=12px, S/M px=32px */}
-      <div className="flex items-center self-stretch">
-        <button
-          onClick={onSignApprove}
-          className="bg-[#d41a32] flex items-center justify-center h-full rounded-[2px] cursor-pointer border-0 px-3 sm:px-8"
-          style={{ paddingTop: 4, paddingBottom: 4 }}
-        >
-          <span className="text-[14px] sm:text-[16px] font-semibold text-white leading-[16px] whitespace-nowrap tracking-[-0.48px] sm:tracking-[-0.56px]">
-            {approveLabel}
-          </span>
-        </button>
-      </div>
+      {/* Sign & Approve button — XS px=12px, S/M px=32px.
+          Suppressed in Expired state — the proposal isn't approvable. */}
+      {!expired && (
+        <div className="flex items-center self-stretch">
+          <button
+            onClick={onSignApprove}
+            className="bg-[#d41a32] flex items-center justify-center h-full rounded-[2px] cursor-pointer border-0 px-3 sm:px-8"
+            style={{ paddingTop: 4, paddingBottom: 4 }}
+          >
+            <span className="text-[14px] sm:text-[16px] font-semibold text-white leading-[16px] whitespace-nowrap tracking-[-0.48px] sm:tracking-[-0.56px]">
+              {approveLabel}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1037,6 +1066,7 @@ function SummaryContent({
   approveLabel,
   onViewSchedule,
   financingExcluded,
+  expired = false,
 }: {
   option: FenceOption;
   ctaRef?: React.RefObject<HTMLDivElement | null>;
@@ -1046,6 +1076,10 @@ function SummaryContent({
   onViewSchedule: () => void;
   /** When true, omit the Estimated Monthly Payment row from the summary. */
   financingExcluded: boolean;
+  /** When true (Proposal Status = Expired), hide the Sign & Approve button
+   *  entirely and float Contact Sales to the first position — the proposal
+   *  isn't actionable and the most useful affordance is a sales rep. */
+  expired?: boolean;
 }) {
   // Mobile (< lg) only — toggled by the "Read more" link to swap the
   // single-line truncated disclaimer for the full ①②-paragraph version
@@ -1131,18 +1165,25 @@ function SummaryContent({
 
       {/* Actions — same Gutter logic: Low density py-2/gap-2, Med density lg:py-3/lg:gap-3 (uniform) */}
       <div className="flex flex-col gap-2 lg:gap-3 items-start py-2 lg:py-3 w-full">
-        {/* CTAs — ref used to hide sticky footer when Sign & Approve is fully visible */}
+        {/* CTAs — ref used to hide sticky footer when Sign & Approve is fully visible.
+            Order:
+              Regular: Sign & Approve (red) → View Payment Schedule → Contact Sales → Download.
+              Expired: Contact Sales → View Payment Schedule → Download (Sign & Approve omitted). */}
         <div ref={ctaRef} className="flex flex-col gap-3 items-start w-full">
-          {/* Sign & Approve */}
-          <button
-            onClick={onSignApprove}
-            className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
-          >
-            <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
-              style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}>
-              {approveLabel}
-            </span>
-          </button>
+          {/* Contact Sales — floated to top in Expired state. */}
+          {expired && <ContactSalesButton />}
+          {/* Sign & Approve — hidden entirely when the proposal has expired. */}
+          {!expired && (
+            <button
+              onClick={onSignApprove}
+              className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
+            >
+              <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
+                style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}>
+                {approveLabel}
+              </span>
+            </button>
+          )}
           {/* View Payment Schedule */}
           <button
             onClick={onViewSchedule}
@@ -1160,8 +1201,9 @@ function SummaryContent({
               View Payment Schedule
             </span>
           </button>
-          {/* Contact Sales — icon + behavior driven by DevConsole salesContact */}
-          <ContactSalesButton />
+          {/* Contact Sales — default mid-list position (omitted here in Expired
+              state since it's already rendered at the top). */}
+          {!expired && <ContactSalesButton />}
           {/* Download Config PDF */}
           <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
             <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
@@ -1265,6 +1307,7 @@ export default function SummaryPageResponsive({
   // Payment Schedule dialog.
   const { config: devConfig } = useDevConsole();
   const financingExcluded = devConfig.financingEstimation === 'excluded';
+  const expired = devConfig.proposalStatus === 'expired';
   // Title shown in place of `option.label` whenever singleOptionMode is on.
   // Matches the "FENCE REPLACEMENT PROPOSAL" copy used on the cover page and
   // on the post-approval Project Hub.
@@ -1538,12 +1581,16 @@ export default function SummaryPageResponsive({
                 then SummaryContent with gap
             */}
             <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-4 sm:pt-8 px-4 sm:px-8 w-full">
-              <div ref={bottomTitleRef}>
+              {/* Title block + Expired notice grouped under one tighter gap
+                  so the notice reads as part of the title block, not as a
+                  third equal section against the Contract Total below. */}
+              <div ref={bottomTitleRef} className="flex flex-col gap-2">
                 <OptionSummaryTitleBlock
                   option={option}
                   showSummaryLabel
                   titleOverride={titleOverride}
                 />
+                {expired && <ExpiredNotice />}
               </div>
               <SummaryContent
                 option={option}
@@ -1553,6 +1600,7 @@ export default function SummaryPageResponsive({
                 approveLabel={approveCtaLabel}
                 onViewSchedule={openSchedule}
                 financingExcluded={financingExcluded}
+                expired={expired}
               />
             </div>
 
@@ -1562,11 +1610,17 @@ export default function SummaryPageResponsive({
                 OptionSummaryTitleBlock WITH label, then SummaryContent
             */}
             <div className="hidden lg:flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
-              <OptionSummaryTitleBlock
-                option={option}
-                showSummaryLabel
-                titleOverride={titleOverride}
-              />
+              {/* Title block + Expired notice grouped under one tighter gap
+                  (12px) so the notice reads as part of the title block, not
+                  as a third equal section against the financial summary. */}
+              <div className="flex flex-col gap-3">
+                <OptionSummaryTitleBlock
+                  option={option}
+                  showSummaryLabel
+                  titleOverride={titleOverride}
+                />
+                {expired && <ExpiredNotice />}
+              </div>
               <SummaryContent
                 option={option}
                 financials={financials}
@@ -1574,6 +1628,7 @@ export default function SummaryPageResponsive({
                 approveLabel={approveCtaLabel}
                 onViewSchedule={openSchedule}
                 financingExcluded={financingExcluded}
+                expired={expired}
               />
             </div>
           </div>
@@ -1597,6 +1652,7 @@ export default function SummaryPageResponsive({
         onSignApprove={onRequestSign}
         approveLabel={approveCtaLabel}
         onViewSchedule={openSchedule}
+        expired={expired}
       />
 
       {/* Product / Upgrade / Add-on detail bottom sheet — opened by tapping a

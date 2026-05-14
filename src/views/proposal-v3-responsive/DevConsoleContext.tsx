@@ -21,6 +21,15 @@ export type AddonsSectionVisibility = 'include' | 'exclude';
 export type Upgrades = 'enable' | 'disable';
 export type Preset = 'mvp' | 'future';
 export type ConstructionTimeInfo = 'include' | 'exclude';
+export type ProposalStatus =
+  | 'regular'
+  | 'expired'
+  | 'recalled'
+  | 'deleted'
+  | 'lost'
+  | 'void'
+  | 'signedOnDevice';
+export type CompanySlogan = 'enable' | 'disable';
 
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
@@ -98,6 +107,17 @@ export type DevConfig = {
    *  hides the card-level "{n} Weeks Estimated Construction Time" row and
    *  the matching ComparisonParam. */
   constructionTimeInfo: ConstructionTimeInfo;
+  /** Lifecycle state of the proposal demo. 'regular' (default) renders the
+   *  normal cover + comparison flow. Every other status — 'recalled',
+   *  'deleted', 'lost', 'void' — collapses the proposal to the locked cover
+   *  curtain with the yellow "Proposal No Longer Available" pill and a
+   *  Contact Sales CTA. The four non-regular values exist as separate dev
+   *  toggles for QA scenarios even though they share visuals today. */
+  proposalStatus: ProposalStatus;
+  /** Whether the cover page renders the company tagline ("Build Your Dream
+   *  Fence"). 'enable' (default) shows it; 'disable' hides it. Bulk-flipped
+   *  by the Preset toggle — Future Scope keeps it on, MVP turns it off. */
+  companySlogan: CompanySlogan;
 };
 
 type DevConsoleContextValue = {
@@ -106,6 +126,12 @@ type DevConsoleContextValue = {
   isOpen: boolean;
   open: () => void;
   close: () => void;
+  /** Monotonically-increasing counter. The page wiring (OptionsPageResponsive)
+   *  watches it and re-applies the starting page for the current proposal
+   *  status whenever it bumps. */
+  restartTick: number;
+  /** Bump `restartTick`. Called by the "Restart Userflow" button. */
+  restartUserflow: () => void;
 };
 
 const DevConsoleCtx = createContext<DevConsoleContextValue | null>(null);
@@ -129,8 +155,11 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     upgrades: 'enable',
     preset: 'future',
     constructionTimeInfo: 'include',
+    proposalStatus: 'regular',
+    companySlogan: 'enable',
   });
   const [isOpen, setIsOpen] = useState(false);
+  const [restartTick, setRestartTick] = useState(0);
 
   const value = useMemo<DevConsoleContextValue>(
     () => ({
@@ -139,8 +168,10 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
       isOpen,
       open: () => setIsOpen(true),
       close: () => setIsOpen(false),
+      restartTick,
+      restartUserflow: () => setRestartTick((n) => n + 1),
     }),
-    [config, isOpen]
+    [config, isOpen, restartTick]
   );
 
   return <DevConsoleCtx.Provider value={value}>{children}</DevConsoleCtx.Provider>;

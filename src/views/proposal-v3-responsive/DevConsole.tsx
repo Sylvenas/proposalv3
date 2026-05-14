@@ -11,6 +11,7 @@
 // pages in the prototype flow (Cover → Options → Summary).
 
 import { useDevConsole, type DevConfig, type Preset } from './DevConsoleContext';
+import { RestartIcon } from './SvgIcons';
 
 // Curated bundles bulk-applied when a Preset is selected. Each preset only
 // touches the small set of toggles that meaningfully differ between
@@ -25,6 +26,7 @@ const PRESETS: Record<Preset, Partial<DevConfig>> = {
     upgrades: 'enable',
     addonsSection: 'include',
     financingService: 'enable',
+    companySlogan: 'enable',
   },
   mvp: {
     inspectionReport: false,
@@ -34,11 +36,12 @@ const PRESETS: Record<Preset, Partial<DevConfig>> = {
     upgrades: 'disable',
     addonsSection: 'exclude',
     financingService: 'disable',
+    companySlogan: 'disable',
   },
 };
 
 export default function DevConsole() {
-  const { config, setConfig, isOpen, close } = useDevConsole();
+  const { config, setConfig, isOpen, close, restartUserflow } = useDevConsole();
 
   if (!isOpen) return null;
 
@@ -71,6 +74,30 @@ export default function DevConsole() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6 scrollbar-none">
+          {/* Action: send the user back to the starting page for the current
+              Proposal Status — Project Home for Signed On Device, Cover for
+              every other status. Closes the console so the user immediately
+              sees the result.
+              States:
+                idle     → light (white bg, dark text, gray border)
+                hover    → highlighted (light-gray bg)
+                active   → dark (#262626 bg, white text) while the button
+                           is being pressed; reverts on release. */}
+          <button
+            type="button"
+            onClick={() => {
+              restartUserflow();
+              close();
+            }}
+            className="group w-full shrink-0 h-10 rounded-[4px] text-[14px] font-semibold border bg-white text-[#262626] border-[#d9d9d9] cursor-pointer transition-colors hover:bg-[#f5f5f5] active:bg-[#262626] active:text-white active:border-[#262626] flex items-center justify-center gap-2"
+          >
+            {/* Icon inherits the button's current text color via
+                `currentColor` so it flips to white on :active alongside
+                the label. */}
+            <RestartIcon size={16} fill="currentColor" />
+            Restart Userflow
+          </button>
+
           <Cluster title="Preset">
             <ToggleRow
               value={config.preset}
@@ -84,6 +111,23 @@ export default function DevConsole() {
             />
           </Cluster>
 
+          <Cluster title="Proposal Status">
+            <ToggleRow
+              value={config.proposalStatus}
+              options={[
+                { label: 'Regular', value: 'regular' as const },
+                { label: 'Expired', value: 'expired' as const },
+                { label: 'Recalled', value: 'recalled' as const },
+                { label: 'Deleted', value: 'deleted' as const },
+                { label: 'Lost', value: 'lost' as const },
+                { label: 'Void', value: 'void' as const },
+                { label: 'Signed On Device', value: 'signedOnDevice' as const, colSpan: 2 },
+              ]}
+              onChange={(v) => setConfig((c) => ({ ...c, proposalStatus: v }))}
+              maxPerRow={3}
+            />
+          </Cluster>
+
           <Cluster title="Cover Page">
             <Section title="Inspection Report">
               <ToggleRow
@@ -93,6 +137,16 @@ export default function DevConsole() {
                   { label: 'Included', value: true },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, inspectionReport: v }))}
+              />
+            </Section>
+            <Section title="Company Slogan">
+              <ToggleRow
+                value={config.companySlogan}
+                options={[
+                  { label: 'Enabled', value: 'enable' as const },
+                  { label: 'Disabled', value: 'disable' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, companySlogan: v }))}
               />
             </Section>
           </Cluster>
@@ -291,26 +345,41 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 // Generic toggle row used by every Section — picks the active button by
-// reference equality with `value`.
+// reference equality with `value`. Pass `maxPerRow={3}` to opt into a 3-column
+// grid that wraps when the option count exceeds the row width (used by
+// Proposal Status, which now has five options).
 function ToggleRow<T>({
   value,
   options,
   onChange,
+  maxPerRow,
 }: {
   value: T;
-  options: { label: string; value: T; disabled?: boolean }[];
+  /** Each option may set `colSpan` to widen the button in grid mode (only
+   *  meaningful when `maxPerRow` is set; in flex mode each button is
+   *  already flex-1). Defaults to 1. */
+  options: { label: string; value: T; disabled?: boolean; colSpan?: 2 | 3 }[];
   onChange: (next: T) => void;
+  maxPerRow?: 3;
 }) {
+  const useGrid = maxPerRow === 3;
   return (
-    <div className="flex gap-2">
-      {options.map(({ label, value: optionValue, disabled }) => {
+    <div className={useGrid ? 'grid grid-cols-3 gap-2' : 'flex gap-2'}>
+      {options.map(({ label, value: optionValue, disabled, colSpan }) => {
         const active = value === optionValue;
+        const layoutClass = useGrid
+          ? colSpan === 3
+            ? 'col-span-3'
+            : colSpan === 2
+              ? 'col-span-2'
+              : ''
+          : 'flex-1';
         return (
           <button
             key={label}
             onClick={() => onChange(optionValue)}
             disabled={disabled}
-            className={`flex-1 h-10 rounded-[4px] text-[14px] font-semibold border ${
+            className={`${layoutClass} h-10 rounded-[4px] text-[14px] font-semibold border ${
               disabled
                 ? 'bg-white text-[#bfbfbf] border-[#f0f0f0] cursor-not-allowed'
                 : active
