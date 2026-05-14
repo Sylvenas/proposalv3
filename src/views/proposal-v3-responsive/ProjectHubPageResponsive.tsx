@@ -289,14 +289,30 @@ function OptionSummaryTitleBlock({
 //   "CONTRACT DETAIL"          ← section label (was "SUMMARY")
 //   "FENCE REPLACEMENT PROPOSAL" ← proposal name (was option.label)
 //   address
-function ProjectHomeTitleBlock({ approvedAt }: { approvedAt?: Date | null }) {
-  // Formats `approvedAt` as M/D/YYYY (e.g. 3/18/2026) without leading zeros.
+function ProjectHomeTitleBlock({
+  approvedAt,
+  signedOnDevice = false,
+}: {
+  approvedAt?: Date | null;
+  /** When true (Proposal Status = Signed On Device), swap the label to
+   *  "Contract signed in person on {long-form date}" and format the date
+   *  as "May 14, 2026" instead of the default M/D/YYYY. */
+  signedOnDevice?: boolean;
+}) {
+  // Formats `approvedAt` as M/D/YYYY (e.g. 3/18/2026) without leading zeros
+  // for the normal "Proposal Approved on …" label, or "May 14, 2026" when
+  // the contract was signed in person.
   // Falls back to today's date if the caller didn't capture an approval time
   // (safety net for direct renders that skipped the Summary → approve flow).
   const approvalDate = approvedAt ?? new Date();
-  const approvedLabel =
-    `Proposal Approved on ` +
-    `${approvalDate.getMonth() + 1}/${approvalDate.getDate()}/${approvalDate.getFullYear()}`;
+  const approvedLabel = signedOnDevice
+    ? `Contract signed in person on ${approvalDate.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })}`
+    : `Proposal Approved on ` +
+      `${approvalDate.getMonth() + 1}/${approvalDate.getDate()}/${approvalDate.getFullYear()}`;
 
   return (
     <div
@@ -1583,7 +1599,16 @@ export default function ProjectHubPageResponsive({
 
   return (
     <div className="bg-white min-h-screen">
-      <PageHeader onShowCover={onShowCover} />
+      {/* Home button on Project Hub does NOT return to the cover (the user
+          has already approved and that page is gone). Instead it switches
+          to the Project Home tab and scrolls to the top. The `onShowCover`
+          prop from the parent is intentionally ignored here. */}
+      <PageHeader
+        onShowCover={() => {
+          setActiveTab('home');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
       {/*
         Sticky Project Hub header — replaces the "Change Option" action.
@@ -1628,7 +1653,7 @@ export default function ProjectHubPageResponsive({
               cards (Drawing, Products, Add-ons).
             */}
             <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-8 sm:pt-12 w-full">
-              <ProjectHomeTitleBlock approvedAt={approvedAt} />
+              <ProjectHomeTitleBlock approvedAt={approvedAt} signedOnDevice={devConfig.proposalStatus === 'signedOnDevice'} />
               <ProjectHomeDetails
                 option={option}
                 financials={financials}
@@ -1668,7 +1693,7 @@ export default function ProjectHubPageResponsive({
               {/* ── Project Home Details column — desktop (lg+) only, sticky ── */}
               <div className="hidden lg:block w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-24 lg:self-start">
                 <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
-                  <ProjectHomeTitleBlock approvedAt={approvedAt} />
+                  <ProjectHomeTitleBlock approvedAt={approvedAt} signedOnDevice={devConfig.proposalStatus === 'signedOnDevice'} />
                   <ProjectHomeDetails option={option} financials={financials} approvedAt={approvedAt} onMakePayment={openMakePayment} onShowPaymentRecords={() => setActiveTab('invoices')} extraPayments={extraPayments} paymentCompletionIndication={devConfig.paymentCompletionIndication} invoiceMode={devConfig.invoiceMode} financingService={devConfig.financingService} />
                 </div>
               </div>

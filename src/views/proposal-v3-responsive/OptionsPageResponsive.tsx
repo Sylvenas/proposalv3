@@ -24,6 +24,8 @@ import ProductDetailSheet, {
 import PaymentScheduleDialog, {
   type PaymentScheduleData,
 } from './PaymentScheduleDialog';
+import { ContactSalesModal } from './SalesContactCard';
+import { CalendarIcon, DocumentIcon, NoSymbolIcon, PhoneIcon } from './SvgIcons';
 
 // ── Equal-height hook ─────────────────────────────────────────────────────────
 // For each [data-card-container], finds all [data-card-section="X"] elements,
@@ -951,6 +953,9 @@ function CoverPageContent({
   onExplore,
   singleOptionMode = false,
   showInspectionReport = true,
+  recalled = false,
+  expired = false,
+  showCompanySlogan = true,
 }: {
   onExplore: () => void;
   /** When true, the proposal has only one option, so the CTA reads
@@ -960,8 +965,105 @@ function CoverPageContent({
   /** When false, the cover hides the "Inspection Report" CTA (used by the
    *  DevConsole to demo proposals without an attached inspection report). */
   showInspectionReport?: boolean;
+  /** When true (Proposal Status = Recalled / Deleted / Lost / Void), the
+   *  "Valid Until" line is replaced with a yellow "Proposal No Longer
+   *  Available" pill, and the primary CTA becomes the secondary outlined
+   *  "Contact Sales" button — the curtain itself is also locked. */
+  recalled?: boolean;
+  /** When true (Proposal Status = Expired), the "Valid Until" line is
+   *  replaced with a yellow "Expired on April 30, 2026" pill plus an
+   *  expiration note, and the CTAs become "View Expired Proposal" +
+   *  "Contact Sales". The curtain is still dismissable — clicking
+   *  View Expired Proposal opens the (out-of-date) proposal beneath. */
+  expired?: boolean;
+  /** When false (DevConsole Company Slogan = Disabled), the
+   *  "Build Your Dream Fence" tagline row is omitted. */
+  showCompanySlogan?: boolean;
 }) {
   const exploreLabel = singleOptionMode ? 'EXPLORE PROPOSAL' : 'EXPLORE OPTIONS';
+  // Pill padding tracks the pill text size — pills' text steps 14→16px at
+  // xl, so padding steps one notch up at the same breakpoint
+  // (px-5 py-2.5 → px-6 py-3). No other tiers; XS through L share one
+  // padding, XL and XXL share the next.
+  const pillPadding = 'px-5 py-2.5 xl:px-6 xl:py-3';
+  // Regular state — light gray pill showing the validity date with a small
+  // calendar glyph. Auto-width, horizontally centered inside the surrounding
+  // flex column via self-center.
+  const validUntilPill = (
+    <div
+      className={`self-center inline-flex items-center gap-2 bg-[#f5f5f5] ${pillPadding} rounded-[6px]`}
+    >
+      <span className="text-[14px] xl:text-[16px] text-[#262626] leading-none">Valid Until:</span>
+      {/* Icon + date kept on a tighter inner gap (4px) so the calendar
+          glyph reads as a prefix on the date rather than a third equal
+          item. Outer gap-2 still separates them from the label. */}
+      <span className="inline-flex items-center gap-1">
+        <CalendarIcon size={16} />
+        <span className="text-[14px] xl:text-[16px] text-[#262626] leading-none">April 30, 2026</span>
+      </span>
+    </div>
+  );
+  // Recalled state — yellow status pill + supporting body copy. Replaces the
+  // Valid Until pill (which doesn't apply once the proposal is recalled).
+  const recallNotice = (
+    <div className="flex flex-col items-center gap-3 w-full">
+      <span
+        className={`inline-flex items-center gap-2 bg-[#facc15] text-[#262626] text-[14px] xl:text-[16px] font-semibold ${pillPadding} rounded-[6px] leading-none`}
+      >
+        <NoSymbolIcon size={16} />
+        Proposal No Longer Available
+      </span>
+      <p className="text-[12px] sm:text-[14px] xl:text-[16px] text-[#737373] text-center leading-normal max-w-[420px] xl:max-w-[520px]">
+        For assistance or further requests, please contact your sales representative.
+      </p>
+    </div>
+  );
+  // Expired state — same yellow background as the recall pill, but with the
+  // date (no NoSymbolIcon — it's still a date pill, just out of date) and a
+  // soft "out of date" note. Curtain remains dismissable from this state.
+  const expiredNotice = (
+    <div className="flex flex-col items-center gap-3 w-full">
+      <span
+        className={`inline-flex items-center gap-2 bg-[#facc15] text-[#262626] text-[14px] xl:text-[16px] ${pillPadding} rounded-[6px] leading-none`}
+      >
+        <span>Expired on</span>
+        {/* Icon + date on a tighter inner gap (4px) — matches the
+            Valid Until pill so the calendar glyph reads as a prefix. */}
+        <span className="inline-flex items-center gap-1">
+          <CalendarIcon size={16} />
+          <span>April 30, 2026</span>
+        </span>
+      </span>
+      <p className="text-[12px] sm:text-[14px] xl:text-[16px] text-[#737373] text-center leading-normal max-w-[420px] xl:max-w-[520px]">
+        This proposal has expired. Some information may be out of date. Please contact your sales representative for an updated proposal.
+      </p>
+    </div>
+  );
+  // Pick the right top block per state — only one of these renders at a time.
+  const topBlock = recalled
+    ? recallNotice
+    : expired
+      ? expiredNotice
+      : validUntilPill;
+  // Recalled-state Contact Sales dialog. Shares the same modal component
+  // used by Project Hub so the dialog content is consistent across surfaces.
+  const [contactSalesOpen, setContactSalesOpen] = useState(false);
+  // Hidden affordance — triple-clicking the cover logo opens the DevConsole.
+  // Lets us reach the console while the curtain is up (e.g. Recalled state
+  // hides the PageHeader's developer-console button behind the curtain).
+  // 500ms rolling window so a normal double-click never trips it.
+  const { open: openDevConsole } = useDevConsole();
+  const logoClickTimestamps = useRef<number[]>([]);
+  const handleLogoClick = () => {
+    const now = Date.now();
+    const recent = logoClickTimestamps.current.filter((t) => now - t < 500);
+    recent.push(now);
+    logoClickTimestamps.current = recent;
+    if (recent.length >= 3) {
+      logoClickTimestamps.current = [];
+      openDevConsole();
+    }
+  };
   // ── Token table (from Figma variable defs per breakpoint frame) ──────────────
   // FONTS — viewport-responsive (change at sm and xl):
   //   Font S  : XS=12  S=14  M=14  L=14  XL=16  XXL=16  → text-[12px] sm:text-[14px] xl:text-[16px]
@@ -983,10 +1085,18 @@ function CoverPageContent({
       {/* Logo — Mobile (<md): 1/3 content width, max-height 180px
                Desktop (md+): 1/5 content width, max-height 320px
                aspect-square keeps it square; min() applies both constraints at once */}
-      <div className="shrink-0 aspect-square md:hidden" style={{ width: 'min(33.333%, 180px)' }}>
+      <div
+        onClick={handleLogoClick}
+        className="shrink-0 aspect-square md:hidden"
+        style={{ width: 'min(33.333%, 180px)' }}
+      >
         <img src={IMG_COVER_LOGO} alt="Madison Fence Company" className="w-full h-full object-cover" />
       </div>
-      <div className="shrink-0 aspect-square hidden md:block" style={{ width: 'min(20%, 320px)' }}>
+      <div
+        onClick={handleLogoClick}
+        className="shrink-0 aspect-square hidden md:block"
+        style={{ width: 'min(20%, 320px)' }}
+      >
         <img src={IMG_COVER_LOGO} alt="Madison Fence Company" className="w-full h-full object-cover" />
       </div>
 
@@ -1016,66 +1126,188 @@ function CoverPageContent({
         </div>
       </div>
 
-      {/* Tagline — Font M: 14→16→20px across XS/S/XL */}
-      <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-light text-[#262626] text-center leading-normal">
+      {/* Tagline — Font M: 14→16→20px across XS/S/XL.
+          DevConsole Company Slogan = Disabled keeps the element in the
+          DOM (visibility:hidden) so the surrounding gap-12/gap-8 between
+          the proposal info and the CTAs stays identical with/without the
+          tagline — i.e. flipping the toggle never shifts other elements. */}
+      <p
+        className="text-[14px] sm:text-[16px] xl:text-[20px] font-light text-[#262626] text-center leading-normal"
+        style={showCompanySlogan ? undefined : { visibility: 'hidden' }}
+        aria-hidden={showCompanySlogan ? undefined : true}
+      >
         Build Your Dream Fence
       </p>
 
       {/* ── CTAs: Mobile (Low Density, <md) ────────────────────────────── */}
-      {/* Order: Valid Until → Explore (red) → Inspection (outlined)       */}
+      {/* Order:
+          Regular  : Valid Until pill → Explore (red) → Inspection (outlined)
+          Recalled : Recall notice → Contact Sales (outlined)
+          Expired  : Expired notice → Contact Sales (outlined) →
+                     View Expired Proposal (outlined)                      */}
       {/* Gap = Spacing S = 16px (Low Density)                             */}
       <div className="md:hidden flex flex-col gap-4 w-full">
-        {/* Valid Until — Font M (mobile): XS=14px  S=16px */}
-        <p className="text-[14px] sm:text-[16px] text-[#262626] text-center leading-normal">
-          Valid Until: April 30, 2026
-        </p>
-        {/* Explore — h-10 (40px), font/size/body/medium = 14px fixed */}
-        <button
-          onClick={onExplore}
-          className="w-full h-10 bg-[#d41a32] text-white text-[14px] font-semibold flex items-center justify-center cursor-pointer"
-          style={{ lineHeight: '18px' }}
-        >
-          {exploreLabel}
-        </button>
-        {/* Inspection — h-10 (40px), font/size/body/medium = 14px fixed.
-            Hidden when the DevConsole has Inspection Report set to "Hidden". */}
-        {showInspectionReport && (
-          <button className="w-full h-10 bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[14px] flex items-center justify-center cursor-pointer">
-            INSPECTION REPORT
+        {topBlock}
+        {/* Recalled / Expired primary slot is the outlined Contact Sales
+            button (same shape as Project Hub's Contact Sales — phone icon +
+            sentence-case label, opens ContactSalesModal). Regular keeps the
+            red Explore button. */}
+        {recalled || expired ? (
+          <button
+            type="button"
+            onClick={() => setContactSalesOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={contactSalesOpen}
+            className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
+          >
+            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+              <PhoneIcon size={18} />
+            </div>
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              Contact Sales
+            </span>
           </button>
-        )}
-      </div>
-
-      {/* ── CTAs: Desktop (Medium Density, md+) ────────────────────────── */}
-      {/* Order: [Inspection | Explore] then Valid Until                    */}
-      {/* Outer gap = Spacing L = 24px (Medium Density)                    */}
-      <div className="hidden md:flex flex-col gap-6 w-full items-center">
-        {/* Button row — 12px gap (hardcoded in design) */}
-        <div className="flex gap-3 items-center justify-center w-full">
-          {/* Inspection — flex-1, max-w-240px, h-11 (44px), --m = 16px.
-              Hidden when the DevConsole has Inspection Report set to "Hidden". */}
-          {showInspectionReport && (
-            <button className="flex-1 h-11 max-w-[240px] bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[16px] flex items-center justify-center cursor-pointer">
-              INSPECTION REPORT
-            </button>
-          )}
-          {/* Explore — flex-1, h-11 (44px), --m = 16px.
-              When Inspection Report is hidden, the Explore button is the only
-              one in the row, so it expands to the original two-button total
-              width (240 + 12 gap + 240 = 492px) instead of staying at 240. */}
+        ) : (
           <button
             onClick={onExplore}
-            className={`flex-1 h-11 ${showInspectionReport ? 'max-w-[240px]' : 'max-w-[492px]'} bg-[#d41a32] text-white text-[16px] font-semibold flex items-center justify-center cursor-pointer`}
+            className="w-full h-10 bg-[#d41a32] text-white text-[14px] font-semibold flex items-center justify-center cursor-pointer"
             style={{ lineHeight: '18px' }}
           >
             {exploreLabel}
           </button>
-        </div>
-        {/* Valid Until — Font M (desktop): M/L=16px  XL/XXL=20px */}
-        <p className="text-[16px] xl:text-[20px] text-[#262626] text-center leading-normal">
-          Valid Until: April 30, 2026
-        </p>
+        )}
+        {/* Expired-only — outlined "View Expired Proposal" added BELOW
+            Contact Sales. Clicking it dismisses the curtain like Explore. */}
+        {expired && (
+          <button
+            type="button"
+            onClick={onExplore}
+            className="w-full h-10 bg-white border border-solid border-[#262626] flex items-center justify-center px-4 rounded-[4px] cursor-pointer"
+          >
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              View Expired Proposal
+            </span>
+          </button>
+        )}
+        {/* Inspection — h-10 (40px), font/size/body/medium = 14px fixed.
+            Regular           : outlined full-width button below Explore.
+            Recalled / Expired: borderless variant below the primary CTAs
+                                (no border, no fill) — keeps the affordance
+                                but visually demotes it.
+            Hidden entirely when DevConsole's Inspection Report = Hidden. */}
+        {showInspectionReport &&
+          (recalled || expired ? (
+            <button className="w-full h-10 bg-transparent text-[rgba(0,0,0,0.85)] text-[14px] flex gap-2 items-center justify-center cursor-pointer">
+              <DocumentIcon size={16} />
+              View Inspection Report
+            </button>
+          ) : (
+            <button className="w-full h-10 bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[14px] flex items-center justify-center cursor-pointer">
+              INSPECTION REPORT
+            </button>
+          ))}
       </div>
+
+      {/* ── CTAs: Desktop (Medium Density, md+) ────────────────────────── */}
+      {/* Order @ all md+: top block (pill / notice) → button row, via the
+          order-first wrapper around the top block.
+          Button row contents:
+            Regular  : [Inspection (outlined) | Explore (red)]
+            Recalled : [Contact Sales (outlined, full width)]
+            Expired  : [View Expired Proposal (outlined) | Contact Sales (outlined)]
+          Expired puts View Expired Proposal on the LEFT per the design spec. */}
+      {/* Outer gap = Spacing L = 24px (Medium Density)                    */}
+      <div className="hidden md:flex flex-col gap-6 w-full items-center">
+        {/* Button row — 12px gap (hardcoded in design) */}
+        <div className="flex gap-3 items-center justify-center w-full">
+          {recalled ? (
+            // Recalled: single full-width Contact Sales button (caps at
+            // 492px — matches the original 2-button total width: 240 + 12 + 240).
+            <button
+              type="button"
+              onClick={() => setContactSalesOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={contactSalesOpen}
+              className="flex-1 h-11 max-w-[492px] bg-white border border-solid border-[#262626] flex gap-[6px] items-center justify-center px-4 rounded-[4px] cursor-pointer"
+            >
+              <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                <PhoneIcon size={18} />
+              </div>
+              <span className="text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                Contact Sales
+              </span>
+            </button>
+          ) : expired ? (
+            // Expired: View Expired Proposal | Contact Sales, both outlined.
+            <>
+              <button
+                type="button"
+                onClick={onExplore}
+                className="flex-1 h-11 max-w-[240px] bg-white border border-solid border-[#262626] flex items-center justify-center px-4 rounded-[4px] cursor-pointer"
+              >
+                <span className="text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                  View Expired Proposal
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setContactSalesOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={contactSalesOpen}
+                className="flex-1 h-11 max-w-[240px] bg-white border border-solid border-[#262626] flex gap-[6px] items-center justify-center px-4 rounded-[4px] cursor-pointer"
+              >
+                <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                  <PhoneIcon size={18} />
+                </div>
+                <span className="text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                  Contact Sales
+                </span>
+              </button>
+            </>
+          ) : (
+            // Regular: Inspection (optional) + red Explore. Explore widens to
+            // 492px when Inspection is hidden so the row width stays constant.
+            <>
+              {showInspectionReport && (
+                <button className="flex-1 h-11 max-w-[240px] bg-white border border-[#262626] text-[rgba(0,0,0,0.85)] text-[16px] flex items-center justify-center cursor-pointer">
+                  INSPECTION REPORT
+                </button>
+              )}
+              <button
+                onClick={onExplore}
+                className={`flex-1 h-11 ${showInspectionReport ? 'max-w-[240px]' : 'max-w-[492px]'} bg-[#d41a32] text-white text-[16px] font-semibold flex items-center justify-center cursor-pointer`}
+                style={{ lineHeight: '18px' }}
+              >
+                {exploreLabel}
+              </button>
+            </>
+          )}
+        </div>
+        {/* Recalled / Expired Inspection Report — borderless text button
+            below the primary CTA row (only when Inspection Report =
+            Included). The Regular variant lives inside the button row
+            alongside Explore. */}
+        {(recalled || expired) && showInspectionReport && (
+          <button className="self-center h-10 px-4 bg-transparent text-[rgba(0,0,0,0.85)] text-[16px] flex gap-2 items-center cursor-pointer">
+            <DocumentIcon size={16} />
+            View Inspection Report
+          </button>
+        )}
+        {/* Top block — gray Valid Until pill (Regular) / yellow recall pill +
+            body (Recalled) / yellow expired pill + body (Expired). Sits above
+            the button row at every md+ breakpoint via order-first. */}
+        <div className="flex flex-col items-center w-full order-first">
+          {topBlock}
+        </div>
+      </div>
+      {/* Recalled / Expired Contact Sales dialog. Mounted once so either the
+          mobile or desktop button can open it. */}
+      {(recalled || expired) && (
+        <ContactSalesModal
+          open={contactSalesOpen}
+          onClose={() => setContactSalesOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1092,10 +1324,23 @@ function CoverCurtain({
   onDismiss,
   singleOptionMode = false,
   showInspectionReport = true,
+  recalled = false,
+  expired = false,
+  showCompanySlogan = true,
 }: {
   onDismiss: () => void;
   singleOptionMode?: boolean;
   showInspectionReport?: boolean;
+  /** When true (Proposal Status = Recalled / Deleted / Lost / Void), the
+   *  curtain cannot be dragged up and the primary CTA is replaced by a
+   *  non-dismissing Contact Sales button, so this curtain is the only thing
+   *  the proposal ever renders. */
+  recalled?: boolean;
+  /** When true (Proposal Status = Expired), the cover content shows the
+   *  Expired pill + dual CTAs but the curtain is still dismissable (touch
+   *  drag-up + View Expired Proposal). */
+  expired?: boolean;
+  showCompanySlogan?: boolean;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -1128,26 +1373,27 @@ function CoverCurtain({
   }, []);
 
   const dismiss = () => {
-    if (dismissed) return;
+    // Recalled proposals lock the curtain up — every dismiss path is a no-op.
+    if (recalled || dismissed) return;
     setDismissed(true);
     setTimeout(onDismiss, 620);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (dismissed) return;
+    if (recalled || dismissed) return;
     touchStartY.current = e.touches[0].clientY;
     setSnappingBack(false);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current === null || dismissed) return;
+    if (recalled || touchStartY.current === null || dismissed) return;
     const delta = touchStartY.current - e.touches[0].clientY;
     // Only track upward drag (positive delta); ignore downward pulls
     setDragY(Math.max(0, delta));
   };
 
   const handleTouchEnd = () => {
-    if (touchStartY.current === null || dismissed) return;
+    if (recalled || touchStartY.current === null || dismissed) return;
     // Threshold: 20% of viewport height, capped at 120px
     const threshold = Math.min(120, window.innerHeight * 0.2);
     if (dragY >= threshold) {
@@ -1182,6 +1428,9 @@ function CoverCurtain({
           onExplore={dismiss}
           singleOptionMode={singleOptionMode}
           showInspectionReport={showInspectionReport}
+          recalled={recalled}
+          expired={expired}
+          showCompanySlogan={showCompanySlogan}
         />
       </div>
     </div>
@@ -1570,7 +1819,7 @@ function useOverflowScroll(optionsLength: number) {
 }
 
 function OptionsPageContent() {
-  const { config } = useDevConsole();
+  const { config, restartTick } = useDevConsole();
   const optionCount = config.optionCount;
   // Slice the master list to the configured count. Everything below operates on
   // this trimmed array, so widget logic (overflow detection, comparison pair,
@@ -1698,10 +1947,87 @@ function OptionsPageContent() {
     setSelectedOption(opt);
   }
 
+  // Locked statuses — those that disable the curtain entirely (vs. Expired,
+  // which still allows the user to View Expired Proposal, and Signed On
+  // Device, which skips the cover entirely and lands the user on the
+  // approved Project Hub).
+  const isLockedStatus =
+    config.proposalStatus !== 'regular' &&
+    config.proposalStatus !== 'expired' &&
+    config.proposalStatus !== 'signedOnDevice';
+
   function dismissCurtain() {
+    // Locked statuses (Recalled / Deleted / Lost / Void) can never leave the
+    // cover curtain — no-op so any stray dismiss callbacks (mounted before
+    // the toggle flipped) don't unmount the curtain underneath the recall
+    // notice. Expired is dismissable like Regular.
+    if (isLockedStatus) return;
     window.scrollTo({ top: 0, behavior: 'instant' });
     setCurtainMounted(false);
   }
+
+  // Flipping to a LOCKED status (Recalled / Deleted / Lost / Void) at
+  // runtime re-raises the curtain and clears any in-progress page state —
+  // the cover is the only thing those statuses are allowed to render.
+  // Signed On Device jumps straight to the approved Project Hub: dismiss
+  // the curtain, pick the first option as the contract, and flip the
+  // approved flag + timestamp so the post-approval surface renders.
+  // Expired keeps the user on whatever pre-approval page they were on
+  // (Cover / Options / Summary) — BUT if they had already approved and
+  // are sitting on Project Hub, that page is invalid under Expired, so
+  // we bounce them back to the cover and clear the approval state.
+  // Flipping back to Regular is intentionally NOT auto-reversed.
+  useEffect(() => {
+    if (isLockedStatus) {
+      setCurtainMounted(true);
+      setSelectedOption(null);
+      setApproved(false);
+      setApprovedAt(null);
+    } else if (config.proposalStatus === 'signedOnDevice') {
+      setCurtainMounted(false);
+      setSelectedOption(OPTIONS[0] ?? null);
+      setApproved(true);
+      setApprovedAt(new Date());
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    } else if (config.proposalStatus === 'expired' && approved) {
+      // On Project Hub when Expired flipped on → return to cover.
+      setCurtainMounted(true);
+      setSelectedOption(null);
+      setApproved(false);
+      setApprovedAt(null);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.proposalStatus]);
+
+  // Restart Userflow — DevConsole's top button bumps `restartTick`. Each
+  // bump returns the user to the starting page for the current Proposal
+  // Status: Project Home for Signed On Device (re-using the approved
+  // landing), Cover for every other status. The initial 0 tick is skipped
+  // so this doesn't fire on mount.
+  useEffect(() => {
+    if (restartTick === 0) return;
+    if (config.proposalStatus === 'signedOnDevice') {
+      setCurtainMounted(false);
+      setSelectedOption(OPTIONS[0] ?? null);
+      setApproved(true);
+      setApprovedAt(new Date());
+    } else {
+      setCurtainMounted(true);
+      setSelectedOption(null);
+      setApproved(false);
+      setApprovedAt(null);
+    }
+    // Always clear any open sheets/overlays + reset addon / upgrade
+    // selections so the restart actually lands on a clean starting state.
+    setShowSignatureOverlay(false);
+    setAddons(DEFAULT_ADDONS);
+    setProductDetail(null);
+    setScheduleData(null);
+    setUpgradeSelections({});
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restartTick]);
 
   // Smart scroll target: when the comparison mini-header cards are rendered
   // AND visible (overflow state on XS/S/M), jump to their top edge;
@@ -1934,6 +2260,11 @@ function OptionsPageContent() {
       <>
         {approved ? (
           <ProjectHubPageResponsive
+            // Re-mount whenever Restart Userflow is invoked so internal
+            // state (active tab, extra payments, sticky-footer state) drops
+            // back to defaults — without this, restart from a non-Home tab
+            // would leave the user on that tab.
+            key={`hub-${restartTick}`}
             option={effectiveSelectedOption as SummaryFenceOption}
             addons={addons}
             upgradeSelections={upgradeSelections}
@@ -1972,6 +2303,9 @@ function OptionsPageContent() {
             onDismiss={dismissCurtain}
             singleOptionMode={isSingleOptionMode}
             showInspectionReport={config.inspectionReport}
+            recalled={isLockedStatus}
+            expired={config.proposalStatus === 'expired'}
+            showCompanySlogan={config.companySlogan === 'enable'}
           />
         )}
         {showSignatureOverlay && (
@@ -2003,6 +2337,9 @@ function OptionsPageContent() {
           onDismiss={dismissCurtain}
           singleOptionMode={isSingleOptionMode}
           showInspectionReport={config.inspectionReport}
+          recalled={isLockedStatus}
+          expired={config.proposalStatus === 'expired'}
+          showCompanySlogan={config.companySlogan === 'enable'}
         />
       )}
       <PageHeader onShowCover={() => setCurtainMounted(true)} />

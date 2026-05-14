@@ -31,6 +31,75 @@ export function PhoneIcon({ size = 16, fill = '#262626' }: IconProps = {}) {
   );
 }
 
+// Document/report glyph — sheet of paper with a folded top-right corner and
+// two content lines. Square viewBox 16×16.
+export function DocumentIcon({ size = 16, fill = '#262626' }: IconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      fill="none"
+      style={{ width: size, height: size, flexShrink: 0 }}
+    >
+      <path
+        d="M3.5 2h6l3 3v8.5A1.5 1.5 0 0 1 11 15H3.5A1.5 1.5 0 0 1 2 13.5v-10A1.5 1.5 0 0 1 3.5 2Z"
+        stroke={fill}
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+      <path d="M9.5 2v3h3" stroke={fill} strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M5 9h5M5 11.5h5" stroke={fill} strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Restart / refresh glyph — sourced from SVG Repo (filled circular arrow
+// with an integrated triangular tip). viewBox is the original -7.5 0 32 32
+// box; the path inherits the component's `fill` prop so it tracks the
+// surrounding text color via `currentColor`.
+export function RestartIcon({ size = 16, fill = '#262626' }: IconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="-7.5 0 32 32"
+      fill={fill}
+      style={{ width: size, height: size, flexShrink: 0 }}
+    >
+      <path d="M15.88 13.84c-1.68-3.48-5.44-5.24-9.040-4.6l0.96-1.8c0.24-0.4 0.080-0.92-0.32-1.12-0.4-0.24-0.92-0.080-1.12 0.32l-1.96 3.64c0 0-0.44 0.72 0.24 1.040l3.64 1.96c0.12 0.080 0.28 0.12 0.4 0.12 0.28 0 0.6-0.16 0.72-0.44 0.24-0.4 0.080-0.92-0.32-1.12l-1.88-1.040c2.84-0.48 5.8 0.96 7.12 3.68 1.6 3.32 0.2 7.32-3.12 8.88-1.6 0.76-3.4 0.88-5.080 0.28s-3.040-1.8-3.8-3.4c-0.76-1.6-0.88-3.4-0.28-5.080 0.16-0.44-0.080-0.92-0.52-1.080-0.4-0.080-0.88 0.16-1.040 0.6-0.72 2.12-0.6 4.36 0.36 6.36s2.64 3.52 4.76 4.28c0.92 0.32 1.84 0.48 2.76 0.48 1.24 0 2.48-0.28 3.6-0.84 4.16-2 5.92-7 3.92-11.12z" />
+    </svg>
+  );
+}
+
+// Prohibition glyph (circle with a forward-leaning slash). Square viewBox 16×16.
+export function NoSymbolIcon({ size = 16, fill = '#262626' }: IconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      fill="none"
+      style={{ width: size, height: size, flexShrink: 0 }}
+    >
+      <circle cx="8" cy="8" r="6.5" stroke={fill} strokeWidth="1.4" />
+      <line x1="3.5" y1="12.5" x2="12.5" y2="3.5" stroke={fill} strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Calendar glyph. Square viewBox 16×16.
+export function CalendarIcon({ size = 16, fill = '#262626' }: IconProps = {}) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      fill="none"
+      style={{ width: size, height: size, flexShrink: 0 }}
+    >
+      <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" stroke={fill} strokeWidth="1.2" />
+      <path d="M5 2.25v2.5M11 2.25v2.5M2.5 7h11" stroke={fill} strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // Email glyph. Natural viewBox 24×22 → width = size × 24/22.
 export function EmailIcon({ size = 16, fill = '#262626' }: IconProps = {}) {
   return (
