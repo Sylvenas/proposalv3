@@ -121,7 +121,7 @@ export default function DevConsole() {
                 { label: 'Deleted', value: 'deleted' as const },
                 { label: 'Lost', value: 'lost' as const },
                 { label: 'Void', value: 'void' as const },
-                { label: 'Signed On Device', value: 'signedOnDevice' as const, colSpan: 2 },
+                { label: 'Signed On Device', value: 'signedOnDevice' as const, colSpan: 2, disabled: true },
               ]}
               onChange={(v) => setConfig((c) => ({ ...c, proposalStatus: v }))}
               maxPerRow={3}

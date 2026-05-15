@@ -993,7 +993,7 @@ function CoverPageContent({
     <div
       className={`self-center inline-flex items-center gap-2 bg-[#f5f5f5] ${pillPadding} rounded-[6px]`}
     >
-      <span className="text-[14px] xl:text-[16px] text-[#262626] leading-none">Valid Until:</span>
+      <span className="text-[14px] xl:text-[16px] text-[#262626] leading-none">Valid Until</span>
       {/* Icon + date kept on a tighter inner gap (4px) so the calendar
           glyph reads as a prefix on the date rather than a third equal
           item. Outer gap-2 still separates them from the label. */}
@@ -2487,19 +2487,10 @@ function OptionsPageContent() {
             </p>
           </div>
 
-          {/* Mobile: full-width bordered button */}
+          {/* Text link with chevron-down — same style across all breakpoints */}
           <button
             onClick={scrollToCompareArea}
-            className="md:hidden w-full h-10 bg-white border border-[#262626] rounded-[4px] text-[14px] text-[rgba(0,0,0,0.85)] flex items-center justify-center gap-0.5 cursor-pointer"
-            style={{ fontFamily: 'Segoe UI, sans-serif' }}
-          >
-            COMPARE OPTIONS
-          </button>
-
-          {/* Desktop: text link with chevron-down */}
-          <button
-            onClick={scrollToCompareArea}
-            className="hidden md:flex flex-col items-center gap-3 px-1 py-1.5 rounded-[4px] cursor-pointer"
+            className="flex flex-col items-center gap-3 px-1 py-1.5 rounded-[4px] cursor-pointer"
             style={{ fontFamily: 'Segoe UI Variable, sans-serif', fontWeight: 300 }}
           >
             <span className="text-[16px] text-[#262626] leading-[18px] whitespace-nowrap">
