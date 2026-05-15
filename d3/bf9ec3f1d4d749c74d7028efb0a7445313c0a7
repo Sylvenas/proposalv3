@@ -1,0 +1,19 @@
+src/views/proposal-v3-responsive/DevConsoleContext.tsx
+  s_4962fa77283440::t_02c727cf8fe493 142,152-157,159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "d3bf9ec3f1d4d749c74d7028efb0a7445313c0a7",
+  "prompts": {},
+  "sessions": {
+    "s_4962fa77283440": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e904c4e8-9683-489e-926f-1ce62a1596a6",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "ZXT <sylvenas@outlook.com>"
+    }
+  }
+}
