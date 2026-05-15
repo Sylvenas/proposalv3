@@ -139,7 +139,7 @@ const DevConsoleCtx = createContext<DevConsoleContextValue | null>(null);
 export function DevConsoleProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfigState] = useState<DevConfig>({
     optionCount: 3,
-    recommendedOption: 0,
+    recommendedOption: 1,
     inspectionReport: false,
     signatureRequired: false,
     paymentResult: 'success',
@@ -149,14 +149,14 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     changeOptionInteraction: 'checkbox',
     financingEstimation: 'included',
     scheduledPaymentsCount: 'common',
-    optionImage: 'include',
-    financingService: 'enable',
-    addonsSection: 'include',
-    upgrades: 'enable',
-    preset: 'future',
-    constructionTimeInfo: 'include',
+    optionImage: 'exclude',
+    financingService: 'disable',
+    addonsSection: 'exclude',
+    upgrades: 'disable',
+    preset: 'mvp',
+    constructionTimeInfo: 'exclude',
     proposalStatus: 'regular',
-    companySlogan: 'enable',
+    companySlogan: 'disable',
   });
   const [isOpen, setIsOpen] = useState(false);
   const [restartTick, setRestartTick] = useState(0);
