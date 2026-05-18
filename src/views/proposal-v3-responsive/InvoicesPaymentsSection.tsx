@@ -49,7 +49,7 @@ type Invoice = {
  *  - returned:  bank rejected / bounced the transfer — red. */
 type PaymentRecordStatus = 'completed' | 'processing' | 'returned';
 
-type PaymentRecord = {
+export type PaymentRecord = {
   paymentId: string;
   paidOn: string;        // e.g. "Mar 23, 2025"
   /** Money applied against invoices (sum of `appliedTo` amounts). */
@@ -862,7 +862,7 @@ export function buildInvoicesData(
 
 // React Context: subcomponents inside this file consume the live data via
 // `useInvoicesData()` so they don't need to receive every helper as a prop.
-const InvoicesDataContext = createContext<InvoicesData | null>(null);
+export const InvoicesDataContext = createContext<InvoicesData | null>(null);
 function useInvoicesData(): InvoicesData {
   const ctx = useContext(InvoicesDataContext);
   if (!ctx) {
@@ -1031,7 +1031,7 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
   );
 }
 
-function MobilePaymentRecordCard({ rec, onOpen }: { rec: PaymentRecord; onOpen: () => void }) {
+export function MobilePaymentRecordCard({ rec, onOpen }: { rec: PaymentRecord; onOpen: () => void }) {
   const palette = PAYMENT_STATUS_COLOR[rec.status];
   const statusLabel = PAYMENT_STATUS_LABEL[rec.status];
   // Date prefix swaps for in-flight / failed states. The stored date is
@@ -1661,7 +1661,7 @@ function DesktopInvoiceRow({
   );
 }
 
-function DesktopPaymentRecordsTable({
+export function DesktopPaymentRecordsTable({
   onOpenPayment,
 }: {
   onOpenPayment: (rec: PaymentRecord) => void;

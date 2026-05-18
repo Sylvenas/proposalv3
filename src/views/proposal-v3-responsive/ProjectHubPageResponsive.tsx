@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
-import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
+import ProjectHubStickyHeader, { PROPOSAL_HUB_TABS, type ProjectHubTab } from './ProjectHubStickyHeader';
 import ContractDocSection from './ContractDocSection';
 import InvoicesPaymentsSection, {
   buildInvoicesData,
@@ -22,9 +22,10 @@ import MakePaymentDialog, {
 } from './MakePaymentDialog';
 import { useDevConsole } from './DevConsoleContext';
 import { ContactSalesModal } from './SalesContactCard';
-import ProductDetailSheet, { type ProductDetailContent } from './ProductDetailSheet';
+import ProductDetailSheet, { NoImageThumb, type ProductDetailContent } from './ProductDetailSheet';
 import { ADDON_DESCRIPTIONS, type FenceProduct } from './SummaryPageResponsive';
 import { PhoneIcon } from './SvgIcons';
+import BorderlessLinkButton from './BorderlessLinkButton';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -376,7 +377,7 @@ function SectionCard({
 }
 
 // ── Drawing section ───────────────────────────────────────────────────────────
-function DrawingSection() {
+export function DrawingSection() {
   return (
     <SectionCard label="Drawing">
       <div className="flex flex-col gap-4 lg:gap-3 items-start w-full">
@@ -445,7 +446,18 @@ function CategoryLabel({ name, count }: { name: string; count: number }) {
 // Desktop (md+): single row — [Name flex-1][Qty w-110px][Info w-48px][Upgrade w-80px], h-48px
 type ProductItem = { name: string; qty: string; unit: string; hasUpgrade?: boolean };
 
-function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () => void }) {
+function ProductLineItem({
+  item,
+  onClick,
+  noImageThumb = false,
+}: {
+  item: ProductItem;
+  onClick?: () => void;
+  /** Render the Summary-style "no image" placeholder block instead of the
+   *  hero product thumbnail. Used by the Change Order page's Current
+   *  Approved Contract tab. */
+  noImageThumb?: boolean;
+}) {
   return (
     <div
       role={onClick ? 'button' : undefined}
@@ -466,15 +478,19 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
       }`}
     >
       {/* Thumbnail */}
-      <div className="flex flex-col items-start p-[2px] rounded-[4px] shrink-0" style={{ width: 48, height: 48 }}>
-        <div className="relative w-full aspect-square rounded-[2px] overflow-hidden">
-          <img
-            src={IMG_PRODUCT_THUMB}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover rounded-[2px]"
-          />
+      {noImageThumb ? (
+        <NoImageThumb size={48} />
+      ) : (
+        <div className="flex flex-col items-start p-[2px] rounded-[4px] shrink-0" style={{ width: 48, height: 48 }}>
+          <div className="relative w-full aspect-square rounded-[2px] overflow-hidden">
+            <img
+              src={IMG_PRODUCT_THUMB}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover rounded-[2px]"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Mobile layout (< md): stacked rows */}
       <div className="flex md:hidden flex-[1_0_0] flex-col gap-1 items-start min-w-0 pr-1">
@@ -560,11 +576,12 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
 // All line items render as plain Type=Product (no Upgrade control, no addon
 // configuration). Selected addons from the Summary page appear as a new
 // "Add-ons" category at the end of the list when any are selected.
-function ProductsSection({
+export function ProductsSection({
   products,
   selectedAddons,
   onOpenProduct,
   onOpenAddon,
+  noImageThumb = false,
 }: {
   products: FenceProduct[];
   selectedAddons: AddonItem[];
@@ -573,6 +590,9 @@ function ProductsSection({
   /** Open the product detail sheet for a selected add-on (rendered inside the
    *  Add-ons category at the bottom of Included Products). */
   onOpenAddon: (addon: AddonItem) => void;
+  /** When true, every ProductLineItem renders the Summary-style "no image"
+   *  placeholder thumbnail instead of the hero product image. */
+  noImageThumb?: boolean;
 }) {
   // Extra secondary category (always shown as demo data)
   const secondaryItems: FenceProduct[] = [
@@ -588,14 +608,14 @@ function ProductsSection({
         <div className="flex flex-col items-start overflow-hidden w-full">
           <CategoryLabel name="Category Name" count={products.length} />
           {products.map((p, i) => (
-            <ProductLineItem key={i} item={p} onClick={() => onOpenProduct(p)} />
+            <ProductLineItem key={i} item={p} onClick={() => onOpenProduct(p)} noImageThumb={noImageThumb} />
           ))}
         </div>
         {/* Category 2 */}
         <div className="flex flex-col items-start overflow-hidden w-full">
           <CategoryLabel name="Category Name" count={secondaryItems.length} />
           {secondaryItems.map((p, i) => (
-            <ProductLineItem key={i} item={p} onClick={() => onOpenProduct(p)} />
+            <ProductLineItem key={i} item={p} onClick={() => onOpenProduct(p)} noImageThumb={noImageThumb} />
           ))}
         </div>
         {/* Add-ons category — only rendered when the user selected any
@@ -609,6 +629,7 @@ function ProductsSection({
                 key={a.id}
                 item={{ name: a.name, qty: a.qty, unit: a.unit }}
                 onClick={() => onOpenAddon(a)}
+                noImageThumb={noImageThumb}
               />
             ))}
           </div>
@@ -1269,12 +1290,11 @@ function ProjectHomeDetails({
               Financing Service is disabled — the outlined "Invoice &
               Payment Record" button replaces this link's destination. */}
           {nextDue && financingService === 'enable' && (
-            <button onClick={onShowPaymentRecords} className="bg-transparent border-0 flex gap-[8px] items-center justify-start px-0 py-1 w-full cursor-pointer mt-4 lg:mt-3">
-              <CreditCardIcon />
-              <span className="text-[14px] text-[rgba(0,0,0,0.85)] whitespace-nowrap" style={{ lineHeight: '18px' }}>
-                View Invoice &amp; Payment Record
-              </span>
-            </button>
+            <BorderlessLinkButton
+              icon={<CreditCardIcon />}
+              label="View Invoice & Payment Record"
+              onClick={onShowPaymentRecords}
+            />
           )}
 
         {/* Disclaimers */}
@@ -1617,7 +1637,11 @@ export default function ProjectHubPageResponsive({
       */}
       <div className="sticky top-0 z-40 bg-white">
         <div className="mx-auto w-full" style={{ minWidth: 360, maxWidth: 2160 }}>
-          <ProjectHubStickyHeader active={activeTab} onChange={setActiveTab} />
+          <ProjectHubStickyHeader
+            active={activeTab}
+            onChange={setActiveTab}
+            tabs={PROPOSAL_HUB_TABS}
+          />
         </div>
       </div>
 
