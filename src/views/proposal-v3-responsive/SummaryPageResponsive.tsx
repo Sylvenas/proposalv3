@@ -11,6 +11,7 @@ import ProductDetailSheet, {
   type UpgradeOption,
 } from './ProductDetailSheet';
 import PaymentScheduleDialog, { type PaymentScheduleData } from './PaymentScheduleDialog';
+import PricingDisclaimers from './PricingDisclaimers';
 import { useDevConsole } from './DevConsoleContext';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
@@ -318,7 +319,7 @@ function OptionSummaryTitleBlock({
 // ── Section card wrapper ──────────────────────────────────────────────────────
 // Internal px follows the Figma --margin-(component) variable per breakpoint:
 //   XS: 16px  S/M: 32px  L: 24px  XL: 32px  XXL: 48px
-function SectionCard({
+export function SectionCard({
   label,
   children,
 }: {
@@ -918,7 +919,7 @@ function InfoDuotoneIcon() {
 // ── Contact Sales button + modal ─────────────────────────────────────────────
 // Clicking the button opens the contact card, which always lists both email
 // and phone for the assigned sales rep.
-function ContactSalesButton() {
+export function ContactSalesButton() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -1081,10 +1082,6 @@ function SummaryContent({
    *  isn't actionable and the most useful affordance is a sales rep. */
   expired?: boolean;
 }) {
-  // Mobile (< lg) only — toggled by the "Read more" link to swap the
-  // single-line truncated disclaimer for the full ①②-paragraph version
-  // (the same content shown on lg+). Desktop is always expanded.
-  const [readMoreExpanded, setReadMoreExpanded] = useState(false);
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
 
@@ -1216,57 +1213,9 @@ function SummaryContent({
           </button>
         </div>
 
-        {/* Disclaimers — pt-6 固定 */}
-        <div className="flex flex-col items-start pt-6 w-full">
-
-          {/* 默认仅注释①、单行截断 + "Read more"；点击后展开
-              注释①②的完整文本，并在底部显示 "Show less" 折叠回去。 */}
-          {readMoreExpanded ? (
-            <div className="flex flex-col gap-3 items-start w-full">
-              <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
-                style={{ fontWeight: 300 }}>
-                <span style={{ fontSize: 7.74 }}>1 </span>
-                Total project pricing is subject to change based on applicable taxes, fees, payment timing,
-                and any final project adjustments. The final amount presented at the time of payment will control.
-              </p>
-              <p className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px]"
-                style={{ fontWeight: 300 }}>
-                <span style={{ fontSize: 7.74 }}>2 </span>
-                Any monthly payment information shown is an estimate only and is not a financing offer.
-                Final payment amounts, interest rates, and loan terms are subject to lender review and will
-                be confirmed during the formal application process.
-              </p>
-              <button
-                type="button"
-                onClick={() => setReadMoreExpanded(false)}
-                className="bg-transparent border-0 p-0 cursor-pointer text-[12px] text-[rgba(0,0,0,0.85)] text-center"
-              >
-                <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
-                  Show less
-                </span>
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-3 items-start w-full">
-              <p className="flex-[1_0_0] min-w-0 text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] overflow-hidden text-ellipsis whitespace-nowrap"
-                style={{ fontWeight: 300 }}>
-                <span style={{ fontSize: 7.74 }}>1 </span>
-                Total project pricing is subject to change based on applicable taxes, fees, payment timing,
-                and any final project adjustments. The final amount presented at the time of payment will control.
-              </p>
-              <button
-                type="button"
-                onClick={() => setReadMoreExpanded(true)}
-                className="shrink-0 bg-transparent border-0 p-0 cursor-pointer flex flex-col justify-center text-[12px] text-[rgba(0,0,0,0.85)] text-center"
-              >
-                <span className="underline leading-normal" style={{ textDecorationSkipInk: 'none' }}>
-                  Read more
-                </span>
-              </button>
-            </div>
-          )}
-
-        </div>
+        {/* Disclaimers — shared component owns the collapsed/expanded
+            ①② footnote behavior so Change Order matches Summary exactly. */}
+        <PricingDisclaimers />
       </div>
     </div>
   );
@@ -1282,6 +1231,11 @@ export default function SummaryPageResponsive({
   setAddons: setAddonsProp,
   singleOptionMode = false,
   signatureRequired = true,
+  stickyHeader,
+  rightColumn,
+  extraLeftSection,
+  replaceLeftColumn,
+  bodyOverride,
 }: {
   option: FenceOption;
   onBack: () => void;
@@ -1300,6 +1254,36 @@ export default function SummaryPageResponsive({
   /** When false, the approval CTA reads "Approve" instead of "Sign & Approve"
    *  (the overlay flow itself shifts modes via its own prop). */
   signatureRequired?: boolean;
+  /** Optional content rendered in a sticky container immediately below
+   *  PageHeader (above the main content). Used by Change Order to inject
+   *  the Project Hub-style tab bar at the same vertical position the hub
+   *  uses, without duplicating the Summary layout. */
+  stickyHeader?: React.ReactNode;
+  /** Optional override for the entire right-side column on lg+ (and the
+   *  stacked-below-the-page-content variant on < lg). When provided,
+   *  SummaryPageResponsive renders this node in place of the default
+   *  title block + financials/CTA stack. Used by ChangeOrderPage to swap
+   *  in a Change Order-specific summary panel while keeping the rest of
+   *  the page (Drawing / Included Products / Add-ons) intact. */
+  rightColumn?: React.ReactNode;
+  /** Optional extra section card rendered at the bottom of the left
+   *  (Scope Details) column, after Drawing / Included Products / Add-ons.
+   *  Used by ChangeOrderPage's "Current Approved Contract" tab to inject a
+   *  Signed Contract section. */
+  extraLeftSection?: React.ReactNode;
+  /** Optional override that replaces the ENTIRE left column (Drawing +
+   *  Included Products + Add-ons + extraLeftSection). When provided, the
+   *  caller is responsible for assembling all of the left-column content.
+   *  Used by ChangeOrderPage's "Current Approved Contract" tab to swap to
+   *  Project Hub's product list (selected upgrade + selected add-ons shown
+   *  inline as regular products, no edit affordances). */
+  replaceLeftColumn?: React.ReactNode;
+  /** Optional override that replaces the entire body region (title blocks +
+   *  left column + right column). When provided, only PageHeader + stickyHeader
+   *  + the page padding stay; the caller renders the entire main content area
+   *  itself. Used by ChangeOrderPage's "Invoices & Payments" tab for the
+   *  full-width banner + side-by-side comparison + payment records layout. */
+  bodyOverride?: React.ReactNode;
 }) {
   const approveCtaLabel = signatureRequired ? 'Sign & Approve' : 'Approve';
   // DevConsole → Summary Page → Financing Estimation. When 'excluded', hide
@@ -1496,6 +1480,18 @@ export default function SummaryPageResponsive({
     <div className="bg-white min-h-screen">
       <PageHeader onShowCover={onShowCover} />
 
+      {/* Optional sticky subheader (Change Order injects the Project Hub
+          tab bar here so it sits right under the PageHeader, matching the
+          hub's vertical layout). Wrapper matches Project Hub exactly:
+          sticky top-0, max-width 2160, mx-auto. */}
+      {stickyHeader && (
+        <div className="sticky top-0 z-40 bg-white">
+          <div className="mx-auto w-full" style={{ minWidth: 360, maxWidth: 2160 }}>
+            {stickyHeader}
+          </div>
+        </div>
+      )}
+
       {/*
         Content container
         XS: px-4 (16px)   S: px-6 (24px)   M: px-6 (24px)
@@ -1504,6 +1500,8 @@ export default function SummaryPageResponsive({
       */}
       <div className="mx-auto flex flex-col gap-4 px-4 sm:px-6" style={{ minWidth: 360, maxWidth: 2160, paddingBottom: contentPb }}>
 
+        {bodyOverride}
+        {!bodyOverride && (<>
         {/*
           XS / S / M:
             Option Header = ActionHeader + OptionSummaryTitleBlock (stacked, no label)
@@ -1549,22 +1547,27 @@ export default function SummaryPageResponsive({
 
           {/* ── Scope Details column ── */}
           <div className="flex flex-col gap-4 w-full lg:flex-[2_1_0] min-w-0">
-            <DrawingSection />
-            <ProductsSection
-              products={option.products}
-              upgradeSelections={upgradeSelections}
-              upgradesEnabled={devConfig.upgrades === 'enable'}
-              onOpenDetail={openProductDetail}
-            />
-            {devConfig.addonsSection === 'include' && (
-              <AddonsSection
-                addons={addons}
-                onToggle={toggleAddon}
-                onOpenDetail={(id) => {
-                  setProductDetail(null);
-                  setAddonDetailId(id);
-                }}
-              />
+            {replaceLeftColumn ?? (
+              <>
+                <DrawingSection />
+                <ProductsSection
+                  products={option.products}
+                  upgradeSelections={upgradeSelections}
+                  upgradesEnabled={devConfig.upgrades === 'enable'}
+                  onOpenDetail={openProductDetail}
+                />
+                {devConfig.addonsSection === 'include' && (
+                  <AddonsSection
+                    addons={addons}
+                    onToggle={toggleAddon}
+                    onOpenDetail={(id) => {
+                      setProductDetail(null);
+                      setAddonDetailId(id);
+                    }}
+                  />
+                )}
+                {extraLeftSection}
+              </>
             )}
             {/* Back to Top — inside Scope Details on L+ */}
             <div className="hidden lg:flex lg:justify-center">
@@ -1575,62 +1578,79 @@ export default function SummaryPageResponsive({
           {/* ── Summary column ── sticky on lg+ */}
           <div className="w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-12 lg:self-start">
 
-            {/*
-              Mobile (< lg):
-                Summary frame with top padding, OptionSummaryTitleBlock WITH label,
-                then SummaryContent with gap
-            */}
-            <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-4 sm:pt-8 px-4 sm:px-8 w-full">
-              {/* Title block + Expired notice grouped under one tighter gap
-                  so the notice reads as part of the title block, not as a
-                  third equal section against the Contract Total below. */}
-              <div ref={bottomTitleRef} className="flex flex-col gap-2">
-                <OptionSummaryTitleBlock
-                  option={option}
-                  showSummaryLabel
-                  titleOverride={titleOverride}
-                />
-                {expired && <ExpiredNotice />}
-              </div>
-              <SummaryContent
-                option={option}
-                ctaRef={ctaRef}
-                financials={financials}
-                onSignApprove={onRequestSign}
-                approveLabel={approveCtaLabel}
-                onViewSchedule={openSchedule}
-                financingExcluded={financingExcluded}
-                expired={expired}
-              />
-            </div>
+            {rightColumn ? (
+              // ChangeOrderPage and other callers can fully replace the
+              // right column. Mobile wrapper preserves the same top/horizontal
+              // padding so the layout aligns with the page below; desktop
+              // wrapper preserves the px-3 inset.
+              <>
+                <div ref={mobileSummaryRef} className="lg:hidden pt-4 sm:pt-8 px-4 sm:px-8 w-full">
+                  {rightColumn}
+                </div>
+                <div className="hidden lg:block px-3 w-full">
+                  {rightColumn}
+                </div>
+              </>
+            ) : (
+              <>
+                {/*
+                  Mobile (< lg):
+                    Summary frame with top padding, OptionSummaryTitleBlock WITH label,
+                    then SummaryContent with gap
+                */}
+                <div ref={mobileSummaryRef} className="lg:hidden flex flex-col gap-4 pt-4 sm:pt-8 px-4 sm:px-8 w-full">
+                  {/* Title block + Expired notice grouped under one tighter gap
+                      so the notice reads as part of the title block, not as a
+                      third equal section against the Contract Total below. */}
+                  <div ref={bottomTitleRef} className="flex flex-col gap-2">
+                    <OptionSummaryTitleBlock
+                      option={option}
+                      showSummaryLabel
+                      titleOverride={titleOverride}
+                    />
+                    {expired && <ExpiredNotice />}
+                  </div>
+                  <SummaryContent
+                    option={option}
+                    ctaRef={ctaRef}
+                    financials={financials}
+                    onSignApprove={onRequestSign}
+                    approveLabel={approveCtaLabel}
+                    onViewSchedule={openSchedule}
+                    financingExcluded={financingExcluded}
+                    expired={expired}
+                  />
+                </div>
 
-            {/*
-              Desktop (lg+):
-                Summary column content with 12px horizontal inset,
-                OptionSummaryTitleBlock WITH label, then SummaryContent
-            */}
-            <div className="hidden lg:flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
-              {/* Title block + Expired notice grouped under one tighter gap
-                  (12px) so the notice reads as part of the title block, not
-                  as a third equal section against the financial summary. */}
-              <div className="flex flex-col gap-3">
-                <OptionSummaryTitleBlock
-                  option={option}
-                  showSummaryLabel
-                  titleOverride={titleOverride}
-                />
-                {expired && <ExpiredNotice />}
-              </div>
-              <SummaryContent
-                option={option}
-                financials={financials}
-                onSignApprove={onRequestSign}
-                approveLabel={approveCtaLabel}
-                onViewSchedule={openSchedule}
-                financingExcluded={financingExcluded}
-                expired={expired}
-              />
-            </div>
+                {/*
+                  Desktop (lg+):
+                    Summary column content with 12px horizontal inset,
+                    OptionSummaryTitleBlock WITH label, then SummaryContent
+                */}
+                <div className="hidden lg:flex flex-col gap-6 xl:gap-8 2xl:gap-12 px-3 w-full">
+                  {/* Title block + Expired notice grouped under one tighter gap
+                      (12px) so the notice reads as part of the title block, not
+                      as a third equal section against the financial summary. */}
+                  <div className="flex flex-col gap-3">
+                    <OptionSummaryTitleBlock
+                      option={option}
+                      showSummaryLabel
+                      titleOverride={titleOverride}
+                    />
+                    {expired && <ExpiredNotice />}
+                  </div>
+                  <SummaryContent
+                    option={option}
+                    financials={financials}
+                    onSignApprove={onRequestSign}
+                    approveLabel={approveCtaLabel}
+                    onViewSchedule={openSchedule}
+                    financingExcluded={financingExcluded}
+                    expired={expired}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1638,6 +1658,7 @@ export default function SummaryPageResponsive({
         <div className="lg:hidden flex justify-center">
           <BackToTopButton onClick={scrollToTop} />
         </div>
+        </>)}
       </div>
 
       {/* Sticky Header — XS/S/M only, slides in from top */}

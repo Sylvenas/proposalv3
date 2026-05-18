@@ -13,16 +13,27 @@ export type ProjectHubTab =
 // `label` is used on desktop (horizontal tabs), the collapsed mobile row,
 // and the expanded mobile dropdown. `mobileMenuLabel` is available if a tab
 // ever needs a shorter variant inside the mobile menu.
-export const PROJECT_HUB_TABS: { id: ProjectHubTab; label: string; mobileMenuLabel?: string }[] = [
+export type TabDef = { id: ProjectHubTab; label: string; mobileMenuLabel?: string };
+
+// Default tab set — used by ChangeOrderPage. Project Hub (regular Proposal
+// flow) supplies its own list via the `tabs` prop, omitting Change History
+// and renaming the contract tab to "Contract Document".
+export const PROJECT_HUB_TABS: TabDef[] = [
   { id: 'home',      label: 'Project Home' },
-  { id: 'contract',  label: 'Contract Doc' },
+  { id: 'contract',  label: 'Current Approved Contract' },
   { id: 'invoices',  label: 'Invoices & Payments' },
-  // Change History — hidden for now until the tab is built out.
-  // { id: 'changes',   label: 'Change History' },
+  { id: 'changes',   label: 'Change History' },
 ];
 
-const TAB_LABEL = (id: ProjectHubTab) =>
-  PROJECT_HUB_TABS.find((t) => t.id === id)?.label ?? '';
+// Tab set used by Project Hub itself (Type = Proposal).
+export const PROPOSAL_HUB_TABS: TabDef[] = [
+  { id: 'home',      label: 'Project Home' },
+  { id: 'contract',  label: 'Contract Document' },
+  { id: 'invoices',  label: 'Invoices & Payments' },
+];
+
+const TAB_LABEL = (tabs: TabDef[], id: ProjectHubTab) =>
+  tabs.find((t) => t.id === id)?.label ?? '';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mobile (XS/S/M, <lg) — Figma 864:27648
@@ -67,9 +78,11 @@ function getActiveTopInMenu(activeIdx: number) {
 function MobileHeader({
   active,
   onChange,
+  tabs,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
+  tabs: TabDef[];
 }) {
   // Animation state machine:
   //   mounted : panel rendered in DOM (kept true during exit animation)
@@ -103,7 +116,7 @@ function MobileHeader({
   const [exitPhase, setExitPhase] = useState<0 | 1 | 2>(0);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const activeIdx = PROJECT_HUB_TABS.findIndex((t) => t.id === active);
+  const activeIdx = tabs.findIndex((t) => t.id === active);
   const activeTopInMenu = getActiveTopInMenu(activeIdx < 0 ? 0 : activeIdx);
 
   useEffect(() => {
@@ -185,7 +198,7 @@ function MobileHeader({
         }}
       >
         <span className="flex-1 min-w-0 text-left text-[14px] font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">
-          {TAB_LABEL(active)}
+          {TAB_LABEL(tabs, active)}
         </span>
         <ChevronDown rotated={expanded} />
       </button>
@@ -283,7 +296,7 @@ function MobileHeader({
                 the collapsed row into its expanded-menu slot. Non-active
                 items fade in top-to-bottom with a stagger. */}
             <div className="flex flex-col w-full" style={{ marginTop: TITLE_TO_LIST_GAP_PX }}>
-              {PROJECT_HUB_TABS.map((t, i) => {
+              {tabs.map((t, i) => {
                 const isActive = t.id === active;
                 // Non-active tabs fade in after the active label reaches its
                 // expanded position. On close they fade back out immediately.
@@ -331,9 +344,11 @@ function MobileHeader({
 function DesktopHeader({
   active,
   onChange,
+  tabs,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
+  tabs: TabDef[];
 }) {
   // Refs for the container + each tab button, so we can measure the active
   // tab's position and slide the underline between tabs on change.
@@ -350,7 +365,7 @@ function DesktopHeader({
   const [animateUnderline, setAnimateUnderline] = useState(false);
 
   useEffect(() => {
-    const activeIdx = PROJECT_HUB_TABS.findIndex((t) => t.id === active);
+    const activeIdx = tabs.findIndex((t) => t.id === active);
     const btn       = tabRefs.current[activeIdx];
     const container = containerRef.current;
     if (!btn || !container) return;
@@ -375,7 +390,7 @@ function DesktopHeader({
 
     window.addEventListener('resize', recalc);
     return () => window.removeEventListener('resize', recalc);
-  }, [active]);
+  }, [active, tabs]);
 
   return (
     <div
@@ -383,7 +398,7 @@ function DesktopHeader({
       className="hidden lg:flex bg-white w-full border-b-[0.5px] border-[rgba(0,0,0,0.2)] items-center px-6 relative"
       style={{ fontFamily: 'Segoe UI, sans-serif', gap: 24 }}
     >
-      {PROJECT_HUB_TABS.map((t, i) => {
+      {tabs.map((t, i) => {
         const isActive = t.id === active;
         return (
           <button
@@ -507,14 +522,19 @@ function CloseX() {
 export default function ProjectHubStickyHeader({
   active,
   onChange,
+  tabs = PROJECT_HUB_TABS,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
+  /** Override the displayed tab list. Defaults to PROJECT_HUB_TABS
+   *  (Change Order variant). Project Hub passes PROPOSAL_HUB_TABS to use
+   *  the regular-proposal labels and hide Change History. */
+  tabs?: TabDef[];
 }) {
   return (
     <>
-      <MobileHeader active={active} onChange={onChange} />
-      <DesktopHeader active={active} onChange={onChange} />
+      <MobileHeader active={active} onChange={onChange} tabs={tabs} />
+      <DesktopHeader active={active} onChange={onChange} tabs={tabs} />
     </>
   );
 }

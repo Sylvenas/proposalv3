@@ -90,7 +90,7 @@ function DownloadContractButton({ onClick }: { onClick?: () => void }) {
 }
 
 // ── PDF Pages list — used by both mobile and desktop layouts ──────────────────
-function PdfPages() {
+export function PdfPages() {
   return (
     <div className="flex flex-col gap-4 lg:gap-3 w-full">
       {PDF_PAGES.map((p, i) => (

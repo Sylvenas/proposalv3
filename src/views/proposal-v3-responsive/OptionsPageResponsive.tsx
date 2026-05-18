@@ -15,6 +15,8 @@ import BackToTopButton from './BackToTopButton';
 import ScrollHintArrows from './ScrollHintArrows';
 import { DevConsoleProvider, useDevConsole } from './DevConsoleContext';
 import DevConsole from './DevConsole';
+import ChangeOrderPage from './ChangeOrderPage';
+import ValidUntilPill from './ValidUntilPill';
 import ProductDetailSheet, {
   Checkbox,
   NoImageThumb,
@@ -990,18 +992,7 @@ function CoverPageContent({
   // calendar glyph. Auto-width, horizontally centered inside the surrounding
   // flex column via self-center.
   const validUntilPill = (
-    <div
-      className={`self-center inline-flex items-center gap-2 bg-[#f5f5f5] ${pillPadding} rounded-[6px]`}
-    >
-      <span className="text-[14px] xl:text-[16px] text-[#262626] leading-none">Valid Until:</span>
-      {/* Icon + date kept on a tighter inner gap (4px) so the calendar
-          glyph reads as a prefix on the date rather than a third equal
-          item. Outer gap-2 still separates them from the label. */}
-      <span className="inline-flex items-center gap-1">
-        <CalendarIcon size={16} />
-        <span className="text-[14px] xl:text-[16px] text-[#262626] leading-none">April 30, 2026</span>
-      </span>
-    </div>
+    <ValidUntilPill date="April 30, 2026" className="self-center" />
   );
   // Recalled state — yellow status pill + supporting body copy. Replaces the
   // Valid Until pill (which doesn't apply once the proposal is recalled).
@@ -1686,10 +1677,19 @@ function StickyComparisonHeader({
 export default function OptionsPageResponsive() {
   return (
     <DevConsoleProvider>
-      <OptionsPageContent />
+      <PageRouter />
       <DevConsole />
     </DevConsoleProvider>
   );
+}
+
+// Reads `config.type` and swaps the entire page between the regular Proposal
+// flow and the Change Order placeholder. Sits inside DevConsoleProvider so the
+// Type toggle can flip back and forth without unmounting the console itself.
+function PageRouter() {
+  const { config } = useDevConsole();
+  if (config.type === 'changeOrder') return <ChangeOrderPage />;
+  return <OptionsPageContent />;
 }
 
 // ── useOverflowScroll ─────────────────────────────────────────────────────────

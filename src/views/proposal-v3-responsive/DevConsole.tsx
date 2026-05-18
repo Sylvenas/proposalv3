@@ -111,6 +111,17 @@ export default function DevConsole() {
             />
           </Cluster>
 
+          <Cluster title="Type">
+            <ToggleRow
+              value={config.type}
+              options={[
+                { label: 'Proposal', value: 'proposal' as const },
+                { label: 'Change Order', value: 'changeOrder' as const },
+              ]}
+              onChange={(v) => setConfig((c) => ({ ...c, type: v }))}
+            />
+          </Cluster>
+
           <Cluster title="Proposal Status">
             <ToggleRow
               value={config.proposalStatus}
@@ -211,7 +222,7 @@ export default function DevConsole() {
             </Section>
           </Cluster>
 
-          <Cluster title="Summary Page">
+          <Cluster title="Summary / Change Order Page">
             <Section title="Upgrade">
               <ToggleRow
                 value={config.upgrades}

@@ -30,6 +30,11 @@ export type ProposalStatus =
   | 'void'
   | 'signedOnDevice';
 export type CompanySlogan = 'enable' | 'disable';
+/** Top-level document type rendered by the prototype. 'proposal' (default)
+ *  runs the regular Proposal flow (Cover → Options → Summary → Project Hub).
+ *  'changeOrder' switches to a placeholder Change Order page so that variant
+ *  can be iterated independently. */
+export type ProposalType = 'proposal' | 'changeOrder';
 
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
@@ -118,6 +123,9 @@ export type DevConfig = {
    *  Fence"). 'enable' (default) shows it; 'disable' hides it. Bulk-flipped
    *  by the Preset toggle — Future Scope keeps it on, MVP turns it off. */
   companySlogan: CompanySlogan;
+  /** Top-level document type. 'proposal' (default) renders the regular flow;
+   *  'changeOrder' swaps to the Change Order placeholder page. */
+  type: ProposalType;
 };
 
 type DevConsoleContextValue = {
@@ -157,6 +165,7 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     constructionTimeInfo: 'include',
     proposalStatus: 'regular',
     companySlogan: 'enable',
+    type: 'proposal',
   });
   const [isOpen, setIsOpen] = useState(false);
   const [restartTick, setRestartTick] = useState(0);
