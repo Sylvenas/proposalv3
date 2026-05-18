@@ -1236,6 +1236,9 @@ export default function SummaryPageResponsive({
   extraLeftSection,
   replaceLeftColumn,
   bodyOverride,
+  bodyTransitionKey,
+  bodyTransitionDirection = 'right',
+  rightColumnTopPx = 48,
 }: {
   option: FenceOption;
   onBack: () => void;
@@ -1284,8 +1287,41 @@ export default function SummaryPageResponsive({
    *  itself. Used by ChangeOrderPage's "Invoices & Payments" tab for the
    *  full-width banner + side-by-side comparison + payment records layout. */
   bodyOverride?: React.ReactNode;
+  /** When provided, the body content area plays a slide-in animation each
+   *  time this string changes. Lets ChangeOrderPage animate tab swaps
+   *  (Home ↔ Contract) so the user sees the content move, rather than
+   *  swapping silently in place. */
+  bodyTransitionKey?: string;
+  /** Direction the new body content slides in from. 'right' for forward
+   *  navigation (Home → Contract), 'left' for backward. */
+  bodyTransitionDirection?: 'left' | 'right';
+  /** Override the right column's `position: sticky; top` value (in px). The
+   *  default (48) is correct when only PageHeader sits above the content.
+   *  Change Order's Project Hub tab bar is sticky too, so it passes a
+   *  larger value to clear the bar + leave a small breathing gap. */
+  rightColumnTopPx?: number;
 }) {
   const approveCtaLabel = signatureRequired ? 'Sign & Approve' : 'Approve';
+  // Body slide-in animation. Plays via Web Animations API on a ref so the
+  // body's children keep their state on tab swap (a key-driven remount
+  // would reset Drawing zoom, addons selections, sheet open state, etc.).
+  const bodyAnimRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!bodyTransitionKey) return;
+    const el = bodyAnimRef.current;
+    if (!el || typeof el.animate !== 'function') return;
+    // Larger displacement + ease-in-out so the slide reads as a deliberate
+    // transition, not a snap. 480ms with easeInOutCubic gives a soft start,
+    // a clear travel phase, and a soft landing.
+    const dx = bodyTransitionDirection === 'right' ? 80 : -80;
+    el.animate(
+      [
+        { transform: `translateX(${dx}px)`, opacity: 0 },
+        { transform: 'translateX(0)', opacity: 1 },
+      ],
+      { duration: 480, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' },
+    );
+  }, [bodyTransitionKey, bodyTransitionDirection]);
   // DevConsole → Summary Page → Financing Estimation. When 'excluded', hide
   // every monthly-payment / loan affordance on this page and inside the
   // Payment Schedule dialog.
@@ -1498,7 +1534,10 @@ export default function SummaryPageResponsive({
         L: px-6 (24px)   XL: px-6 (24px)  XXL: px-6 (24px)
         pb dynamically calculated on mobile to prevent sticky footer overlap
       */}
-      <div className="mx-auto flex flex-col gap-4 px-4 sm:px-6" style={{ minWidth: 360, maxWidth: 2160, paddingBottom: contentPb }}>
+      {/* `bodyAnimRef` is the slide-target on tab swap. Lives directly on
+          the original content container — no extra wrapper — so scroll +
+          sticky behavior of descendants stays unchanged. */}
+      <div ref={bodyAnimRef} className="mx-auto flex flex-col gap-4 px-4 sm:px-6" style={{ minWidth: 360, maxWidth: 2160, paddingBottom: contentPb }}>
 
         {bodyOverride}
         {!bodyOverride && (<>
@@ -1575,8 +1614,12 @@ export default function SummaryPageResponsive({
             </div>
           </div>
 
-          {/* ── Summary column ── sticky on lg+ */}
-          <div className="w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-12 lg:self-start">
+          {/* ── Summary column ── sticky on lg+. `top` is prop-driven so the
+              Change Order tab bar (sticky top-0) can push it down. */}
+          <div
+            className="w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:self-start"
+            style={{ top: rightColumnTopPx }}
+          >
 
             {rightColumn ? (
               // ChangeOrderPage and other callers can fully replace the

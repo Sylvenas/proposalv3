@@ -8,7 +8,7 @@
 // with a Change Order-specific summary panel (PENDING CHANGE ORDER header,
 // new financial breakdown, and Change Order CTAs).
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import SummaryPageResponsive, {
   ADDON_DESCRIPTIONS,
   ContactSalesButton,
@@ -34,6 +34,12 @@ import {
   MobilePaymentRecordCard,
   buildInvoicesData,
 } from './InvoicesPaymentsSection';
+import ChangeHistoryView from './ChangeHistoryView';
+import {
+  InvoiceComparisonRow,
+  PaymentProgressBlock,
+  type InvoiceRowData,
+} from './ChangeOrderInvoiceRow';
 
 const BASE = '/images/proposal-v3-responsive';
 const IMG_DOWNLOAD = `${BASE}/download.svg`;
@@ -92,7 +98,13 @@ const STUB_OPTION: FenceOption = {
 // Static Change Order summary panel. Numbers are placeholder constants so the
 // page looks complete; the real wiring will replace these as the workflow
 // gets built out.
-function ChangeOrderRightColumn() {
+function ChangeOrderRightColumn({
+  onViewInvoices,
+  onViewContract,
+}: {
+  onViewInvoices?: () => void;
+  onViewContract?: () => void;
+}) {
   return (
     <div
       className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full"
@@ -148,14 +160,17 @@ function ChangeOrderRightColumn() {
 
           {/* Revised Payment & Schedule — matches Summary's View Payment
               Schedule style (icon-wrapper div, gap-[2px]). */}
-          <CardOutlinedButton label="Revised Payment & Schedule" />
+          <CardOutlinedButton
+            label="Revised Payment & Schedule"
+            onClick={onViewInvoices}
+          />
 
           {/* Contact Sales — reuse Summary's button so the icon, spacing,
               and onClick (opens ContactSalesModal) stay in sync. */}
           <ContactSalesButton />
 
           {/* Current Approved Contract */}
-          <OutlinedButton>
+          <OutlinedButton onClick={onViewContract}>
             <JumpArrowGlyph />
             Current Approved Contract
           </OutlinedButton>
@@ -208,10 +223,17 @@ function Row({
   );
 }
 
-function OutlinedButton({ children }: { children: React.ReactNode }) {
+function OutlinedButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="bg-white border border-solid border-[#262626] flex gap-2 h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
     >
       <span
@@ -228,10 +250,17 @@ function OutlinedButton({ children }: { children: React.ReactNode }) {
 // Schedule" button (gap-[2px], icon wrapped in a centering div with px-[5px]).
 // Used for "Revised Payment & Schedule" and "Payment Records" so the three
 // card-icon CTAs across the app stay pixel-aligned.
-function CardOutlinedButton({ label }: { label: string }) {
+function CardOutlinedButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick?: () => void;
+}) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
     >
       <div className="flex h-full items-center px-[5px] shrink-0">
@@ -367,7 +396,11 @@ void IMG_CHEVRON_RIGHT;
 // Placeholder content describing the most recently approved change order
 // (CO #2) while CO #3 is pending. Mirrors the financial layout of the home
 // tab's right column so the two tabs feel visually consistent.
-function ContractTabRightColumn() {
+function ContractTabRightColumn({
+  onViewInvoices,
+}: {
+  onViewInvoices?: () => void;
+}) {
   return (
     <div
       className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full"
@@ -437,7 +470,10 @@ function ContractTabRightColumn() {
           {/* Contact Sales — reuse Summary's button so the click opens the
               ContactSalesModal exactly like the Summary page. */}
           <ContactSalesButton />
-          <CardOutlinedButton label="Payment Records" />
+          <CardOutlinedButton
+            label="Payment Records"
+            onClick={onViewInvoices}
+          />
           <OutlinedButton>
             <BackArrowGlyph />
             Change History
@@ -509,7 +545,7 @@ function ChangeOrderInvoicesView({
           accent="neutral"
           heading="Before Change Order"
           progressLabel="Current Progress · 31%"
-          received="$3,000"
+          received="$1,000"
           processing="$3,000"
           invoiceTotal="$12,999"
           outstanding="$3,999"
@@ -525,7 +561,7 @@ function ChangeOrderInvoicesView({
           accent="blue"
           heading="After Change Order Approval"
           progressLabel="Revised Progress · 33%"
-          received="$3,000"
+          received="$1,000"
           processing="$3,000"
           invoiceTotal="$12,000"
           outstanding="$3,999"
@@ -548,7 +584,34 @@ function ChangeOrderInvoicesView({
 }
 
 function ChangeOrderPaymentRecords() {
-  const data = useMemo(() => buildInvoicesData(12999), []);
+  // Override the synthetic PAYMENT_RECORDS from buildInvoicesData so the two
+  // payment amounts reconcile to the invoice paid totals shown above. 1091
+  // (newer, $3,000) is in `processing` so the progress bar's "Processing"
+  // segment maps to a real, in-flight payment record. 1030 ($1,000) is the
+  // settled "Received" portion.
+  const data = useMemo(() => {
+    const base = buildInvoicesData(12999);
+    // Swap payment methods between the two records — 1030 should pay by
+    // Credit Card and 1091 by Check (mirror of the synthetic defaults).
+    const methods = base.PAYMENT_RECORDS.map((r) => r.method);
+    const overridden = base.PAYMENT_RECORDS.map((rec, i) => {
+      // Index 0 is newest-first (1091, Mar 23) — the $3,000 processing
+      // payment. Index 1 (1030, Jan 2) is the $1,000 completed payment.
+      const isProcessing = i === 0;
+      const amount = isProcessing ? 3000 : 1000;
+      // Swap method with the sibling record.
+      const swappedMethod = methods[methods.length - 1 - i] ?? rec.method;
+      return {
+        ...rec,
+        amountApplied: amount,
+        platformFee: 0,
+        amountPaid: amount,
+        method: swappedMethod,
+        status: isProcessing ? ('processing' as const) : ('completed' as const),
+      };
+    });
+    return { ...base, PAYMENT_RECORDS: overridden };
+  }, []);
   return (
     <InvoicesDataContext.Provider value={data}>
       <div className="w-full pt-4">
@@ -570,15 +633,6 @@ function ChangeOrderPaymentRecords() {
   );
 }
 
-type InvoiceRow = {
-  num: number;
-  label: string;
-  paid: string;
-  total: string;
-  statusLine: string;
-  status: 'paid' | 'partial' | 'pending';
-};
-
 function ComparisonPanel({
   accent,
   heading,
@@ -598,9 +652,16 @@ function ComparisonPanel({
   invoiceTotal: string;
   outstanding: string;
   invoicesHeading: string;
-  invoices: InvoiceRow[];
+  invoices: InvoiceRowData[];
 }) {
   const bg = accent === 'blue' ? '#eef2f9' : '#f5f5f5';
+  // Derive progress-bar segment widths from the dollar strings so the bar
+  // proportions reflect Received / Processing against Invoice Total. The
+  // strings come in as "$1,000" / "$12,999"; strip non-digits and divide.
+  const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
+  const totalNum = parseDollars(invoiceTotal);
+  const receivedPct = totalNum > 0 ? (parseDollars(received) / totalNum) * 100 : 0;
+  const processingPct = totalNum > 0 ? (parseDollars(processing) / totalNum) * 100 : 0;
   return (
     <div className="flex flex-col gap-3 w-full lg:flex-1">
       <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] leading-[14px]">{heading}</p>
@@ -609,48 +670,26 @@ function ComparisonPanel({
           background + radius + padding so the two read as separate cards
           with the page bg showing through between them. */}
       <div className="flex flex-col gap-3 w-full flex-1">
-      {/* Progress block */}
-      <div className="flex flex-col gap-2 w-full" style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}>
-        <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
-          {progressLabel}
-        </p>
-        {/* Progress bar — same recipe as InvoicesPaymentsSection's
-            DesktopProgressAndNextPayment bar: 10px pill track on
-            #e5e5e5, solid #04b50b received segment, hatched diagonal
-            #6fd073 over #c4ecc6 processing segment. Static placeholder
-            widths until real wiring lands. */}
-        <div className="relative w-full" style={{ height: 6, background: '#e5e5e5', borderRadius: 999 }}>
-          <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: 999 }}>
-            <div
-              className="absolute top-0 left-0 h-full"
-              style={{ width: '15%', background: '#04b50b' }}
-            />
-            <div
-              className="absolute top-0 h-full"
-              style={{
-                left: '15%',
-                width: '15%',
-                backgroundColor: '#c4ecc6',
-                backgroundImage:
-                  'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
-              }}
-            />
-          </div>
-        </div>
-        <div className="flex flex-row justify-between w-full text-[12px] xl:text-[14px] text-[#737373]">
-          <div className="flex flex-col gap-0.5">
-            <span>Received · <span className="text-[#04b50b]">{received}</span></span>
-            <span>Processing · <span className="text-[#04b50b]">{processing}</span></span>
-          </div>
-          <div className="flex flex-col gap-0.5 text-right">
-            <span>Invoice Total · <span className="text-[#262626]">{invoiceTotal}</span></span>
-            <span>Outstanding · <span className="text-[#3b82f6]">{outstanding}</span></span>
-          </div>
-        </div>
-      </div>
+      {/* Progress block — shared with ChangeHistoryView's Payment Snapshot. */}
+      <PaymentProgressBlock
+        progressLabel={progressLabel}
+        received={received}
+        processing={processing}
+        invoiceTotal={invoiceTotal}
+        outstanding={outstanding}
+        receivedPct={receivedPct}
+        processingPct={processingPct}
+        bg={bg}
+      />
 
-      {/* Invoices block */}
-      <div className="flex flex-col gap-2 w-full" style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}>
+      {/* Invoices block — `flex-1` so the panel with fewer invoices stretches
+          its tinted card down to match the sibling panel's taller invoices
+          card. The rows stay top-aligned; the extra height becomes bottom
+          padding inside the tinted card. */}
+      <div
+        className="flex flex-col gap-2 w-full flex-1"
+        style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}
+      >
         <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
           {invoicesHeading}
         </p>
@@ -664,37 +703,6 @@ function ComparisonPanel({
     </div>
   );
 }
-
-function InvoiceComparisonRow({ row }: { row: InvoiceRow }) {
-  const accentColor =
-    row.status === 'paid' ? '#04b50b' : row.status === 'partial' ? '#3b82f6' : '#9ca3af';
-  return (
-    <div className="bg-white flex w-full overflow-hidden">
-      <div style={{ width: 4, background: accentColor, flexShrink: 0 }} />
-      <div className="flex-1 flex flex-row items-start justify-between px-4 py-3">
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[12px] xl:text-[14px] font-semibold text-[#737373] leading-normal">
-            INVOICE #{row.num}
-          </p>
-          <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal">{row.label}</p>
-        </div>
-        <div className="flex flex-col items-end gap-0.5">
-          <p
-            className="text-[12px] xl:text-[14px] leading-normal whitespace-nowrap"
-            style={{ color: row.status === 'paid' ? '#04b50b' : '#737373' }}
-          >
-            {row.statusLine}
-          </p>
-          <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal whitespace-nowrap">
-            <span style={{ color: row.status === 'pending' ? '#9ca3af' : '#04b50b' }}>{row.paid}</span>
-            <span> / {row.total}</span>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 // Flatten the stub option's products so any upgradeable line item is
 // presented as a plain product using the default (first) upgrade option's
@@ -725,7 +733,21 @@ export default function ChangeOrderPage() {
 
   const isContractTab = tab === 'contract';
   const isInvoicesTab = tab === 'invoices';
+  const isChangesTab = tab === 'changes';
   const selectedAddons = addons.filter((a) => a.selected);
+
+  // Body slide-in direction — derived from the previous tab so forward
+  // navigation (Home → Contract → Invoices → Changes) slides in from the
+  // right, and going back slides in from the left.
+  const TAB_ORDER: ProjectHubTab[] = ['home', 'contract', 'invoices', 'changes'];
+  const prevTabRef = useRef<ProjectHubTab>(tab);
+  const slideDirection: 'left' | 'right' =
+    TAB_ORDER.indexOf(tab) >= TAB_ORDER.indexOf(prevTabRef.current)
+      ? 'right'
+      : 'left';
+  useEffect(() => {
+    prevTabRef.current = tab;
+  }, [tab]);
 
   const handleOpenProduct = (p: FenceProduct) => {
     setProductDetail({
@@ -781,11 +803,25 @@ export default function ChangeOrderPage() {
         onShowCover={() => {}}
         onRequestSign={() => {}}
         stickyHeader={<ProjectHubStickyHeader active={tab} onChange={setTab} />}
-        rightColumn={isContractTab ? <ContractTabRightColumn /> : <ChangeOrderRightColumn />}
+        bodyTransitionKey={tab}
+        bodyTransitionDirection={slideDirection}
+        rightColumnTopPx={80}
+        rightColumn={
+          isContractTab ? (
+            <ContractTabRightColumn onViewInvoices={() => setTab('invoices')} />
+          ) : (
+            <ChangeOrderRightColumn
+              onViewInvoices={() => setTab('invoices')}
+              onViewContract={() => setTab('contract')}
+            />
+          )
+        }
         replaceLeftColumn={isContractTab ? contractLeftColumn : undefined}
         bodyOverride={
           isInvoicesTab ? (
             <ChangeOrderInvoicesView onViewPendingChangeOrder={() => setTab('home')} />
+          ) : isChangesTab ? (
+            <ChangeHistoryView products={flattenSelectedUpgrades(STUB_OPTION.products)} />
           ) : undefined
         }
       />
