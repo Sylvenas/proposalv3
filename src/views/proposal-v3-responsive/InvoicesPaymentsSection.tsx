@@ -1721,12 +1721,23 @@ export function DesktopPaymentRecordsTable({
   );
 }
 
-function DesktopPaymentRecordRow({
+/** `compact` hides the Method, Amount Applied, and Platform Fee columns so
+ *  the row reduces to Payment ID · Paid On · Amount Paid. Used by Change
+ *  History's "Payment Snapshot" where the historical record only needs the
+ *  bare minimum.
+ *  `bg` overrides the default `#fafafa` fill — Change History passes `#fff`
+ *  so the row matches the InvoiceComparisonRow sitting beside it inside the
+ *  same tinted card. */
+export function DesktopPaymentRecordRow({
   rec,
   onOpen,
+  compact = false,
+  bg,
 }: {
   rec: PaymentRecord;
   onOpen: (rec: PaymentRecord) => void;
+  compact?: boolean;
+  bg?: string;
 }) {
   const palette = PAYMENT_STATUS_COLOR[rec.status];
   const statusLabel = PAYMENT_STATUS_LABEL[rec.status];
@@ -1741,8 +1752,15 @@ function DesktopPaymentRecordRow({
           onOpen(rec);
         }
       }}
-      className="bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors border-l-4 border-solid flex gap-3 items-center w-full pl-6 pr-8 xl:pl-8 xl:pr-12 2xl:pl-12 2xl:pr-20 cursor-pointer"
-      style={{ height: 48, fontFamily: 'Segoe UI, sans-serif', borderColor: palette.bar }}
+      className={`${
+        bg ? '' : 'bg-[#fafafa] hover:bg-[#f0f0f0]'
+      } transition-colors border-l-4 border-solid flex gap-3 items-center w-full pl-6 pr-8 xl:pl-8 xl:pr-12 2xl:pl-12 2xl:pr-20 cursor-pointer`}
+      style={{
+        height: 48,
+        fontFamily: 'Segoe UI, sans-serif',
+        borderColor: palette.bar,
+        ...(bg ? { background: bg } : {}),
+      }}
     >
       <p className="text-[14px] xl:text-[16px] text-[#262626] whitespace-nowrap leading-normal w-[100px] xl:w-[144px] overflow-hidden text-ellipsis">
         {rec.paymentId}
@@ -1750,28 +1768,31 @@ function DesktopPaymentRecordRow({
       <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] text-[#262626] whitespace-nowrap leading-normal overflow-hidden text-ellipsis">
         {rec.paidOn}
       </p>
-      <p className="text-[14px] xl:text-[16px] text-[#262626] whitespace-nowrap leading-normal w-[160px] xl:w-[200px] overflow-hidden text-ellipsis">
-        {rec.method}
-      </p>
-      {/* Spacer matching the header — viewport-scaled gap between left-
-          aligned text columns and the right-aligned amount columns. */}
-      <div className="shrink-0" style={{ width: cs(16) }} />
-      {/* Amount Applied — invoice-paying portion. Completed: black. In-flight:
-          blue. Returned: red + strikethrough so the row reads as "this much
-          was attempted, but the bank reversed it." */}
-      <p
-        className="flex-1 min-w-0 text-[14px] xl:text-[16px] text-right whitespace-nowrap leading-normal overflow-hidden text-ellipsis"
-        style={{
-          color: rec.status === 'completed' ? '#262626' : palette.amount,
-          textDecoration: rec.status === 'returned' ? 'line-through' : undefined,
-        }}
-      >
-        {fmtDollars(rec.amountApplied)}
-      </p>
-      {/* Platform Fee — dash when zero */}
-      <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] text-[#262626] text-right whitespace-nowrap leading-normal overflow-hidden text-ellipsis">
-        {rec.platformFee > 0 ? fmtDollars(rec.platformFee) : '-'}
-      </p>
+      {!compact && (
+        <>
+          <p className="text-[14px] xl:text-[16px] text-[#262626] whitespace-nowrap leading-normal w-[160px] xl:w-[200px] overflow-hidden text-ellipsis">
+            {rec.method}
+          </p>
+          {/* Spacer matching the header — viewport-scaled gap between left-
+              aligned text columns and the right-aligned amount columns. */}
+          <div className="shrink-0" style={{ width: cs(16) }} />
+          {/* Amount Applied — invoice-paying portion. Completed: black.
+              In-flight: blue. Returned: red + strikethrough. */}
+          <p
+            className="flex-1 min-w-0 text-[14px] xl:text-[16px] text-right whitespace-nowrap leading-normal overflow-hidden text-ellipsis"
+            style={{
+              color: rec.status === 'completed' ? '#262626' : palette.amount,
+              textDecoration: rec.status === 'returned' ? 'line-through' : undefined,
+            }}
+          >
+            {fmtDollars(rec.amountApplied)}
+          </p>
+          {/* Platform Fee — dash when zero */}
+          <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] text-[#262626] text-right whitespace-nowrap leading-normal overflow-hidden text-ellipsis">
+            {rec.platformFee > 0 ? fmtDollars(rec.platformFee) : '-'}
+          </p>
+        </>
+      )}
       {/* Amount Paid — total user submitted, colored by status (green
           completed / blue processing / red returned). Non-completed rows
           prefix with the status word ("Processing · $800"). */}
