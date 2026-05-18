@@ -35,6 +35,10 @@ import {
   buildInvoicesData,
 } from './InvoicesPaymentsSection';
 import ChangeHistoryView from './ChangeHistoryView';
+import { useDevConsole } from './DevConsoleContext';
+import PaymentScheduleDialog, {
+  type PaymentScheduleData,
+} from './PaymentScheduleDialog';
 import {
   InvoiceComparisonRow,
   PaymentProgressBlock,
@@ -101,10 +105,14 @@ const STUB_OPTION: FenceOption = {
 function ChangeOrderRightColumn({
   onViewInvoices,
   onViewContract,
+  onOpenSchedule,
 }: {
   onViewInvoices?: () => void;
   onViewContract?: () => void;
+  onOpenSchedule?: () => void;
 }) {
+  const { config } = useDevConsole();
+  const showFinancing = config.financingEstimation === 'included';
   return (
     <div
       className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full"
@@ -133,7 +141,9 @@ function ChangeOrderRightColumn({
         <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
           <Row label={<>New Contact Total <sup className="text-[7.74px]">1</sup></>} value="$12,000.00" valueLarge />
           <Row label="Change Order Net Change" value="-$999.00" valueRegular />
-          <Row label={<>Estimated Monthly Payment <sup className="text-[7.74px]">2</sup></>} value="$469.06 / mo" />
+          {showFinancing && (
+            <Row label={<>Estimated Monthly Payment <sup className="text-[7.74px]">2</sup></>} value="$469.06 / mo" />
+          )}
         </div>
 
         {/* Breakdowns */}
@@ -162,7 +172,7 @@ function ChangeOrderRightColumn({
               Schedule style (icon-wrapper div, gap-[2px]). */}
           <CardOutlinedButton
             label="Revised Payment & Schedule"
-            onClick={onViewInvoices}
+            onClick={onOpenSchedule}
           />
 
           {/* Contact Sales — reuse Summary's button so the icon, spacing,
@@ -724,8 +734,47 @@ function flattenSelectedUpgrades(products: FenceProduct[]): FenceProduct[] {
 }
 
 export default function ChangeOrderPage() {
+  const { config, pageIntent, setPageIntent } = useDevConsole();
+  // Revised Payment & Schedule dialog — re-uses the proposal Summary's
+  // PaymentScheduleDialog as a starting point. Values mirror the right-
+  // column financials (New Contract Total, Estimated Monthly Payment).
+  // Lifted to this level so the dialog renders OUTSIDE the sticky right
+  // column (whose stacking context would otherwise pin the sticky tab
+  // bar above the overlay).
+  const [scheduleData, setScheduleData] = useState<PaymentScheduleData | null>(null);
+  const openSchedule = () =>
+    setScheduleData({
+      optionLabel: 'Add Pool-Side Gates & Extra Panels',
+      projectName: '1722 Willis Ave NW, Grand Rapids, MI 49504',
+      contractTotal: 12000,
+      monthly: 469.06,
+      loanAmount: 12000,
+      termMonths: 12,
+      apr: 4,
+    });
+  const closeSchedule = () => setScheduleData(null);
   const [addons, setAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
-  const [tab, setTab] = useState<ProjectHubTab>('home');
+  // Initialize from the shared `pageIntent` so that switching from Proposal
+  // mode lands on the equivalent CO tab.
+  const [tab, setTab] = useState<ProjectHubTab>(() => {
+    if (pageIntent === 'hub.contract') return 'contract';
+    if (pageIntent === 'hub.invoices') return 'invoices';
+    if (pageIntent === 'hub.changes') return 'changes';
+    return 'home';
+  });
+
+  // Publish the current tab to the shared `pageIntent`. The 'home' tab is
+  // the Change Order Approval Page — its Proposal equivalent is the Option
+  // Approval Page (Summary).
+  useEffect(() => {
+    const map: Record<ProjectHubTab, 'summary' | 'hub.contract' | 'hub.invoices' | 'hub.changes'> = {
+      home: 'summary',
+      contract: 'hub.contract',
+      invoices: 'hub.invoices',
+      changes: 'hub.changes',
+    };
+    setPageIntent(map[tab]);
+  }, [tab, setPageIntent]);
   // Product detail sheet state — only used by the Current Approved Contract
   // tab. The Home tab's left column is owned by SummaryPageResponsive, which
   // manages its own sheet internally.
@@ -813,6 +862,7 @@ export default function ChangeOrderPage() {
             <ChangeOrderRightColumn
               onViewInvoices={() => setTab('invoices')}
               onViewContract={() => setTab('contract')}
+              onOpenSchedule={openSchedule}
             />
           )
         }
@@ -829,6 +879,45 @@ export default function ChangeOrderPage() {
         open={productDetail !== null}
         content={productDetail}
         onClose={() => setProductDetail(null)}
+      />
+      <PaymentScheduleDialog
+        data={scheduleData}
+        onClose={closeSchedule}
+        financingExcluded={config.financingEstimation === 'excluded'}
+        scheduledPaymentsCount={config.scheduledPaymentsCount}
+        title="Revised Pending Payment & Schedule"
+        progressBlock={
+          <PaymentProgressBlock
+            progressLabel="Revised Progress · 33%"
+            received="$1,000"
+            processing="$3,000"
+            outstanding="$8,000"
+            invoiceTotal="$12,000"
+            receivedPct={8.33}
+            processingPct={25}
+            bg="transparent"
+            padding="0"
+          />
+        }
+        scheduleList={(() => {
+          const revisedInvoices: InvoiceRowData[] = [
+            { num: 1, label: 'Deposit (16%)', paid: '$2,000', total: '$2,000', statusLine: 'Paid on Mar 23, 2026', status: 'paid' },
+            { num: 2, label: 'Balance (42%)', paid: '$2,000', total: '$5,000', statusLine: 'Due on May 2, 2026', status: 'partial' },
+            { num: 3, label: 'Balance (42%)', paid: '-', total: '$5,000', statusLine: 'Due on Jun 11, 2026', status: 'pending' },
+          ];
+          return (
+            <div className="flex flex-col gap-2 w-full">
+              <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
+                Revised Invoices · {revisedInvoices.length}
+              </p>
+              <div className="flex flex-col gap-2 w-full">
+                {revisedInvoices.map((inv) => (
+                  <InvoiceComparisonRow key={inv.num} row={inv} bg="#f5f5f5" />
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       />
     </>
   );

@@ -295,6 +295,9 @@ export default function PaymentScheduleDialog({
   onClose,
   financingExcluded = false,
   scheduledPaymentsCount = 'common',
+  title = 'Payment Schedule',
+  progressBlock,
+  scheduleList,
 }: {
   /** Non-null = open. Null = closed. */
   data: PaymentScheduleData | null;
@@ -308,6 +311,18 @@ export default function PaymentScheduleDialog({
   /** 'common' (default) shows the 3-step schedule. 'overflow' swaps in a
    *  6-step demo schedule used to verify scroll behaviour. */
   scheduledPaymentsCount?: 'common' | 'overflow';
+  /** Uppercase eyebrow above the option label. Defaults to "Payment
+   *  Schedule"; Change Order overrides this to "Revised Pending Payment
+   *  & Schedule". Rendered with `text-transform: uppercase`. */
+  title?: string;
+  /** Optional override for the desktop progress section. When provided,
+   *  this replaces the default 1-2-3 PaymentProgressBar — used by
+   *  ChangeOrderPage to swap in the Revised Progress PaymentProgressBlock. */
+  progressBlock?: React.ReactNode;
+  /** Optional override for the desktop schedule list. When provided,
+   *  this replaces the default Scheduled Payments rows — used by
+   *  ChangeOrderPage to swap in the Revised Invoices tinted card. */
+  scheduleList?: React.ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen]       = useState(false);
@@ -527,7 +542,7 @@ export default function PaymentScheduleDialog({
                 semibold title, project subtitle). Scrolls with the list. */}
             <div className="flex flex-col gap-1 w-full pb-4">
               <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-                Payment Schedule
+                {title}
               </p>
               <p className="text-[16px] sm:text-[18px] font-semibold text-[#262626] leading-normal">
                 {last.optionLabel}
@@ -662,12 +677,12 @@ export default function PaymentScheduleDialog({
                 Wheel-forwarding lives at the window level (see effect below)
                 so wheeling over the header, right column, or backdrop all
                 scroll the Scheduled Payments list. */}
-            <div className="flex flex-col gap-4 xl:gap-6 2xl:gap-8 items-start w-full shrink-0 px-6 pt-6 pb-4 xl:px-8 xl:pt-8 xl:pb-6 2xl:px-10 2xl:pt-10 2xl:pb-8">
+            <div className="flex flex-col gap-8 xl:gap-10 2xl:gap-12 items-start w-full shrink-0 px-6 pt-6 pb-8 xl:px-8 xl:pt-8 xl:pb-10 2xl:px-10 2xl:pt-10 2xl:pb-12">
               {/* Header */}
               <div className="flex items-start justify-between gap-4 w-full">
                 <div className="flex flex-col gap-1 items-start min-w-0 flex-1">
                   <p className="text-[12px] xl:text-[14px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal whitespace-nowrap">
-                    Payment Schedule
+                    {title}
                   </p>
                   <p className="text-[16px] xl:text-[20px] text-[#262626] leading-normal whitespace-nowrap">
                     {last.optionLabel}
@@ -691,8 +706,10 @@ export default function PaymentScheduleDialog({
                 )}
               </div>
 
-              {/* Progress bar */}
-              <PaymentProgressBar schedule={schedule} />
+              {/* Progress bar — defaults to the 1-2-3 schedule dots; the
+                  Change Order caller passes a PaymentProgressBlock to
+                  swap in the Revised Progress card. */}
+              {progressBlock ?? <PaymentProgressBar schedule={schedule} />}
             </div>
 
             {/* Scrolling Scheduled Payments list. The relative wrapper lets
@@ -703,18 +720,20 @@ export default function PaymentScheduleDialog({
                 ref={modalScrollRef}
                 className="payment-schedule-scroll flex-1 min-h-0 overflow-y-auto px-6 xl:px-8 2xl:px-10 pb-6 xl:pb-8 2xl:pb-10"
               >
-                <div className="flex flex-col gap-2 w-full">
-                  {schedule.map((s, i) => (
-                    <ScheduleLineItem
-                      key={s.num}
-                      num={s.num}
-                      label={s.label}
-                      amount={amounts[i]}
-                      due={s.due}
-                      variant="desktop"
-                    />
-                  ))}
-                </div>
+                {scheduleList ?? (
+                  <div className="flex flex-col gap-2 w-full">
+                    {schedule.map((s, i) => (
+                      <ScheduleLineItem
+                        key={s.num}
+                        num={s.num}
+                        label={s.label}
+                        amount={amounts[i]}
+                        due={s.due}
+                        variant="desktop"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               <ScrollHintArrows targetRef={modalScrollRef} topInset={6} bottomInset={6} />
             </div>

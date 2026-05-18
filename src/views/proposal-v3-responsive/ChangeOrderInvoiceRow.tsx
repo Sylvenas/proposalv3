@@ -20,6 +20,7 @@ export function PaymentProgressBlock({
   receivedPct = 15,
   processingPct = 15,
   bg = '#f5f5f5',
+  padding = '24px 20px',
 }: {
   progressLabel: string;
   received: string;
@@ -32,11 +33,14 @@ export function PaymentProgressBlock({
   processingPct?: number;
   /** Card fill color. Neutral comparison = #f5f5f5, blue (After CO) = #eef2f9. */
   bg?: string;
+  /** Card padding. Defaults to '24px 20px' (Comparison Panel use); the
+   *  PaymentScheduleDialog use passes '0' to drop the inner card chrome. */
+  padding?: string;
 }) {
   return (
     <div
       className="flex flex-col gap-2 w-full"
-      style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}
+      style={{ background: bg, borderRadius: 8, padding }}
     >
       <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
         {progressLabel}

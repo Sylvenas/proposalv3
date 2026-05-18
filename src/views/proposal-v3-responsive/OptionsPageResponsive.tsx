@@ -16,6 +16,7 @@ import ScrollHintArrows from './ScrollHintArrows';
 import { DevConsoleProvider, useDevConsole } from './DevConsoleContext';
 import DevConsole from './DevConsole';
 import ChangeOrderPage from './ChangeOrderPage';
+import type { ProjectHubTab } from './ProjectHubStickyHeader';
 import ValidUntilPill from './ValidUntilPill';
 import ProductDetailSheet, {
   Checkbox,
@@ -1838,7 +1839,7 @@ function useOverflowScroll(optionsLength: number) {
 }
 
 function OptionsPageContent() {
-  const { config, restartTick } = useDevConsole();
+  const { config, restartTick, pageIntent, setPageIntent } = useDevConsole();
   const optionCount = config.optionCount;
   // Slice the master list to the configured count. Everything below operates on
   // this trimmed array, so widget logic (overflow detection, comparison pair,
@@ -1846,14 +1847,28 @@ function OptionsPageContent() {
   const OPTIONS = ALL_OPTIONS.slice(0, optionCount);
   useSyncCardSectionHeights(config.optionImage, config.recommendedOption, optionCount);
   const stickyVisible = useStickyHeader();
-  const [curtainMounted, setCurtainMounted] = useState(true);
-  const [selectedOption, setSelectedOption] = useState<FenceOption | null>(null);
+  // Initialize from the shared `pageIntent` so that switching from Change
+  // Order mode lands on the equivalent Proposal page (e.g. CO Approval
+  // Page → Summary). `pageIntent` defaults to 'cover' on first mount.
+  const startsApproved = pageIntent.startsWith('hub.');
+  const initialHubTab: ProjectHubTab =
+    pageIntent === 'hub.contract'
+      ? 'contract'
+      : pageIntent === 'hub.invoices'
+        ? 'invoices'
+        : 'home';
+  const [curtainMounted, setCurtainMounted] = useState(pageIntent === 'cover');
+  const [selectedOption, setSelectedOption] = useState<FenceOption | null>(() =>
+    pageIntent === 'cover' || pageIntent === 'options' ? null : (OPTIONS[0] ?? null),
+  );
   // Once true, the signed Project Hub replaces the Summary page for the
   // currently-selected option. Resetting the selection also resets this.
-  const [approved, setApproved] = useState(false);
+  const [approved, setApproved] = useState(startsApproved);
   // Timestamp when the proposal was approved. Captured at the moment the
   // user signs on the Summary page; rendered on the Project Hub title block.
-  const [approvedAt, setApprovedAt] = useState<Date | null>(null);
+  const [approvedAt, setApprovedAt] = useState<Date | null>(
+    startsApproved ? new Date() : null,
+  );
   // Signature overlay mount state, lifted from Summary so the overlay
   // persists across the Summary → ProjectHub swap. Flow:
   //   – button → setShowSignatureOverlay(true) mounts the overlay on top of Summary.
@@ -2019,13 +2034,33 @@ function OptionsPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.proposalStatus]);
 
+  // Publish the current page to the shared `pageIntent` so that toggling
+  // `config.type` to Change Order lands on the equivalent CO page. We only
+  // publish pre-ProjectHub pages here; once approved, ProjectHub itself
+  // publishes its active tab.
+  useEffect(() => {
+    if (config.type !== 'proposal') return;
+    if (curtainMounted) {
+      setPageIntent('cover');
+    } else if (!selectedOption) {
+      setPageIntent('options');
+    } else if (!approved) {
+      setPageIntent('summary');
+    }
+  }, [curtainMounted, selectedOption, approved, config.type, setPageIntent]);
+
   // Restart Userflow — DevConsole's top button bumps `restartTick`. Each
   // bump returns the user to the starting page for the current Proposal
   // Status: Project Home for Signed On Device (re-using the approved
-  // landing), Cover for every other status. The initial 0 tick is skipped
-  // so this doesn't fire on mount.
+  // landing), Cover for every other status. We compare against a ref so
+  // this only fires on an actual tick increment — not on mount and not
+  // when the component remounts after a Type-toggle round trip through
+  // Change Order (where restartTick may already be > 0 but the user is
+  // intentionally landing on a page derived from `pageIntent`).
+  const lastRestartTickRef = useRef(restartTick);
   useEffect(() => {
-    if (restartTick === 0) return;
+    if (lastRestartTickRef.current === restartTick) return;
+    lastRestartTickRef.current = restartTick;
     if (config.proposalStatus === 'signedOnDevice') {
       setCurtainMounted(false);
       setSelectedOption(OPTIONS[0] ?? null);
@@ -2288,6 +2323,7 @@ function OptionsPageContent() {
             addons={addons}
             upgradeSelections={upgradeSelections}
             approvedAt={approvedAt}
+            initialActiveTab={initialHubTab}
             onShowCover={() => {
               setSelectedOption(null);
               setApproved(false);

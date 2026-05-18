@@ -36,6 +36,29 @@ export type CompanySlogan = 'enable' | 'disable';
  *  can be iterated independently. */
 export type ProposalType = 'proposal' | 'changeOrder';
 
+/** Abstract page identity shared across the Proposal and Change Order flows.
+ *  Each flow publishes its current page (via useEffect) and reads this value
+ *  on mount so toggling `config.type` lands the user on the equivalent page
+ *  in the other flow. Mapping:
+ *    Proposal flow                ↔ Change Order flow
+ *    ─────────────────────────────────────────────────────
+ *    Cover            ('cover')   → tab='home'
+ *    Options          ('options') → tab='home'
+ *    Summary          ('summary') ↔ tab='home' (Change Order Approval Page)
+ *    Hub: Home        ('hub.home')      → tab='home'
+ *    Hub: Contract    ('hub.contract')  ↔ tab='contract'
+ *    Hub: Invoices    ('hub.invoices')  ↔ tab='invoices'
+ *    (no equivalent)  ('hub.changes')   ← tab='changes' (falls back to Hub: Home in proposal mode)
+ */
+export type PageIntent =
+  | 'cover'
+  | 'options'
+  | 'summary'
+  | 'hub.home'
+  | 'hub.contract'
+  | 'hub.invoices'
+  | 'hub.changes';
+
 export type DevConfig = {
   /** How many fence options the prototype renders (1–4). */
   optionCount: number;
@@ -140,6 +163,10 @@ type DevConsoleContextValue = {
   restartTick: number;
   /** Bump `restartTick`. Called by the "Restart Userflow" button. */
   restartUserflow: () => void;
+  /** Abstract page identity shared by the Proposal and Change Order flows so
+   *  toggling `config.type` lands on the equivalent page in the other flow. */
+  pageIntent: PageIntent;
+  setPageIntent: (p: PageIntent) => void;
 };
 
 const DevConsoleCtx = createContext<DevConsoleContextValue | null>(null);
@@ -169,6 +196,7 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
   });
   const [isOpen, setIsOpen] = useState(false);
   const [restartTick, setRestartTick] = useState(0);
+  const [pageIntent, setPageIntent] = useState<PageIntent>('cover');
 
   const value = useMemo<DevConsoleContextValue>(
     () => ({
@@ -179,8 +207,10 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
       close: () => setIsOpen(false),
       restartTick,
       restartUserflow: () => setRestartTick((n) => n + 1),
+      pageIntent,
+      setPageIntent,
     }),
-    [config, isOpen, restartTick]
+    [config, isOpen, restartTick, pageIntent]
   );
 
   return <DevConsoleCtx.Provider value={value}>{children}</DevConsoleCtx.Provider>;

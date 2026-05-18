@@ -98,6 +98,17 @@ export default function DevConsole() {
             Restart Userflow
           </button>
 
+          <Cluster title="Type">
+            <ToggleRow
+              value={config.type}
+              options={[
+                { label: 'Proposal', value: 'proposal' as const },
+                { label: 'Change Order', value: 'changeOrder' as const },
+              ]}
+              onChange={(v) => setConfig((c) => ({ ...c, type: v }))}
+            />
+          </Cluster>
+
           <Cluster title="Preset">
             <ToggleRow
               value={config.preset}
@@ -111,34 +122,31 @@ export default function DevConsole() {
             />
           </Cluster>
 
-          <Cluster title="Type">
-            <ToggleRow
-              value={config.type}
-              options={[
-                { label: 'Proposal', value: 'proposal' as const },
-                { label: 'Change Order', value: 'changeOrder' as const },
-              ]}
-              onChange={(v) => setConfig((c) => ({ ...c, type: v }))}
-            />
-          </Cluster>
-
-          <Cluster title="Proposal Status">
+          <Cluster title={config.type === 'changeOrder' ? 'Change Order Status' : 'Proposal Status'}>
             <ToggleRow
               value={config.proposalStatus}
-              options={[
-                { label: 'Valid', value: 'regular' as const },
-                { label: 'Expired', value: 'expired' as const },
-                { label: 'Recalled', value: 'recalled' as const },
-                { label: 'Deleted', value: 'deleted' as const },
-                { label: 'Lost', value: 'lost' as const },
-                { label: 'Void', value: 'void' as const },
-                { label: 'Signed On Device', value: 'signedOnDevice' as const, colSpan: 2, disabled: true },
-              ]}
+              options={
+                config.type === 'changeOrder'
+                  ? [
+                      { label: 'Valid', value: 'regular' as const },
+                      { label: 'Expired', value: 'expired' as const },
+                    ]
+                  : [
+                      { label: 'Valid', value: 'regular' as const },
+                      { label: 'Expired', value: 'expired' as const },
+                      { label: 'Recalled', value: 'recalled' as const },
+                      { label: 'Deleted', value: 'deleted' as const },
+                      { label: 'Lost', value: 'lost' as const },
+                      { label: 'Void', value: 'void' as const },
+                      { label: 'Signed On Device', value: 'signedOnDevice' as const, colSpan: 2, disabled: true },
+                    ]
+              }
               onChange={(v) => setConfig((c) => ({ ...c, proposalStatus: v }))}
               maxPerRow={3}
             />
           </Cluster>
 
+          {config.type !== 'changeOrder' && (
           <Cluster title="Cover Page">
             <Section title="Inspection Report">
               <ToggleRow
@@ -161,7 +169,9 @@ export default function DevConsole() {
               />
             </Section>
           </Cluster>
+          )}
 
+          {config.type !== 'changeOrder' && (
           <Cluster title="Option Selection / Comparison Page">
             <Section title="Number of Options">
               <ToggleRow
@@ -221,8 +231,9 @@ export default function DevConsole() {
               />
             </Section>
           </Cluster>
+          )}
 
-          <Cluster title="Summary / Change Order Page">
+          <Cluster title={config.type === 'changeOrder' ? 'Change Order Approval Page' : 'Summary / Option Approval Page'}>
             <Section title="Upgrade">
               <ToggleRow
                 value={config.upgrades}
