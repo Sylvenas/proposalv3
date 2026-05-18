@@ -1361,6 +1361,7 @@ export default function ProjectHubPageResponsive({
   addons = DEFAULT_ADDONS,
   upgradeSelections = {},
   approvedAt = null,
+  initialActiveTab,
 }: {
   option: FenceOption;
   onShowCover: () => void;
@@ -1376,13 +1377,23 @@ export default function ProjectHubPageResponsive({
   /** Timestamp the user approved the proposal (set in OptionsPageResponsive
    *  when the signature flow completes). Shown in the title block. */
   approvedAt?: Date | null;
+  /** Initial active tab — set when switching from Change Order mode at a
+   *  matching tab so the user lands on the equivalent Proposal hub tab. */
+  initialActiveTab?: ProjectHubTab;
 }) {
+  const { setPageIntent } = useDevConsole();
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ── Active hub tab (shared by the sticky header mobile + desktop) ──────────
-  const [activeTab, setActiveTab] = useState<ProjectHubTab>('home');
+  const [activeTab, setActiveTab] = useState<ProjectHubTab>(initialActiveTab ?? 'home');
+
+  // Publish the current tab to the shared `pageIntent` so that toggling
+  // `config.type` to Change Order lands on the equivalent CO tab.
+  useEffect(() => {
+    setPageIntent(`hub.${activeTab}` as 'hub.home' | 'hub.contract' | 'hub.invoices');
+  }, [activeTab, setPageIntent]);
 
   // ── Selected addons (read-only on Project Hub) ─────────────────────────────
   const selectedAddons = addons.filter((a) => a.selected);

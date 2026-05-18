@@ -189,28 +189,6 @@ function TruncatedTitle({
   );
 }
 
-// rAF-driven page scroll with explicit `behavior: 'instant'` on every
-// frame. `<html>` has `scroll-behavior: smooth` set globally — without the
-// override, each per-frame scrollTo gets re-animated by the browser,
-// which fights the rAF loop and produces a sluggish ~1px/frame creep.
-function smoothScrollTo(targetY: number, durationMs: number) {
-  const startY = window.scrollY;
-  const distance = targetY - startY;
-  if (Math.abs(distance) < 1) return;
-  const start = performance.now();
-  const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-  const step = (now: number) => {
-    const elapsed = now - start;
-    const t = Math.min(1, elapsed / durationMs);
-    window.scrollTo({
-      top: startY + distance * ease(t),
-      behavior: 'instant' as ScrollBehavior,
-    });
-    if (t < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
-
 // Color the change amount by its sign rather than by status. Rule:
 //   • negative (starts with "-") → red
 //   • numerically zero            → dark grey (the change had no $ impact)
@@ -233,19 +211,18 @@ export default function ChangeHistoryView({
 }: {
   products: FenceProduct[];
 }) {
-  // Default selection — the screenshot shows ORIGINAL CONTRACT pre-selected.
-  const [selectedId, setSelectedId] = useState<string>('original');
+  // Default selection — the latest node on the timeline (newest-first ordering).
+  const [selectedId, setSelectedId] = useState<string>(HISTORY_ITEMS[0].id);
   const selected = useMemo(
     () => HISTORY_ITEMS.find((i) => i.id === selectedId) ?? HISTORY_ITEMS[0],
     [selectedId],
   );
 
-  // Switching records replaces the detail panel content. Scroll the page so
-  // the new record's header sits just below the sticky tab bar — the user's
-  // current view is reset to the start of the detail, but the page header
-  // stays out of view (i.e. we don't pop all the way back to scrollY=0).
-  // Uses a rAF-based animation instead of `behavior: 'smooth'` so we can
-  // tune the duration (the browser's smooth default feels sluggish here).
+  // Switching records replaces the detail panel content. If the user has
+  // already scrolled past the top of the detail panel, reset their view to
+  // the panel's top (sitting just below the sticky tab bar). If they're
+  // still above that point, don't scroll — they'd jump downward, which is
+  // disorienting.
   const detailRef = useRef<HTMLDivElement>(null);
   const handleSelect = (id: string) => {
     setSelectedId(id);
@@ -256,11 +233,11 @@ export default function ChangeHistoryView({
       '.sticky.top-0',
     ) as HTMLElement | null;
     const stickyHeight = stickyTabBar?.offsetHeight ?? 50;
-    const targetY = Math.max(
-      el.getBoundingClientRect().top + window.scrollY - stickyHeight,
-      0,
-    );
-    smoothScrollTo(targetY, 220);
+    const detailTopY =
+      el.getBoundingClientRect().top + window.scrollY - stickyHeight;
+    if (window.scrollY > detailTopY) {
+      window.scrollTo({ top: Math.max(detailTopY, 0), behavior: 'instant' as ScrollBehavior });
+    }
   };
 
   return (
