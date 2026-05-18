@@ -604,13 +604,13 @@ function ComparisonPanel({
   return (
     <div className="flex flex-col gap-3 w-full lg:flex-1">
       <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] leading-[14px]">{heading}</p>
-      {/* `flex-1` so the inner card grows to match the taller sibling's
-          height on lg+. The two outer wrappers are flex items in the row
-          and stretch automatically; the inner card only stretches when
-          told to. */}
-      <div className="flex flex-col gap-4 w-full flex-1" style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}>
+      {/* `flex-1` so the inner column grows to match the taller sibling's
+          height on lg+. Each child (Progress / Invoices) carries its own
+          background + radius + padding so the two read as separate cards
+          with the page bg showing through between them. */}
+      <div className="flex flex-col gap-3 w-full flex-1">
       {/* Progress block */}
-      <div className="flex flex-col gap-2 w-full">
+      <div className="flex flex-col gap-2 w-full" style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}>
         <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
           {progressLabel}
         </p>
@@ -650,7 +650,7 @@ function ComparisonPanel({
       </div>
 
       {/* Invoices block */}
-      <div className="flex flex-col gap-2 w-full pt-4">
+      <div className="flex flex-col gap-2 w-full" style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}>
         <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
           {invoicesHeading}
         </p>
