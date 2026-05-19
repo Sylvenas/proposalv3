@@ -37,7 +37,7 @@ import {
   buildInvoicesData,
   type Invoice as InvoiceData,
 } from './InvoicesPaymentsSection';
-import ChangeHistoryView from './ChangeHistoryView';
+import ChangeHistoryView, { TotalsRow } from './ChangeHistoryView';
 import { useDevConsole } from './DevConsoleContext';
 import PaymentScheduleDialog, {
   type PaymentScheduleData,
@@ -547,27 +547,89 @@ function ChangeOrderInvoicesView({
       className="flex flex-col gap-8 w-full pt-6 lg:pt-8"
       style={{ fontFamily: 'Segoe UI, sans-serif' }}
     >
-      {/* Section title */}
-      <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-semibold text-[#262626] tracking-[0.06em] uppercase">
-        Progress &amp; Schedule
-      </p>
+      {/* Section title + locked-state subtitle + Pending Change Order card —
+          grouped with tighter spacing so the subtitle reads as a lead-in to
+          the card, then a larger gap before the comparison panels. */}
+      <div className="flex flex-col gap-3 w-full">
+        <div className="flex flex-col gap-3 w-full">
+          <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-semibold text-[#262626] tracking-[0.06em] uppercase inline-flex items-center gap-1.5">
+            <span>Progress &amp; Schedule</span>
+            <LockGlyph />
+          </p>
+          <p className="font-normal text-[12px] xl:text-[14px] text-[#737373] leading-[1.5]">
+            Payments are temporarily locked while this change order is pending approval. Approve it
+            or contact your sales representative to withdraw it.
+          </p>
+        </div>
 
-      {/* Banner — light blue notice about pending change order */}
-      <div className="bg-[#eef2f9] rounded-[6px] px-5 py-4 w-full">
-        <p className="text-[14px] xl:text-[16px] text-[#262626] leading-[1.5]">
-          A change order is pending your approval. Review the comparison below before making a
-          decision. Invoice payments are temporarily locked until you approve the change order or
-          contact your sales representative to withdraw it. If approved, the revised schedule will
-          become the basis for future payments.{' '}
-          <button
-            type="button"
-            onClick={onViewPendingChangeOrder}
-            className="bg-transparent border-0 p-0 cursor-pointer text-[14px] xl:text-[16px] text-[#262626] underline align-baseline"
-            style={{ textDecorationSkipInk: 'none' }}
-          >
-            View the pending Change Order
-          </button>
-        </p>
+        {/* Pending Change Order card — guides user to approve.
+            One unified outer padding; the inner children (title, totals,
+            mobile CTA) carry no padding of their own. On desktop the card
+            splits 1:1 with a thin vertical divider between the halves. */}
+        <div className="bg-[#eef2f9] rounded-[6px] w-full py-4 px-4 sm:px-8 lg:py-6 lg:px-6 xl:py-7 xl:px-8 2xl:px-12">
+          <div className="flex flex-col lg:flex-row lg:items-stretch gap-3 lg:gap-6">
+            {/* Left half — change order name */}
+            <div className="flex-1 min-w-0 basis-1/2 flex flex-col justify-center gap-1">
+              <p className="text-[11px] sm:text-[12px] xl:text-[13px] font-semibold text-[#737373] tracking-[0.06em] uppercase">
+                Pending Change Order #3
+              </p>
+              <p className="text-[16px] sm:text-[18px] xl:text-[20px] font-medium text-[#262626] leading-tight">
+                Add Pool-Side Gates &amp; Extra Panels
+              </p>
+            </div>
+
+            {/* Center divider — desktop only. `lg:my-2` matches `TotalsRow`'s
+                internal `py-2` so this divider's visible height equals the
+                cell height (and therefore matches the NET CHANGE / NEW
+                CONTRACT TOTAL inter-cell divider). */}
+            <div className="hidden lg:block w-px bg-[#d6dceb] lg:my-2" aria-hidden="true" />
+
+            {/* Right half — Net Change + Contract Total cells (via the
+                shared `TotalsRow`) and, on desktop only, an inline "View
+                Change Order" link as a 3rd column (matches the previous
+                Net : Contract : Link = 1 : 1 : 1 width split inside the
+                right half). On mobile the link is replaced by an outlined
+                "View Pending Change Order" CTA below the totals. */}
+            <div className="flex-1 min-w-0 basis-1/2 flex flex-col lg:flex-row lg:items-stretch">
+              <div className="flex items-center w-full lg:w-auto lg:flex-[2]">
+                <TotalsRow
+                  cells={[
+                    { label: 'NET CHANGE', value: '-$999.00', valueColor: '#d41a32' },
+                    { label: 'REVISED TOTAL', value: '$12,000.00' },
+                  ]}
+                />
+              </div>
+              {/* Desktop-only "View Change Order" column — matches the
+                  TotalsRow cell divider (1px rgba(0,0,0,0.12) on the left).
+                  `lg:my-2` shortens the column (and its left border) by
+                  `TotalsRow`'s `py-2` so the divider height matches the
+                  NET CHANGE / NEW CONTRACT TOTAL inter-cell divider. */}
+              <div
+                className="hidden lg:flex lg:flex-1 items-center justify-center px-4 lg:my-2"
+                style={{ borderLeft: '1px solid rgba(0,0,0,0.12)' }}
+              >
+                <button
+                  type="button"
+                  onClick={onViewPendingChangeOrder}
+                  className="bg-transparent border-0 p-0 cursor-pointer text-[14px] xl:text-[16px] font-normal text-[#737373] hover:text-[#1657c4] whitespace-nowrap hover:underline transition-colors"
+                >
+                  View Change Order
+                </button>
+              </div>
+              {/* Mobile-only: borderless "View Pending Change Order" link
+                  (matches the BorderlessLinkButton used in ChangeHistoryView's
+                  DetailCtaRow so the two views share the same CTA style).
+                  No leading icon — the label alone is the affordance here. */}
+              <div className="lg:hidden w-full">
+                <BorderlessLinkButton
+                  icon={null}
+                  label="View Pending Change Order"
+                  onClick={onViewPendingChangeOrder}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Side-by-side comparison */}
@@ -695,41 +757,43 @@ function ComparisonPanel({
   const processingPct = totalNum > 0 ? (parseDollars(processing) / totalNum) * 100 : 0;
   return (
     <div className="flex flex-col gap-3 w-full lg:flex-1">
-      <p className="font-semibold text-[12px] xl:text-[14px] text-[#737373] leading-[14px]">{heading}</p>
-      {/* `flex-1` so the inner column grows to match the taller sibling's
-          height on lg+. Each child (Progress / Invoices) carries its own
-          background + radius + padding so the two read as separate cards
-          with the page bg showing through between them. */}
-      <div className="flex flex-col gap-3 w-full flex-1">
-      {/* Progress block — shared with ChangeHistoryView's Payment Snapshot. */}
-      <PaymentProgressBlock
-        progressLabel={progressLabel}
-        received={received}
-        processing={processing}
-        invoiceTotal={invoiceTotal}
-        outstanding={outstanding}
-        receivedPct={receivedPct}
-        processingPct={processingPct}
-        bg={bg}
-      />
-
-      {/* Invoices block — `flex-1` so the panel with fewer invoices stretches
-          its tinted card down to match the sibling panel's taller invoices
-          card. The rows stay top-aligned; the extra height becomes bottom
-          padding inside the tinted card. */}
+      <p className="font-normal text-[12px] xl:text-[14px] text-[#737373] leading-[14px]">{heading}</p>
+      {/* Single merged tinted card — Progress block and Invoices block share
+          one outer background + border-radius + padding so they read as one
+          card. `flex-1` lets it grow to match the sibling panel's height. */}
       <div
-        className="flex flex-col gap-2 w-full flex-1"
+        className="flex flex-col gap-6 w-full flex-1"
         style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}
       >
-        <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
-          {invoicesHeading}
-        </p>
-        <div className="flex flex-col gap-2 w-full">
-          {invoices.map((inv) => (
-            <InvoiceComparisonRow key={inv.num} row={inv} />
-          ))}
+        {/* Progress block — shared with ChangeHistoryView's Payment Snapshot.
+            `padding="0"` drops its own card chrome so it sits flush inside
+            the merged outer card. */}
+        <PaymentProgressBlock
+          progressLabel={progressLabel}
+          received={received}
+          processing={processing}
+          invoiceTotal={invoiceTotal}
+          outstanding={outstanding}
+          receivedPct={receivedPct}
+          processingPct={processingPct}
+          bg="transparent"
+          padding="0"
+        />
+
+        {/* Invoices block — no own bg/padding/radius; inherits the merged
+            outer card's chrome. `flex-1` lets it absorb the extra height in
+            panels with fewer invoices so the merged card matches the
+            sibling's height. */}
+        <div className="flex flex-col gap-2 w-full flex-1">
+          <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
+            {invoicesHeading}
+          </p>
+          <div className="flex flex-col gap-2 w-full">
+            {invoices.map((inv) => (
+              <InvoiceComparisonRow key={inv.num} row={inv} />
+            ))}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );

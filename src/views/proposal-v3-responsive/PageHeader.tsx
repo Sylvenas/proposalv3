@@ -17,7 +17,7 @@ const IMG_HEADER_USER = `${BASE}/header-user.svg`;
 export default function PageHeader({ onShowCover }: { onShowCover: () => void }) {
   const { open: openDevConsole } = useDevConsole();
   return (
-    <header className="w-full bg-white flex items-center justify-center h-12 px-4 sm:px-6">
+    <header className="relative z-[51] w-full bg-white flex items-center justify-center h-12 px-4 sm:px-6">
       <div className="flex items-center justify-between w-full max-w-[1024px]">
         {/* Home icon: 24×24 clip box, vector 17.99×15.98px centred inside */}
         <button

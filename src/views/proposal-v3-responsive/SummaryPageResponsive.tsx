@@ -1567,7 +1567,7 @@ export default function SummaryPageResponsive({
           hub's vertical layout). Wrapper matches Project Hub exactly:
           sticky top-0, max-width 2160, mx-auto. */}
       {stickyHeader && (
-        <div className="sticky top-0 z-40 bg-white">
+        <div className="sticky top-0 z-[51] bg-white">
           <div className="mx-auto w-full" style={{ minWidth: 360, maxWidth: 2160 }}>
             {stickyHeader}
           </div>
