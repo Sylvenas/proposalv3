@@ -343,7 +343,7 @@ export default function ChangeHistoryView({
           meets the page bottom with no gap on desktop. */}
       <div
         ref={detailRef}
-        className={`w-full lg:flex-[2_1_0] min-w-0 flex flex-col gap-4 lg:px-8 pt-6 pb-6 lg:-mb-8 lg:bg-[#f5f5f5] transition-transform duration-300 ease-out lg:transition-none lg:translate-x-0 lg:relative lg:inset-auto ${
+        className={`w-full lg:flex-[2_1_0] min-w-0 flex flex-col gap-4 px-1.5 lg:px-8 pt-6 pb-6 lg:-mb-8 lg:bg-[#f5f5f5] transition-transform duration-300 ease-out lg:transition-none lg:translate-x-0 lg:relative lg:inset-auto ${
           mobileView === 'list'
             ? 'absolute inset-x-0 top-0 translate-x-full'
             : 'translate-x-0'
@@ -654,28 +654,12 @@ function DetailNotice({ status }: { status: HistoryStatus }) {
   );
 }
 
-function DetailTotalsRow({ item }: { item: HistoryItem }) {
-  // Build up to 3 cells based on which fields the record carries. Each cell
-  // can override its value color (used for the green/red NET CHANGE row).
-  const cells: { label: string; value: string; valueColor?: string }[] = [];
+export type TotalsRowCell = { label: string; value: string; valueColor?: string };
 
-  if (item.netChange) {
-    cells.push({
-      label: 'NET CHANGE',
-      value: item.netChange,
-      valueColor: getAmountColor(item.netChange),
-    });
-  }
-  cells.push({
-    label: item.status === 'pending' ? 'NEW CONTRACT TOTAL' : 'CONTRACT TOTAL',
-    value: item.contractTotal,
-  });
-  if (item.validUntil) {
-    cells.push({ label: 'VALID UNTIL', value: item.validUntil });
-  } else if (item.approvedOn) {
-    cells.push({ label: 'APPROVED ON', value: item.approvedOn });
-  }
-
+/** Reusable label/value cell row — extracted so both ChangeHistoryView's
+ *  DetailTotalsRow and ChangeOrderPage's Pending Change Order card render
+ *  the same typography, dividers, and value baseline. */
+export function TotalsRow({ cells }: { cells: TotalsRowCell[] }) {
   return (
     <div className="flex flex-row items-stretch w-full py-2">
       {cells.map((c, i) => (
@@ -707,6 +691,31 @@ function DetailTotalsRow({ item }: { item: HistoryItem }) {
       ))}
     </div>
   );
+}
+
+function DetailTotalsRow({ item }: { item: HistoryItem }) {
+  // Build up to 3 cells based on which fields the record carries. Each cell
+  // can override its value color (used for the green/red NET CHANGE row).
+  const cells: TotalsRowCell[] = [];
+
+  if (item.netChange) {
+    cells.push({
+      label: 'NET CHANGE',
+      value: item.netChange,
+      valueColor: getAmountColor(item.netChange),
+    });
+  }
+  cells.push({
+    label: item.status === 'pending' ? 'NEW CONTRACT TOTAL' : 'CONTRACT TOTAL',
+    value: item.contractTotal,
+  });
+  if (item.validUntil) {
+    cells.push({ label: 'VALID UNTIL', value: item.validUntil });
+  } else if (item.approvedOn) {
+    cells.push({ label: 'APPROVED ON', value: item.approvedOn });
+  }
+
+  return <TotalsRow cells={cells} />;
 }
 
 function DetailCtaRow({
