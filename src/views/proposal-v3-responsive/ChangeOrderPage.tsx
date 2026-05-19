@@ -903,6 +903,7 @@ export default function ChangeOrderPage() {
           )
         }
         hideMobileRightColumn={isContractTab}
+        hideMobileStickyFooter={isChangesTab}
         mobileStickyFooterOverride={
           isContractTab || isInvoicesTab ? (
             <ContractDocStickyFooter
@@ -942,7 +943,11 @@ export default function ChangeOrderPage() {
           isInvoicesTab ? (
             <ChangeOrderInvoicesView onViewPendingChangeOrder={() => setTab('home')} />
           ) : isChangesTab ? (
-            <ChangeHistoryView products={flattenSelectedUpgrades(STUB_OPTION.products)} />
+            <ChangeHistoryView
+              products={flattenSelectedUpgrades(STUB_OPTION.products)}
+              onViewPendingChangeOrder={() => setTab('home')}
+              onViewCurrentApprovedContract={() => setTab('contract')}
+            />
           ) : undefined
         }
       />
