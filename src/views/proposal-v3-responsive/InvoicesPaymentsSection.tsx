@@ -32,7 +32,7 @@ type DueState = 'normal' | 'today' | 'overdue' | 'none';
  *  on the dev console. */
 export type InvoiceMode = 'happyPath' | 'enumerate';
 
-type Invoice = {
+export type Invoice = {
   number: number;
   label: string;       // e.g. "Deposit (20%)" / "Balance (60%)"
   amount: number;      // total invoice amount
@@ -909,7 +909,7 @@ function DueDateText({
 // XS: heading 12px, INVOICE# 10px, label 14px, amount 20px, date 12px, py-8
 // S/M: heading 16px, INVOICE# 12px, label 16px, amount 24px, date 14px, py-12
 // ─────────────────────────────────────────────────────────────────────────────
-function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }) {
+export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }) {
   const { paidOnDate } = useInvoicesData();
   // PROCESSING with a remaining balance still pending the user's next
   // payment renders in the same blue as PARTIAL, since the invoice isn't
@@ -1012,7 +1012,7 @@ function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }
         </div>
         {/* Row 2: Label + Amount (stacked) */}
         <div className="flex flex-col items-start w-full">
-          <p className="text-[14px] sm:text-[16px] text-[#bfbfbf] whitespace-nowrap leading-normal">
+          <p className="text-[14px] sm:text-[16px] text-[#737373] whitespace-nowrap leading-normal">
             {inv.label}
           </p>
           <p className="text-[20px] sm:text-[24px] whitespace-nowrap leading-normal">

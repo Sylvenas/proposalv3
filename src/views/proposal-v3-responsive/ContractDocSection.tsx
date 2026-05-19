@@ -145,12 +145,34 @@ function AboutSidebar({ approvedAt }: { approvedAt: Date }) {
 // Collapsed: single-line date summary + "Read more" link.
 // Expanded: full About This Document text (heading + date + long paragraph)
 // above the Download button, with a "Show less" affordance to collapse.
-function ContractDocStickyFooter({
+export function ContractDocStickyFooter({
   approvedAt,
   onHeightChange,
+  topAction,
+  visible = true,
+  expandedDescription,
+  hideApprovalLine = false,
 }: {
   approvedAt: Date;
   onHeightChange: (height: number) => void;
+  /** Optional override for the primary button slot. When provided, replaces
+   *  the default DownloadContractButton — used by ChangeOrderPage to swap
+   *  in the "View Pending Change Order" CTA. */
+  topAction?: React.ReactNode;
+  /** When false, the footer slides off-screen via translateY. Used by
+   *  ChangeOrderPage to hide the footer while the inline "View Pending
+   *  Change Order" CTA is on screen, then reveal it once that CTA scrolls
+   *  out of view. Defaults to true (always shown). */
+  visible?: boolean;
+  /** Optional override for the long description shown when the user taps
+   *  "Read more". Defaults to the executed-contract blurb; ChangeOrderPage
+   *  swaps in the contract-locked Note message. */
+  expandedDescription?: React.ReactNode;
+  /** When true, hide the "This contract was approved and signed on …" row
+   *  (and the Read more / Show less expand/collapse affordance). The
+   *  `expandedDescription` is then always rendered inline. Used by
+   *  ChangeOrderPage where the approval date is irrelevant. */
+  hideApprovalLine?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -180,12 +202,16 @@ function ContractDocStickyFooter({
       style={{
         boxShadow: '0px -4px 24px rgba(0,0,0,0.18)',
         fontFamily: 'Segoe UI, sans-serif',
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.3s',
       }}
     >
-      <DownloadContractButton />
+      {topAction ?? <DownloadContractButton />}
 
-      {/* About row — 12px date + Read more. Collapsed: single-line truncated.
-          Expanded: date wraps to full length + Read more hides. */}
+      {/* Primary blurb row — collapsed: single-line truncated + Read more.
+          When `hideApprovalLine` is true the approval-date sentence is
+          skipped; the row shows the description text directly so Read more /
+          Show less still toggle a one-line preview vs. the full message. */}
       <div className="flex gap-3 items-center w-full" style={{ minHeight: 32 }}>
         <p
           className={
@@ -195,7 +221,9 @@ function ContractDocStickyFooter({
           }
           style={{ fontWeight: 350, letterSpacing: '-0.24px' }}
         >
-          This contract was approved and signed on {formatDate(approvedAt)}
+          {hideApprovalLine
+            ? (expandedDescription ?? null)
+            : `This contract was approved and signed on ${formatDate(approvedAt)}`}
         </p>
         {!expanded && (
           <button
@@ -209,18 +237,26 @@ function ContractDocStickyFooter({
       </div>
 
       {/* Expanded details — appear BELOW the date row, pushing downward.
-          Long description + Show less link at the bottom to collapse again. */}
+          Long description + Show less link at the bottom to collapse again.
+          When `hideApprovalLine` is true the description is already in the
+          row above (no separate long-form block), so just render Show less. */}
       {expanded && (
         <>
-          <p
-            className="text-[12px] text-[#262626] leading-[1.5] w-full"
-            style={{ fontWeight: 350, letterSpacing: '-0.24px' }}
-          >
-            This PDF is the executed contract associated with this project. It reflects
-            the scope, pricing, and terms approved at the time of signing. Any later
-            updates or approved changes may appear in the project record or change history.
-          </p>
-          <div className="flex justify-end w-full">
+          {!hideApprovalLine && (
+            <p
+              className="text-[12px] text-[#262626] leading-[1.5] w-full"
+              style={{ fontWeight: 350, letterSpacing: '-0.24px' }}
+            >
+              {expandedDescription ?? (
+                <>
+                  This PDF is the executed contract associated with this project. It reflects
+                  the scope, pricing, and terms approved at the time of signing. Any later
+                  updates or approved changes may appear in the project record or change history.
+                </>
+              )}
+            </p>
+          )}
+          <div className={`flex ${hideApprovalLine ? 'justify-start' : 'justify-end'} w-full`}>
             <button
               onClick={() => setExpanded(false)}
               className="text-[12px] text-center underline whitespace-nowrap cursor-pointer border-0 bg-transparent p-0"
