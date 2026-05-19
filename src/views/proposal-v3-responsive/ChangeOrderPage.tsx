@@ -13,6 +13,7 @@ import SummaryPageResponsive, {
   ADDON_DESCRIPTIONS,
   ContactSalesButton,
   DEFAULT_ADDONS,
+  OptionSummaryTitleBlock,
   SectionCard,
   type AddonItem,
   type FenceOption,
@@ -26,13 +27,15 @@ import {
 } from './ProjectHubPageResponsive';
 import ValidUntilPill from './ValidUntilPill';
 import PricingDisclaimers from './PricingDisclaimers';
-import { PdfPages } from './ContractDocSection';
+import { ContractDocStickyFooter, PdfPages } from './ContractDocSection';
 import BorderlessLinkButton from './BorderlessLinkButton';
 import {
   DesktopPaymentRecordsTable,
   InvoicesDataContext,
+  MobileInvoiceCard,
   MobilePaymentRecordCard,
   buildInvoicesData,
+  type Invoice as InvoiceData,
 } from './InvoicesPaymentsSection';
 import ChangeHistoryView from './ChangeHistoryView';
 import { useDevConsole } from './DevConsoleContext';
@@ -98,6 +101,21 @@ const STUB_OPTION: FenceOption = {
   ],
 };
 
+// Shared Change Order header — eyebrow + title + address + Valid Until pill.
+// Rendered both at the top of the mobile layout (via SummaryPageResponsive's
+// `mobileTopTitleOverride`) and inside the right-column summary panel.
+function ChangeOrderHeaderBlock() {
+  return (
+    <div className="flex flex-col gap-4">
+      <OptionSummaryTitleBlock
+        eyebrow="Pending Change Order #3"
+        titleOverride="Add Pool-Side Gates & Extra Panels"
+      />
+      <ValidUntilPill date="April 30, 2026" className="self-start" />
+    </div>
+  );
+}
+
 // ── Right-column ──────────────────────────────────────────────────────────────
 // Static Change Order summary panel. Numbers are placeholder constants so the
 // page looks complete; the real wiring will replace these as the workflow
@@ -119,22 +137,7 @@ function ChangeOrderRightColumn({
       style={{ fontFamily: 'Segoe UI, sans-serif' }}
     >
       {/* ── Header block ── */}
-      <div className="flex flex-col gap-3">
-        <div className="bg-white flex flex-col items-start w-full leading-normal text-[#262626]">
-          <p className="text-[12px] sm:text-[13px] xl:text-[14px] font-semibold text-[#737373] uppercase tracking-[0.06em] w-full">
-            Pending Change Order #3
-          </p>
-          <p className="text-[16px] sm:text-[20px] xl:text-[24px] font-semibold w-full">
-            Add Pool-Side Gates &amp; Extra Panels
-          </p>
-          <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full">
-            1722 Willis Ave NW, Grand Rapids, MI 49504
-          </p>
-        </div>
-        {/* Valid Until pill — shares the cover page's pill component so
-            padding / text size / icon size stay aligned across both pages. */}
-        <ValidUntilPill date="April 30, 2026" className="self-start" />
-      </div>
+      <ChangeOrderHeaderBlock />
 
       {/* ── Financials ── */}
       <div className="bg-white flex flex-col items-start w-full">
@@ -402,21 +405,12 @@ function BackArrowGlyph() {
 // future iterations of the right column.
 void IMG_CHEVRON_RIGHT;
 
-// ── "Current Approved Contract" tab right column ──────────────────────────────
-// Placeholder content describing the most recently approved change order
-// (CO #2) while CO #3 is pending. Mirrors the financial layout of the home
-// tab's right column so the two tabs feel visually consistent.
-function ContractTabRightColumn({
-  onViewInvoices,
-}: {
-  onViewInvoices?: () => void;
-}) {
+// Shared Contract-tab header — CHANGE ORDER #2 eyebrow + title + address +
+// "Approved on …" + the lock notice. Rendered both inside ContractTabRightColumn
+// and at the top of the mobile layout via `mobileTopTitleOverride`.
+function ContractTabHeaderBlock() {
   return (
-    <div
-      className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full"
-      style={{ fontFamily: 'Segoe UI, sans-serif' }}
-    >
-      {/* Header block */}
+    <div className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full">
       <div className="flex flex-col gap-3">
         <div className="bg-white flex flex-col items-start w-full leading-normal text-[#262626]">
           <p className="text-[12px] sm:text-[13px] xl:text-[14px] font-semibold text-[#737373] uppercase tracking-[0.06em] w-full">
@@ -434,7 +428,6 @@ function ContractTabRightColumn({
           <LockGlyph />
         </p>
       </div>
-
       {/* Lock notice — pale neutral background per the latest mock; padding
           + text scale still mirror the ExpiredNotice pill so the two info
           callouts share dimensions across the app. */}
@@ -445,6 +438,32 @@ function ContractTabRightColumn({
           withdraw it.
         </p>
       </div>
+    </div>
+  );
+}
+
+// ── "Current Approved Contract" tab right column ──────────────────────────────
+// Placeholder content describing the most recently approved change order
+// (CO #2) while CO #3 is pending. Mirrors the financial layout of the home
+// tab's right column so the two tabs feel visually consistent.
+function ContractTabRightColumn({
+  onViewInvoices,
+  onViewPendingChangeOrder,
+  viewPendingButtonRef,
+}: {
+  onViewInvoices?: () => void;
+  onViewPendingChangeOrder?: () => void;
+  /** Optional ref attached to the "View Pending Change Order" button's
+   *  wrapper. ChangeOrderPage uses it with IntersectionObserver to hide
+   *  the mobile sticky footer while this inline CTA is on screen. */
+  viewPendingButtonRef?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <div
+      className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full"
+      style={{ fontFamily: 'Segoe UI, sans-serif' }}
+    >
+      <ContractTabHeaderBlock />
 
       {/* Financials */}
       <div className="bg-white flex flex-col items-start w-full">
@@ -473,10 +492,12 @@ function ContractTabRightColumn({
 
         {/* CTAs */}
         <div className="flex flex-col gap-3 items-start py-2 lg:py-3 w-full">
-          <OutlinedButton>
-            <JumpArrowGlyph />
-            View Pending Change Order
-          </OutlinedButton>
+          <div ref={viewPendingButtonRef} className="w-full">
+            <OutlinedButton onClick={onViewPendingChangeOrder}>
+              <JumpArrowGlyph />
+              View Pending Change Order
+            </OutlinedButton>
+          </div>
           {/* Contact Sales — reuse Summary's button so the click opens the
               ContactSalesModal exactly like the Summary page. */}
           <ContactSalesButton />
@@ -780,6 +801,21 @@ export default function ChangeOrderPage() {
   // manages its own sheet internally.
   const [productDetail, setProductDetail] = useState<ProductDetailContent | null>(null);
 
+  // Track whether the inline "View Pending Change Order" button (top of the
+  // mobile Contract tab) is on screen — if so, the mobile sticky footer
+  // hides itself, then slides back in once the button scrolls out of view.
+  const viewPendingButtonRef = useRef<HTMLDivElement>(null);
+  const [pendingCtaVisible, setPendingCtaVisible] = useState(false);
+  useEffect(() => {
+    const el = viewPendingButtonRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPendingCtaVisible(entry.isIntersecting),
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tab]);
+
   const isContractTab = tab === 'contract';
   const isInvoicesTab = tab === 'invoices';
   const isChangesTab = tab === 'changes';
@@ -855,9 +891,44 @@ export default function ChangeOrderPage() {
         bodyTransitionKey={tab}
         bodyTransitionDirection={slideDirection}
         rightColumnTopPx={80}
+        mobileTopTitleOverride={
+          isContractTab ? (
+            <ContractTabRightColumn
+              onViewInvoices={() => setTab('invoices')}
+              onViewPendingChangeOrder={() => setTab('home')}
+              viewPendingButtonRef={viewPendingButtonRef}
+            />
+          ) : (
+            <ChangeOrderHeaderBlock />
+          )
+        }
+        hideMobileRightColumn={isContractTab}
+        mobileStickyFooterOverride={
+          isContractTab || isInvoicesTab ? (
+            <ContractDocStickyFooter
+              approvedAt={new Date()}
+              onHeightChange={() => {}}
+              visible={isContractTab ? !pendingCtaVisible : true}
+              hideApprovalLine
+              topAction={
+                <OutlinedButton onClick={() => setTab('home')}>
+                  <JumpArrowGlyph />
+                  View Pending Change Order
+                </OutlinedButton>
+              }
+              expandedDescription={
+                <>
+                  <span className="font-semibold">Note:</span> this contract is locked while a change
+                  order is pending. Approve the change order to continue, or contact your sales
+                  representative to withdraw it.
+                </>
+              }
+            />
+          ) : undefined
+        }
         rightColumn={
           isContractTab ? (
-            <ContractTabRightColumn onViewInvoices={() => setTab('invoices')} />
+            <ContractTabRightColumn onViewInvoices={() => setTab('invoices')} onViewPendingChangeOrder={() => setTab('home')} />
           ) : (
             <ChangeOrderRightColumn
               onViewInvoices={() => setTab('invoices')}
@@ -885,7 +956,8 @@ export default function ChangeOrderPage() {
         onClose={closeSchedule}
         financingExcluded={config.financingEstimation === 'excluded'}
         scheduledPaymentsCount={config.scheduledPaymentsCount}
-        title="Revised Pending Payment & Schedule"
+        title="Pending Revised Payment Schedule"
+        optionLabelPrefix="Change Order #3"
         progressBlock={
           <PaymentProgressBlock
             progressLabel="Revised Progress · 33%"
@@ -907,7 +979,7 @@ export default function ChangeOrderPage() {
           ];
           return (
             <div className="flex flex-col gap-2 w-full">
-              <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
+              <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
                 Revised Invoices · {revisedInvoices.length}
               </p>
               <div className="flex flex-col gap-2 w-full">
@@ -918,7 +990,40 @@ export default function ChangeOrderPage() {
             </div>
           );
         })()}
+        mobileScheduleList={<RevisedInvoicesList />}
       />
     </>
+  );
+}
+
+// Revised invoices rendered with the same MobileInvoiceCard used on the
+// Invoices & Payments tab. Wraps the cards in a minimal InvoicesDataContext
+// so `useInvoicesData()` resolves the paid-on date for the cleared invoice.
+function RevisedInvoicesList() {
+  const data = useMemo(() => {
+    const base = buildInvoicesData(12000);
+    return {
+      ...base,
+      paidOnDate: (n: number) => (n === 1 ? 'Mar 23, 2026' : undefined),
+    };
+  }, []);
+  const invoices: InvoiceData[] = [
+    { number: 1, label: 'Deposit (16%)', amount: 2000, received: 2000, status: 'paid',    dueDate: 'Mar 23, 2026', dueState: 'none'   },
+    { number: 2, label: 'Balance (42%)', amount: 5000, received: 2000, status: 'partial', dueDate: 'May 2, 2026',  dueState: 'normal' },
+    { number: 3, label: 'Balance (42%)', amount: 5000, received: 0,    status: 'unpaid',  dueDate: 'Jun 11, 2026', dueState: 'normal' },
+  ];
+  return (
+    <InvoicesDataContext.Provider value={data}>
+      <div className="flex flex-col gap-2 w-full">
+        <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
+          Revised Invoices · {invoices.length}
+        </p>
+        <div className="flex flex-col gap-3 w-full">
+          {invoices.map((inv) => (
+            <MobileInvoiceCard key={inv.number} inv={inv} onOpen={() => {}} />
+          ))}
+        </div>
+      </div>
+    </InvoicesDataContext.Provider>
   );
 }

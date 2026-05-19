@@ -283,20 +283,29 @@ function ActionHeaderSpacer() {
 // hideSummaryLabel: omits it (used in the mobile "Option Header" above scope)
 // titleOverride: when provided, replaces `option.label` (used in single-option
 // mode to show the proposal name instead of an individual option label).
-function OptionSummaryTitleBlock({
+// eyebrow: small uppercase gray label above the title (used by Change Order
+// page to render "Pending Change Order #N").
+export function OptionSummaryTitleBlock({
   option,
   showSummaryLabel = false,
   titleOverride,
+  eyebrow,
 }: {
-  option: FenceOption;
+  option?: FenceOption;
   showSummaryLabel?: boolean;
   titleOverride?: string;
+  eyebrow?: string;
 }) {
   return (
     <div
       className="bg-white flex flex-col items-start w-full leading-normal text-[#262626]"
       style={{ fontFamily: 'Segoe UI, sans-serif' }}
     >
+      {eyebrow && (
+        <p className="text-[12px] sm:text-[13px] xl:text-[14px] font-semibold text-[#737373] uppercase tracking-[0.06em] w-full">
+          {eyebrow}
+        </p>
+      )}
       {showSummaryLabel && (
         // Mobile (XS/S): --font-m → 14px / 16px
         // Desktop (M-XXL): --font-l → 20px / 24px
@@ -306,7 +315,7 @@ function OptionSummaryTitleBlock({
       )}
       {/* Option name — --font-l both variants: 16px / 20px / 24px */}
       <p className="text-[16px] sm:text-[20px] xl:text-[24px] font-semibold w-full">
-        {titleOverride ?? option.label}
+        {titleOverride ?? option?.label}
       </p>
       {/* Address — --font-m both variants: 14px / 16px / 20px */}
       <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full">
@@ -1239,6 +1248,10 @@ export default function SummaryPageResponsive({
   bodyTransitionKey,
   bodyTransitionDirection = 'right',
   rightColumnTopPx = 48,
+  mobileTopTitleOverride,
+  hideMobileStickyFooter = false,
+  hideMobileRightColumn = false,
+  mobileStickyFooterOverride,
 }: {
   option: FenceOption;
   onBack: () => void;
@@ -1300,6 +1313,25 @@ export default function SummaryPageResponsive({
    *  Change Order's Project Hub tab bar is sticky too, so it passes a
    *  larger value to clear the bar + leave a small breathing gap. */
   rightColumnTopPx?: number;
+  /** Optional override for the mobile (lg:hidden) top title block. When
+   *  provided, replaces the OptionSummaryTitleBlock rendered above the
+   *  page's main content. Used by ChangeOrderPage to show the Change Order
+   *  header (PENDING CHANGE ORDER #N + Valid Until pill) at the top of the
+   *  mobile layout instead of the proposal title. */
+  mobileTopTitleOverride?: React.ReactNode;
+  /** Suppress the mobile sticky footer entirely (XS/S/M). Used by
+   *  ChangeOrderPage's Current Approved Contract tab where the financial
+   *  CTA doesn't apply. */
+  hideMobileStickyFooter?: boolean;
+  /** Suppress the mobile (lg:hidden) duplicate of `rightColumn` rendered
+   *  below the body. Used by ChangeOrderPage's Current Approved Contract
+   *  tab when the right column is moved to the top via
+   *  `mobileTopTitleOverride`. Desktop sticky column is unaffected. */
+  hideMobileRightColumn?: boolean;
+  /** When provided (and `hideMobileStickyFooter` is false), render this node
+   *  in place of the default StickyFooter on mobile. Used by ChangeOrderPage's
+   *  Contract / Invoices tabs to swap in the ContractDocStickyFooter. */
+  mobileStickyFooterOverride?: React.ReactNode;
 }) {
   const approveCtaLabel = signatureRequired ? 'Sign & Approve' : 'Approve';
   // Body slide-in animation. Plays via Web Animations API on a ref so the
@@ -1308,6 +1340,11 @@ export default function SummaryPageResponsive({
   const bodyAnimRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!bodyTransitionKey) return;
+    // Skip the slide animation on mobile (XS–M). Tab swap on mobile happens
+    // through the full-screen ProjectHubStickyHeader dropdown, which is
+    // already an explicit transition — the body slide on top of that reads
+    // as visual noise.
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) return;
     const el = bodyAnimRef.current;
     if (!el || typeof el.animate !== 'function') return;
     // Larger displacement + ease-in-out so the slide reads as a deliberate
@@ -1472,13 +1509,22 @@ export default function SummaryPageResponsive({
   const [contentPb, setContentPb] = useState(0);
 
   useEffect(() => {
-    const el = mobileSummaryRef.current;
-    if (!el) return;
-
     const recalc = () => {
       if (window.innerWidth >= 1024) {
         pbRef.current = 32;
         setContentPb(32);
+        return;
+      }
+      const el = mobileSummaryRef.current;
+      if (!el) {
+        // No mobile-summary anchor — happens when `bodyOverride` is used
+        // (Invoices tab) or `hideMobileRightColumn` is set (Contract tab).
+        // Reserve space for the sticky footer if it's still shown so the
+        // last bit of content isn't covered. 80px footer + 24px breathing
+        // room so the last card doesn't visually butt up against it.
+        const pad = hideMobileStickyFooter ? 0 : 104;
+        pbRef.current = pad;
+        setContentPb(pad);
         return;
       }
       const rect = el.getBoundingClientRect();
@@ -1499,7 +1545,7 @@ export default function SummaryPageResponsive({
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', recalc);
     };
-  }, []);
+  }, [hideMobileStickyFooter, bodyOverride]);
 
   useEffect(() => {
     const el = ctaRef.current;
@@ -1552,18 +1598,24 @@ export default function SummaryPageResponsive({
             In single-option mode the back button is replaced with an empty
             spacer of the same height so the title block keeps its original
             distance from the page header. */}
-        <div className="lg:hidden flex flex-col gap-0 w-full">
+        <div
+          className={`lg:hidden flex flex-col gap-0 w-full ${
+            mobileTopTitleOverride ? 'mb-1' : ''
+          }`}
+        >
           {singleOptionMode ? (
             <ActionHeaderSpacer />
           ) : (
             <ActionHeader onBack={onBack} />
           )}
           <div ref={topTitleRef}>
-            <OptionSummaryTitleBlock
-              option={option}
-              showSummaryLabel={false}
-              titleOverride={titleOverride}
-            />
+            {mobileTopTitleOverride ?? (
+              <OptionSummaryTitleBlock
+                option={option}
+                showSummaryLabel={false}
+                titleOverride={titleOverride}
+              />
+            )}
           </div>
         </div>
 
@@ -1627,9 +1679,11 @@ export default function SummaryPageResponsive({
               // padding so the layout aligns with the page below; desktop
               // wrapper preserves the px-3 inset.
               <>
-                <div ref={mobileSummaryRef} className="lg:hidden pt-4 sm:pt-8 px-4 sm:px-8 w-full">
-                  {rightColumn}
-                </div>
+                {!hideMobileRightColumn && (
+                  <div ref={mobileSummaryRef} className="lg:hidden pt-4 sm:pt-8 px-4 sm:px-8 w-full">
+                    {rightColumn}
+                  </div>
+                )}
                 <div className="hidden lg:block px-3 w-full">
                   {rightColumn}
                 </div>
@@ -1706,18 +1760,25 @@ export default function SummaryPageResponsive({
 
       {/* Sticky Header — XS/S/M only, slides in from top */}
       <StickyHeader option={option} visible={showStickyHeader} titleOverride={titleOverride} />
-      {/* Sticky Footer — XS/S/M only, slides down when CTA block is visible */}
-      <StickyFooter
-        visible={showStickyFooter}
-        financials={financials}
-        onScrollToSummary={() =>
-          mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
-        }
-        onSignApprove={onRequestSign}
-        approveLabel={approveCtaLabel}
-        onViewSchedule={openSchedule}
-        expired={expired}
-      />
+      {/* Sticky Footer — XS/S/M only. Default is the price + Summary/Approve
+          StickyFooter; callers can swap in a different footer via
+          `mobileStickyFooterOverride` (e.g., ChangeOrderPage's Contract /
+          Invoices tabs use ContractDocStickyFooter). */}
+      {!hideMobileStickyFooter && (
+        mobileStickyFooterOverride ?? (
+          <StickyFooter
+            visible={showStickyFooter}
+            financials={financials}
+            onScrollToSummary={() =>
+              mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
+            }
+            onSignApprove={onRequestSign}
+            approveLabel={approveCtaLabel}
+            onViewSchedule={openSchedule}
+            expired={expired}
+          />
+        )
+      )}
 
       {/* Product / Upgrade / Add-on detail bottom sheet — opened by tapping a
           product line item (Product/Upgrade variant) or an add-on line item

@@ -296,8 +296,10 @@ export default function PaymentScheduleDialog({
   financingExcluded = false,
   scheduledPaymentsCount = 'common',
   title = 'Payment Schedule',
+  optionLabelPrefix,
   progressBlock,
   scheduleList,
+  mobileScheduleList,
 }: {
   /** Non-null = open. Null = closed. */
   data: PaymentScheduleData | null;
@@ -315,6 +317,10 @@ export default function PaymentScheduleDialog({
    *  Schedule"; Change Order overrides this to "Revised Pending Payment
    *  & Schedule". Rendered with `text-transform: uppercase`. */
   title?: string;
+  /** Optional prefix prepended to the option label (e.g. "Change Order #3")
+   *  joined with " - ". Used by ChangeOrderPage to surface the change order
+   *  number inline with the option name. */
+  optionLabelPrefix?: string;
   /** Optional override for the desktop progress section. When provided,
    *  this replaces the default 1-2-3 PaymentProgressBar — used by
    *  ChangeOrderPage to swap in the Revised Progress PaymentProgressBlock. */
@@ -323,6 +329,11 @@ export default function PaymentScheduleDialog({
    *  this replaces the default Scheduled Payments rows — used by
    *  ChangeOrderPage to swap in the Revised Invoices tinted card. */
   scheduleList?: React.ReactNode;
+  /** Optional override for the mobile sheet's schedule list only. When
+   *  provided, this replaces the mobile rows; the desktop modal still uses
+   *  `scheduleList`. Lets ChangeOrderPage render MobileInvoiceCard on
+   *  mobile while keeping the InvoiceComparisonRow layout on desktop. */
+  mobileScheduleList?: React.ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen]       = useState(false);
@@ -477,6 +488,30 @@ export default function PaymentScheduleDialog({
 
   // Loan summary string used inline on the mobile sheet.
   const loanSummary = `${fmtMoney0(last.loanAmount)} · ${last.termMonths} terms · ${last.apr}%`;
+  // Mobile sheet: change-order prefix gets a smaller / semibold / uppercase
+  // secondary-color treatment so the option name stays the primary anchor.
+  const optionLabelDisplayMobile: React.ReactNode = optionLabelPrefix ? (
+    <>
+      <span className="text-[14px] sm:text-[16px] font-semibold text-[#737373] uppercase">
+        {optionLabelPrefix}
+      </span>
+      <br />
+      {last.optionLabel}
+    </>
+  ) : (
+    last.optionLabel
+  );
+  // Desktop modal: prefix renders in the same font/size/weight/color as the
+  // option label below it (inherits the parent <p>'s styles — no custom span).
+  const optionLabelDisplayDesktop: React.ReactNode = optionLabelPrefix ? (
+    <>
+      {optionLabelPrefix}
+      <br />
+      {last.optionLabel}
+    </>
+  ) : (
+    last.optionLabel
+  );
 
   return (
     <>
@@ -537,52 +572,56 @@ export default function PaymentScheduleDialog({
             ref={sheetScrollRef}
             className="payment-schedule-scroll flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pt-6 pb-4"
           >
-            {/* Info header — mirrors the invoice-info block in
-                InvoicePaymentDetailDialog (small uppercase eyebrow,
-                semibold title, project subtitle). Scrolls with the list. */}
-            <div className="flex flex-col gap-1 w-full pb-4">
-              <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-                {title}
-              </p>
+            {/* Info header — option label only on mobile (eyebrow + project
+                subtitle are intentionally omitted; the desktop modal keeps
+                the full three-line header). Scrolls with the list. */}
+            <div className="flex flex-col gap-1 w-full pb-6">
               <p className="text-[16px] sm:text-[18px] font-semibold text-[#262626] leading-normal">
-                {last.optionLabel}
-              </p>
-              <p className="text-[14px] sm:text-[16px] text-[#262626] leading-normal">
-                {last.projectName}
+                {optionLabelDisplayMobile}
               </p>
             </div>
 
-            {/* Schedule line items */}
-            <div className="flex flex-col gap-2 w-full">
-              {schedule.map((s, i) => (
-                <ScheduleLineItem
-                  key={s.num}
-                  num={s.num}
-                  label={s.label}
-                  amount={amounts[i]}
-                  due={s.due}
-                  variant="mobile"
-                />
-              ))}
-            </div>
+            {/* Optional progress block — Change Order passes the Revised
+                Progress card so the mobile sheet matches the desktop modal. */}
+            {progressBlock && <div className="pb-6 w-full">{progressBlock}</div>}
+
+            {/* Schedule line items — caller can override (e.g. Change Order's
+                Revised Invoices list); default falls back to the standard
+                ScheduleLineItem rows. Mobile takes `mobileScheduleList` first
+                so callers can render a different layout on the sheet vs. the
+                desktop modal. */}
+            {mobileScheduleList ?? scheduleList ?? (
+              <div className="flex flex-col gap-2 w-full">
+                {schedule.map((s, i) => (
+                  <ScheduleLineItem
+                    key={s.num}
+                    num={s.num}
+                    label={s.label}
+                    amount={amounts[i]}
+                    due={s.due}
+                    variant="mobile"
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Financing blocks — Estimated Monthly Payment + Loan summary +
                 disclaimer. Hidden together when DevConsole → Summary Page →
                 Financing Estimation = Excluded. */}
             {!financingExcluded && (
               <>
-                <div className="flex flex-col gap-1 w-full mt-6">
+                <div className="flex flex-col gap-1 w-full mt-8">
                   <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-                    Estimated Monthly Payment
+                    Revised Estimated Monthly Payment
                   </p>
                   <p className="text-[20px] sm:text-[24px] font-semibold text-[#262626] leading-normal">
                     {fmtMoney2(last.monthly)} / mo
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-1 w-full mt-6">
+                <div className="flex flex-col gap-1 w-full mt-8">
                   <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-                    Estimated Loan Amount / Terms / APR
+                    Revised Estimated Loan Amount / Terms / APR
                   </p>
                   <p className="text-[20px] sm:text-[24px] text-[#262626] leading-normal" style={{ fontWeight: 300 }}>
                     {loanSummary}
@@ -604,7 +643,7 @@ export default function PaymentScheduleDialog({
                         sc.scrollTo({ top: sc.scrollHeight, behavior: 'smooth' });
                       });
                     }}
-                    className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] w-full mt-6 mb-2"
+                    className="text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] w-full mt-8 mb-2"
                     style={{ fontWeight: 300 }}
                   >
                     Any monthly payment information shown is an estimate only and is not a financing offer.
@@ -612,7 +651,7 @@ export default function PaymentScheduleDialog({
                     will be confirmed during the formal application process.
                   </p>
                 ) : (
-                  <div className="flex gap-3 items-start w-full mt-6 mb-2">
+                  <div className="flex gap-3 items-start w-full mt-8 mb-2">
                     <p
                       className="flex-[1_0_0] min-w-0 text-[12px] text-[#262626] leading-[1.5] tracking-[-0.24px] overflow-hidden text-ellipsis whitespace-nowrap"
                       style={{ fontWeight: 300 }}
@@ -684,10 +723,10 @@ export default function PaymentScheduleDialog({
                   <p className="text-[12px] xl:text-[14px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal whitespace-nowrap">
                     {title}
                   </p>
-                  <p className="text-[16px] xl:text-[20px] text-[#262626] leading-normal whitespace-nowrap">
-                    {last.optionLabel}
+                  <p className="text-[16px] xl:text-[20px] text-[#262626] leading-normal whitespace-nowrap mt-1">
+                    {optionLabelDisplayDesktop}
                   </p>
-                  <p className="text-[14px] xl:text-[16px] text-[#737373] leading-normal whitespace-nowrap">
+                  <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal whitespace-nowrap -mt-1">
                     {last.projectName}
                   </p>
                 </div>
@@ -753,7 +792,7 @@ export default function PaymentScheduleDialog({
             {/* Header row with X */}
             <div className="flex items-start justify-between w-full">
               <p className="text-[12px] xl:text-[14px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal whitespace-nowrap">
-                Monthly Payment Estimation
+                Revised Monthly Payment Estimation
               </p>
               <button
                 type="button"

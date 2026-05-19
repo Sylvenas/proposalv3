@@ -42,7 +42,7 @@ export function PaymentProgressBlock({
       className="flex flex-col gap-2 w-full"
       style={{ background: bg, borderRadius: 8, padding }}
     >
-      <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
+      <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
         {progressLabel}
       </p>
       {/* 6px pill track on #e5e5e5, solid #04b50b received segment, hatched
@@ -68,7 +68,7 @@ export function PaymentProgressBlock({
           />
         </div>
       </div>
-      <div className="flex flex-row justify-between w-full text-[12px] xl:text-[14px] text-[#737373]">
+      <div className="flex flex-row justify-between w-full text-[12px] sm:text-[14px] xl:text-[14px] text-[#737373]">
         <div className="flex flex-col gap-0.5">
           <span>
             Received · <span className="text-[#04b50b]">{received}</span>
