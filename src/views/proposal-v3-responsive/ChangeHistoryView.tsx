@@ -22,6 +22,7 @@ import BorderlessLinkButton from './BorderlessLinkButton';
 import BackToTopButton from './BackToTopButton';
 import { ContactSalesModal } from './SalesContactCard';
 import { InvoiceComparisonRow, PaymentProgressBlock } from './ChangeOrderInvoiceRow';
+import ScrollHintArrows from './ScrollHintArrows';
 
 const BASE = '/images/proposal-v3-responsive';
 const IMG_DOWNLOAD = `${BASE}/download.svg`;
@@ -208,8 +209,18 @@ function getAmountColor(amount: string): string {
 // ── Main view ─────────────────────────────────────────────────────────────────
 export default function ChangeHistoryView({
   products,
+  onViewPendingChangeOrder,
+  onViewCurrentApprovedContract,
 }: {
   products: FenceProduct[];
+  /** Invoked when the user taps "View Pending Change Order" from an approved
+   *  change order's detail panel. The host (ChangeOrderPage) routes this to
+   *  the Project Home tab, where the pending change order is the headline. */
+  onViewPendingChangeOrder?: () => void;
+  /** Invoked when the user taps "View Current Approved Contract" from an
+   *  out-of-date / original-contract detail panel. The host routes this to
+   *  the Current Approved Contract tab. */
+  onViewCurrentApprovedContract?: () => void;
 }) {
   // Default selection — the latest node on the timeline (newest-first ordering).
   const [selectedId, setSelectedId] = useState<string>(HISTORY_ITEMS[0].id);
@@ -217,6 +228,19 @@ export default function ChangeHistoryView({
     () => HISTORY_ITEMS.find((i) => i.id === selectedId) ?? HISTORY_ITEMS[0],
     [selectedId],
   );
+
+  // Mobile (< lg) shows a paginated layout: the timeline list and the detail
+  // panel are separate "pages". Tapping a timeline card sets the selection
+  // AND flips mobileView to 'detail'. The detail page exposes an "All" back
+  // button at the top that returns to the list. Desktop ignores this state
+  // and always shows both columns side-by-side.
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
+
+  // Mobile timeline list scroll viewport — height-capped to the remaining
+  // viewport so the page itself never scrolls on the list page. If the
+  // timeline overflows that area, the scrollbar is hidden and ScrollHintArrows
+  // hint that more content sits above/below.
+  const listScrollRef = useRef<HTMLDivElement>(null);
 
   // Switching records replaces the detail panel content. If the user has
   // already scrolled past the top of the detail panel, reset their view to
@@ -227,6 +251,15 @@ export default function ChangeHistoryView({
   const handleSelect = (id: string) => {
     setSelectedId(id);
     if (typeof window === 'undefined') return;
+    // On mobile (< lg) treat the selection as a page navigation: flip into
+    // the detail view and reset scroll to the top so the user lands on the
+    // record's header rather than wherever they were on the list.
+    const isMobile = window.matchMedia('(max-width: 1023.98px)').matches;
+    if (isMobile) {
+      setMobileView('detail');
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      return;
+    }
     const el = detailRef.current;
     if (!el) return;
     const stickyTabBar = document.querySelector(
@@ -240,36 +273,102 @@ export default function ChangeHistoryView({
     }
   };
 
+  const handleMobileBack = () => {
+    setMobileView('list');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    }
+  };
+
   return (
     <div
-      className="flex flex-col lg:flex-row gap-3 w-full"
+      // Mobile (< lg): outer is `relative` + `overflow-hidden` so the
+      // off-screen panel is clipped on BOTH axes. Hiding only `overflow-x`
+      // leaves `overflow-y` computed as `auto` (CSS spec rule), which then
+      // exposes the absolute-positioned inactive panel's tall scrollHeight
+      // as a vertical scroll on the list page even though every node fits.
+      // Desktop (>= lg): reverts to overflow visible so the list column's
+      // sticky positioning continues to work.
+      className="relative flex flex-col lg:flex-row gap-3 w-full overflow-hidden lg:overflow-visible"
       style={{ fontFamily: 'Segoe UI, sans-serif' }}
     >
       {/* ── Left: history list ─────────────────────────────────────────── */}
-      {/* `pt-6` matches the right detail panel's top padding so both columns
-          start at the same vertical position under the sticky tab bar.
-          `pr-6` adds breathing room between the list cards and the right
-          detail panel's tinted background. */}
-      <div className="w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-12 lg:self-start pt-6 lg:pr-4">
-        <HistoryList
-          items={HISTORY_ITEMS}
-          selectedId={selectedId}
-          onSelect={handleSelect}
-        />
+      {/* Mobile slide animation: the inactive panel is taken out of normal
+          flow (`absolute inset-x-0 top-0`) so the wrapper height matches the
+          active panel only — no empty scroll space. The active panel sits at
+          `translate-x-0`; the inactive panel sits one viewport-width off the
+          opposite side (`-translate-x-full` left, `translate-x-full` right).
+          The `transition-transform duration-300 ease-out` interpolates that
+          transform when `mobileView` flips. Desktop: `lg:` variants restore
+          static position, zero transform, and auto inset. */}
+      <div
+        className={`w-full lg:flex-[1_1_0] min-w-0 lg:sticky lg:top-12 lg:self-start pt-6 lg:pr-4 transition-transform duration-300 ease-out lg:transition-none lg:translate-x-0 lg:relative lg:inset-auto ${
+          mobileView === 'detail'
+            ? 'absolute inset-x-0 top-0 -translate-x-full'
+            : 'translate-x-0'
+        }`}
+        style={{ willChange: 'transform' }}
+      >
+        {/* Mobile: the timeline scrolls inside a height-capped viewport so
+            the page itself never scrolls on the list page. The native
+            scrollbar is hidden and ScrollHintArrows fade in at the top/bottom
+            when more rows sit off-screen. On desktop the constraints unwind
+            (overflow-visible, no max-height) and the list flows naturally
+            inside its sticky column — the arrows are hidden by `lg:hidden`. */}
+        <style>{`
+          .change-history-list-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+          .change-history-list-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        `}</style>
+        <div className="relative">
+          <div
+            ref={listScrollRef}
+            className="change-history-list-scroll overflow-y-auto lg:overflow-visible max-h-[calc(100dvh-140px)] lg:max-h-none"
+          >
+            <HistoryList
+              items={HISTORY_ITEMS}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+            />
+          </div>
+          <div className="lg:hidden">
+            <ScrollHintArrows targetRef={listScrollRef} topInset={4} bottomInset={4} />
+          </div>
+        </div>
       </div>
 
       {/* ── Right: detail (tinted background) ─────────────────────────── */}
-      {/* `lg:-mb-8` reaches into the page container's lg paddingBottom (32px)
-          so the panel's bg meets the page bottom with no gap. */}
+      {/* Same paginated-slide treatment as the list above; this panel enters
+          from the right (`translate-x-full` when inactive). `lg:-mb-8` reaches
+          into the page container's lg paddingBottom (32px) so the tinted bg
+          meets the page bottom with no gap on desktop. */}
       <div
         ref={detailRef}
-        className="w-full lg:flex-[2_1_0] min-w-0 flex flex-col gap-4 px-4 sm:px-6 lg:px-8 pt-6 pb-6 lg:-mb-8"
-        style={{ background: '#f5f5f5' }}
+        className={`w-full lg:flex-[2_1_0] min-w-0 flex flex-col gap-4 lg:px-8 pt-6 pb-6 lg:-mb-8 lg:bg-[#f5f5f5] transition-transform duration-300 ease-out lg:transition-none lg:translate-x-0 lg:relative lg:inset-auto ${
+          mobileView === 'list'
+            ? 'absolute inset-x-0 top-0 translate-x-full'
+            : 'translate-x-0'
+        }`}
+        style={{ willChange: 'transform' }}
       >
+        {/* Mobile back button — returns to the timeline list. Hidden on
+            desktop where both columns are always visible. */}
+        <button
+          type="button"
+          onClick={handleMobileBack}
+          className="lg:hidden flex items-center gap-1 self-start text-[14px] text-[#262626] cursor-pointer bg-transparent border-0 p-0"
+          style={{ fontFamily: 'Segoe UI, sans-serif' }}
+        >
+          <BackArrowGlyph />
+          <span>All Change History</span>
+        </button>
         <DetailHeader item={selected} />
         <DetailNotice status={selected.status} />
         <DetailTotalsRow item={selected} />
-        <DetailCtaRow status={selected.status} />
+        <DetailCtaRow
+          status={selected.status}
+          onViewPendingChangeOrder={onViewPendingChangeOrder}
+          onViewCurrentApprovedContract={onViewCurrentApprovedContract}
+        />
         <PaymentSnapshotSection item={selected} />
         <ProjectHubDrawingSection />
         <ProjectHubProductsSection
@@ -408,11 +507,14 @@ function HistoryRow({
         />
       )}
       {/* Selected background highlight — sits inside the row only so the
-          timeline dot to the left stays visually separate from the card. */}
+          timeline dot to the left stays visually separate from the card.
+          Desktop-only: on mobile the list is a paginated view (tapping a
+          card navigates away), so a persistent "selected" state would be
+          misleading — every card reads as idle until tapped. */}
       {selected && (
         <span
           aria-hidden
-          className="absolute"
+          className="absolute hidden lg:block"
           style={{
             top: 0,
             bottom: 0,
@@ -586,11 +688,17 @@ function DetailTotalsRow({ item }: { item: HistoryItem }) {
               : undefined
           }
         >
-          <p className="text-[11px] xl:text-[12px] font-semibold text-[#737373] uppercase tracking-[0.06em] leading-[16px] whitespace-nowrap">
+          {/* Label is allowed to wrap to multiple lines — narrow mobile
+              columns can't fit "NEW CONTRACT TOTAL" / "VALID UNTIL" on one
+              line, and nowrap caused neighboring labels to visually overlap. */}
+          <p className="text-[11px] xl:text-[12px] font-semibold text-[#737373] uppercase tracking-[0.06em] leading-[16px]">
             {c.label}
           </p>
+          {/* `mt-auto` pushes the value to the bottom of the column so all
+              three columns share the same value baseline even when one label
+              wraps to multiple lines (e.g., "NEW CONTRACT TOTAL" on mobile). */}
           <p
-            className="text-[18px] sm:text-[20px] xl:text-[24px] leading-normal whitespace-nowrap font-normal pt-1"
+            className="text-[18px] sm:text-[20px] xl:text-[24px] leading-normal whitespace-nowrap font-normal pt-1 mt-auto"
             style={{ color: c.valueColor ?? '#262626' }}
           >
             {c.value}
@@ -601,7 +709,15 @@ function DetailTotalsRow({ item }: { item: HistoryItem }) {
   );
 }
 
-function DetailCtaRow({ status }: { status: HistoryStatus }) {
+function DetailCtaRow({
+  status,
+  onViewPendingChangeOrder,
+  onViewCurrentApprovedContract,
+}: {
+  status: HistoryStatus;
+  onViewPendingChangeOrder?: () => void;
+  onViewCurrentApprovedContract?: () => void;
+}) {
   const [contactOpen, setContactOpen] = useState(false);
   return (
     <div className="flex flex-col items-start w-full">
@@ -609,12 +725,14 @@ function DetailCtaRow({ status }: { status: HistoryStatus }) {
         <BorderlessLinkButton
           icon={<JumpArrowGlyph />}
           label="View Pending Change Order"
+          onClick={onViewPendingChangeOrder}
         />
       )}
       {(status === 'outOfDate' || status === 'original') && (
         <BorderlessLinkButton
           icon={<JumpArrowGlyph />}
           label="View Current Approved Contract"
+          onClick={onViewCurrentApprovedContract}
         />
       )}
       <BorderlessLinkButton
@@ -686,9 +804,11 @@ function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
 
   return (
     <SectionCard label={sectionLabel}>
+      {/* Inner tinted card wrappers (background, border-radius, padding) are
+          dropped here — the three sub-blocks (Progress, Invoices, Payment)
+          render flush against the parent SectionCard's own white background
+          instead of nesting another tier of cards. */}
       <div className="flex flex-col gap-6 w-full">
-        {/* Progress block — shared with the Invoices & Payments comparison
-            panels. Uses the same tinted card + bar + amounts layout. */}
         <PaymentProgressBlock
           progressLabel={`PROGRESS · ${Math.round(receivedPct + processingPct)}%`}
           received="$3,000"
@@ -697,20 +817,17 @@ function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
           outstanding="$3,999"
           receivedPct={receivedPct}
           processingPct={processingPct}
+          bg="transparent"
+          padding="0"
         />
 
-        {/* Invoices — same tinted card wrapper as the progress block so the
-            three blocks read as a consistent stack of cards. */}
-        <div
-          className="flex flex-col gap-2 w-full"
-          style={{ background: '#f5f5f5', borderRadius: 8, padding: '24px 20px' }}
-        >
-          <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
+        <div className="flex flex-col gap-2 w-full">
+          <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
             INVOICES · {invoices.length}
           </p>
           <div className="flex flex-col gap-2 w-full">
             {invoices.map((inv) => (
-              <InvoiceComparisonRow key={inv.num} row={inv} />
+              <InvoiceComparisonRow key={inv.num} row={inv} bg="#f5f5f5" />
             ))}
           </div>
         </div>
@@ -719,11 +836,8 @@ function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
             table's desktop row, scoped via InvoicesDataContext so the row's
             internal `useInvoicesData()` resolves. */}
         <InvoicesDataContext.Provider value={invoicesData}>
-          <div
-            className="flex flex-col gap-2 w-full"
-            style={{ background: '#f5f5f5', borderRadius: 8, padding: '24px 20px' }}
-          >
-            <p className="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]">
+          <div className="flex flex-col gap-2 w-full">
+            <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
               PAYMENT · {invoicesData.PAYMENT_RECORDS.length}
             </p>
             <div className="flex flex-col gap-1 w-full">
@@ -733,7 +847,7 @@ function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
                   rec={rec}
                   onOpen={() => {}}
                   compact
-                  bg="#ffffff"
+                  bg="#f5f5f5"
                 />
               ))}
             </div>
@@ -750,6 +864,28 @@ function SearchGlyph() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
       <circle cx="7" cy="7" r="5" stroke="#737373" strokeWidth="1.4" />
       <line x1="11" y1="11" x2="14" y2="14" stroke="#737373" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BackArrowGlyph() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <path
+        d="M10 3L5 8L10 13"
+        stroke="rgba(0,0,0,0.85)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
