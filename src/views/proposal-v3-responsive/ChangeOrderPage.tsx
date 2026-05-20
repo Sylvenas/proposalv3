@@ -8,7 +8,7 @@
 // with a Change Order-specific summary panel (PENDING CHANGE ORDER header,
 // new financial breakdown, and Change Order CTAs).
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SummaryPageResponsive, {
   ADDON_DESCRIPTIONS,
   ContactSalesButton,
@@ -20,22 +20,34 @@ import SummaryPageResponsive, {
   type FenceProduct,
 } from './SummaryPageResponsive';
 import ProductDetailSheet, { type ProductDetailContent } from './ProductDetailSheet';
-import ProjectHubStickyHeader, { type ProjectHubTab } from './ProjectHubStickyHeader';
+import SignatureOverlay from './SignatureOverlay';
+import MakePaymentDialog, {
+  type ConfirmedPaymentInfo,
+  type PaymentTarget,
+} from './MakePaymentDialog';
+import {
+  PaymentProgressAndNextPayment,
+  ProjectHomeCTAs,
+  ProjectHubStickyFooter,
+} from './ProjectHubPageResponsive';
+import ProjectHubStickyHeader, { type ProjectHubTab, type TabDef } from './ProjectHubStickyHeader';
 import {
   DrawingSection as ProjectHubDrawingSection,
   ProductsSection as ProjectHubProductsSection,
 } from './ProjectHubPageResponsive';
 import ValidUntilPill from './ValidUntilPill';
 import PricingDisclaimers from './PricingDisclaimers';
-import { ContractDocStickyFooter, PdfPages } from './ContractDocSection';
+import ContractDocSection, { ContractDocStickyFooter, PdfPages } from './ContractDocSection';
 import BorderlessLinkButton from './BorderlessLinkButton';
-import {
+import InvoicesPaymentsSection, {
   DesktopPaymentRecordsTable,
   InvoicesDataContext,
   MobileInvoiceCard,
   MobilePaymentRecordCard,
   buildInvoicesData,
+  type ExtraPaymentSpec,
   type Invoice as InvoiceData,
+  type InvoiceSpec,
 } from './InvoicesPaymentsSection';
 import ChangeHistoryView, { TotalsRow } from './ChangeHistoryView';
 import { useDevConsole } from './DevConsoleContext';
@@ -111,9 +123,44 @@ function ChangeOrderHeaderBlock() {
     <div className="flex flex-col gap-4">
       <OptionSummaryTitleBlock
         eyebrow="Pending Change Order #3"
-        titleOverride="Add Pool-Side Gates & Extra Panels"
+        titleOverride="Remove East-Side Run"
       />
       <ValidUntilPill date="April 30, 2026" className="self-start" />
+    </div>
+  );
+}
+
+// Approved variant — mirrors ProjectHomeTitleBlock from ProjectHubPageResponsive
+// so the Type=Change Order approved state visually matches the Type=Proposal
+// approved Project Home, with content swapped (CHANGE ORDER #3 + "Change
+// Order Approved on M/D/YYYY"). Falls back to today's date if approvedAt is
+// missing (safety net for direct renders that skipped the signature flow).
+function ApprovedChangeOrderTitleBlock({
+  approvedAt,
+}: {
+  approvedAt?: Date | null;
+}) {
+  const d = approvedAt ?? new Date();
+  const approvedLabel =
+    `Change Order Approved on ${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  return (
+    <div
+      className="bg-white flex flex-col items-start w-full leading-normal text-[#262626]"
+      style={{ fontFamily: 'Segoe UI, sans-serif' }}
+    >
+      <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full">
+        1722 Willis Ave NW, Grand Rapids, MI 49504
+      </p>
+      <p className="text-[16px] sm:text-[20px] xl:text-[24px] font-semibold w-full">
+        CHANGE ORDER #3
+      </p>
+      {/* Full change order name, same type ramp as the eyebrow above. */}
+      <p className="text-[16px] sm:text-[20px] xl:text-[24px] font-semibold w-full">
+        Remove East-Side Run
+      </p>
+      <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full pt-2">
+        {approvedLabel}
+      </p>
     </div>
   );
 }
@@ -126,76 +173,203 @@ function ChangeOrderRightColumn({
   onViewInvoices,
   onViewContract,
   onOpenSchedule,
+  onRequestSign,
+  onViewChangeHistory,
+  onMakePayment,
+  makePaymentBtnRef,
+  extraPayments = [],
+  invoicesOverrides,
+  approved = false,
+  approvedAt = null,
 }: {
   onViewInvoices?: () => void;
   onViewContract?: () => void;
   onOpenSchedule?: () => void;
+  onRequestSign?: () => void;
+  /** Wired only in the approved Change Order Project Hub — the "Change
+   *  History" CTA that replaces "Download Contract [PDF]" navigates to the
+   *  Change History tab. */
+  onViewChangeHistory?: () => void;
+  /** Wired only in the approved Change Order Project Hub — opens the same
+   *  MakePaymentDialog the Invoices & Payments tab + Change History detail
+   *  panel use, so all three Make A Payment buttons share one dialog. */
+  onMakePayment?: () => void;
+  /** Ref attached to the inline Make A Payment button — observed by the
+   *  parent so the sticky footer only appears once this button has scrolled
+   *  off (mirroring the Proposal Project Hub's sticky-footer gating). */
+  makePaymentBtnRef?: React.Ref<HTMLButtonElement>;
+  /** User-confirmed payments from the Make A Payment dialog. Cascaded into
+   *  the invoice schedule so the Project Home progress block stays in
+   *  lockstep with the Invoices & Payments tab. */
+  extraPayments?: ExtraPaymentSpec[];
+  /** Revised invoice schedule + chronology built from the after-CO panel.
+   *  Supplied by ChangeOrderPage so the same `buildInvoicesData` call drives
+   *  both this block and the Invoices tab. */
+  invoicesOverrides?: {
+    invoiceSpecs?: InvoiceSpec[];
+    staticChronology?: ExtraPaymentSpec[];
+  };
+  /** When true, swap the pending header block for the approved variant and
+   *  hide the Sign & Approve CTA — mirrors the Proposal Project Home post-
+   *  approval layout. */
+  approved?: boolean;
+  approvedAt?: Date | null;
 }) {
   const { config } = useDevConsole();
   const showFinancing = config.financingEstimation === 'included';
+  // Approved-state progress block reuses the Proposal Project Hub's
+  // PaymentProgressAndNextPayment visual verbatim. Run the schedule through
+  // `buildInvoicesData` with the revised CO overrides AND any user-confirmed
+  // `extraPayments` so this block updates whenever the Make A Payment
+  // dialog appends a new payment — same single source of truth the Invoices
+  // & Payments tab uses.
+  const invoiceData = useMemo(
+    () =>
+      buildInvoicesData(
+        invoicesOverrides?.invoiceSpecs?.reduce((s, spec) => s + spec.amount, 0) ?? 0,
+        extraPayments,
+        config.invoiceMode,
+        invoicesOverrides,
+      ),
+    [extraPayments, config.invoiceMode, invoicesOverrides],
+  );
+  const contractTotalNum = invoiceData.INVOICES.reduce((s, inv) => s + inv.amount, 0);
+  const receivedNum = invoiceData.PAYMENT_RECORDS
+    .filter((r) => r.status === 'completed')
+    .reduce((s, r) => s + r.amountApplied, 0);
+  const processingNum = invoiceData.PAYMENT_RECORDS
+    .filter((r) => r.status === 'processing')
+    .reduce((s, r) => s + r.amountApplied, 0);
+  const paidAmountNum = invoiceData.totalAmountApplied;
+  // Next-due invoice = first row that isn't fully settled. Pull the percent
+  // from the label and use the invoice's dueDate verbatim.
+  const nextDueRow = invoiceData.INVOICES.find((inv) => inv.received < inv.amount);
+  const nextDue = nextDueRow
+    ? {
+        remaining: Math.max(0, nextDueRow.amount - nextDueRow.received),
+        percent: Number(nextDueRow.label.match(/\((\d+)%\)/)?.[1] ?? 0),
+        dueDate: nextDueRow.dueDate,
+      }
+    : null;
+  // Fully-paid surface — most recent settled record's paidOn date. Falls
+  // back to the latest invoice dueDate if no settled record exists.
+  const fullyPaidOn =
+    invoiceData.PAYMENT_RECORDS.find((r) => r.status === 'completed' || r.status === 'processing')
+      ?.paidOn ??
+    invoiceData.INVOICES[invoiceData.INVOICES.length - 1]?.dueDate ??
+    '';
   return (
     <div
       className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full"
       style={{ fontFamily: 'Segoe UI, sans-serif' }}
     >
-      {/* ── Header block ── */}
-      <ChangeOrderHeaderBlock />
+      {/* ── Header block — approved variant matches ProjectHomeTitleBlock. ── */}
+      {approved ? (
+        <ApprovedChangeOrderTitleBlock approvedAt={approvedAt} />
+      ) : (
+        <ChangeOrderHeaderBlock />
+      )}
 
-      {/* ── Financials ── */}
+      {/* ── Financials ── Approved swaps the pending CO total breakdown for the
+          Invoices & Payments tab's PaymentProgressBlock (after-CO state),
+          rendered borderless so it inherits the right column's white card. */}
       <div className="bg-white flex flex-col items-start w-full">
-        <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
-          <Row label={<>New Contact Total <sup className="text-[7.74px]">1</sup></>} value="$12,000.00" valueLarge />
-          <Row label="Change Order Net Change" value="-$999.00" valueRegular />
-          {showFinancing && (
-            <Row label={<>Estimated Monthly Payment <sup className="text-[7.74px]">2</sup></>} value="$469.06 / mo" />
-          )}
-        </div>
+        {approved ? (
+          <PaymentProgressAndNextPayment
+            paidAmount={paidAmountNum}
+            receivedAmount={receivedNum}
+            processingAmount={processingNum}
+            contractTotal={contractTotalNum}
+            nextDue={nextDue}
+            fullyPaidOn={fullyPaidOn}
+            paymentCompletionIndication={config.paymentCompletionIndication}
+          />
+        ) : (
+          <>
+            <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
+              <Row label={<>New Contact Total <sup className="text-[7.74px]">1</sup></>} value="$12,000.00" valueLarge />
+              <Row label="Change Order Net Change" value="-$999.00" valueRegular />
+              {showFinancing && (
+                <Row label={<>Estimated Monthly Payment <sup className="text-[7.74px]">2</sup></>} value="$469.06 / mo" />
+              )}
+            </div>
 
-        {/* Breakdowns */}
-        <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
-          <Row label="Materials & Installation" value="$13,420" />
-          <Row label="Discount -5%" value="$500" />
-          <Row label="Sales Tax" value="$500" />
-        </div>
+            {/* Breakdowns */}
+            <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
+              <Row label="Materials & Installation" value="$13,420" />
+              <Row label="Discount -5%" value="$500" />
+              <Row label="Sales Tax" value="$500" />
+            </div>
+          </>
+        )}
 
-        {/* CTAs */}
+        {/* CTAs — approved swaps the pending Sign & Approve / Revised Schedule
+            stack for the Proposal Project Hub's post-approval action set
+            (Make A Payment / Invoice & Payment Record / Contact Sales /
+            Download Contract) so the operations a customer can take after a
+            Change Order is approved mirror those available after a Proposal
+            is approved. */}
         <div className="flex flex-col gap-3 items-start py-2 lg:py-3 w-full">
-          {/* Sign & Approve */}
-          <button
-            type="button"
-            className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
-          >
-            <span
-              className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
-              style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
-            >
-              Sign &amp; Approve
-            </span>
-          </button>
+          {approved ? (
+            <ProjectHomeCTAs
+              nextDue={!!nextDue}
+              financingService={config.financingService}
+              onShowPaymentRecords={onViewInvoices}
+              onMakePayment={onMakePayment}
+              paymentBtnRef={makePaymentBtnRef}
+              downloadCtaOverride={
+                <OutlinedButton onClick={onViewChangeHistory}>
+                  <BackArrowGlyph />
+                  Change History
+                </OutlinedButton>
+              }
+              belowMainCtas={
+                <BorderlessLinkButton
+                  icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
+                  label="Download Contract [PDF]"
+                />
+              }
+            />
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onRequestSign}
+                className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
+              >
+                <span
+                  className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
+                  style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
+                >
+                  {config.signatureRequired ? <>Sign &amp; Approve</> : 'Approve'}
+                </span>
+              </button>
 
-          {/* Revised Payment & Schedule — matches Summary's View Payment
-              Schedule style (icon-wrapper div, gap-[2px]). */}
-          <CardOutlinedButton
-            label="Revised Payment & Schedule"
-            onClick={onOpenSchedule}
-          />
+              {/* Revised Payment & Schedule — matches Summary's View Payment
+                  Schedule style (icon-wrapper div, gap-[2px]). */}
+              <CardOutlinedButton
+                label="Revised Payment & Schedule"
+                onClick={onOpenSchedule}
+              />
 
-          {/* Contact Sales — reuse Summary's button so the icon, spacing,
-              and onClick (opens ContactSalesModal) stay in sync. */}
-          <ContactSalesButton />
+              {/* Contact Sales — reuse Summary's button so the icon, spacing,
+                  and onClick (opens ContactSalesModal) stay in sync. */}
+              <ContactSalesButton />
 
-          {/* Current Approved Contract */}
-          <OutlinedButton onClick={onViewContract}>
-            <JumpArrowGlyph />
-            Current Approved Contract
-          </OutlinedButton>
+              {/* Current Approved Contract */}
+              <OutlinedButton onClick={onViewContract}>
+                <JumpArrowGlyph />
+                Current Approved Contract
+              </OutlinedButton>
 
-          {/* Download — shares the borderless link button component with
-              Project Hub's "View Invoice & Payment Record". */}
-          <BorderlessLinkButton
-            icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
-            label="Download Change Order Doc [PDF]"
-          />
+              {/* Download — shares the borderless link button component with
+                  Project Hub's "View Invoice & Payment Record". */}
+              <BorderlessLinkButton
+                icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
+                label="Download Change Order Doc [PDF]"
+              />
+            </>
+          )}
         </div>
 
         {/* Disclaimers — shared with Summary; collapsible ①② footnote. */}
@@ -419,7 +593,7 @@ function ContractTabHeaderBlock() {
             Change Order #2
           </p>
           <p className="text-[16px] sm:text-[20px] xl:text-[24px] font-semibold w-full">
-            Remove East-Side Run
+            Add Pool-Side Gates &amp; Extra Panels
           </p>
           <p className="text-[14px] sm:text-[16px] xl:text-[20px] font-normal w-full">
             1722 Willis Ave NW, Grand Rapids, MI 49504
@@ -606,7 +780,7 @@ function ChangeOrderInvoicesView({
                 Pending Change Order #3
               </p>
               <p className="text-[16px] sm:text-[18px] lg:text-[16px] xl:text-[18px] font-medium text-[#262626] leading-tight">
-                Add Pool-Side Gates &amp; Extra Panels
+                Remove East-Side Run
               </p>
             </div>
 
@@ -818,12 +992,107 @@ function flattenSelectedUpgrades(products: FenceProduct[]): FenceProduct[] {
 }
 
 export default function ChangeOrderPage() {
-  const { config, pageIntent, setPageIntent } = useDevConsole();
+  const { config, pageIntent, setPageIntent, restartTick } = useDevConsole();
   // Shared Before / After CO panel data drives the Pending Revised Payment
   // Schedule dialog so it matches the Invoices & Payments tab and the
   // Change History snapshot — all three react to the Existing Payment
   // toggle in lockstep.
   const { after: afterPanel } = useChangeOrderInvoicePanels();
+  // Post-approval the Change Order Project Hub reuses the Proposal Project
+  // Hub's InvoicesPaymentsSection verbatim. We feed it the revised schedule
+  // (amounts straight from the after-CO panel, parsed dueDate from each
+  // invoice's status line) and the revised payment chronology (the same
+  // records that drive Payment Records on the existing Approval Page), so
+  // the contract total / received / processing / per-invoice statuses match
+  // the figures already shown in the Change Order Project Hub's Project Home
+  // progress block.
+  const coPaymentRecordsData = useChangeOrderPaymentRecords();
+  const revisedInvoicesOverrides = useMemo(() => {
+    const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
+    const stripDatePrefix = (s: string) =>
+      s.replace(/^(Due on |Submitted on |Paid on )/, '');
+    const invoiceSpecs: InvoiceSpec[] = afterPanel.invoices.map((inv) => ({
+      number: inv.num,
+      label: inv.label,
+      amount: parseDollars(inv.total),
+      dueDate: stripDatePrefix(inv.statusLine),
+    }));
+    // PAYMENT_RECORDS is newest-first; the cascade expects oldest-first.
+    const staticChronology: ExtraPaymentSpec[] = [...coPaymentRecordsData.PAYMENT_RECORDS]
+      .reverse()
+      .map((rec) => ({
+        paymentId: rec.paymentId,
+        paidOn: rec.paidOn,
+        paidOnFull: rec.paidOnFull,
+        amountApplied: rec.amountApplied,
+        platformFee: rec.platformFee,
+        paidBy: rec.paidBy,
+        method: rec.method,
+        processedWith: rec.processedWith,
+        status: rec.status === 'processing' ? ('processing' as const) : undefined,
+      }));
+    return { invoiceSpecs, staticChronology };
+  }, [afterPanel, coPaymentRecordsData]);
+  const revisedContractTotal = useMemo(
+    () => revisedInvoicesOverrides.invoiceSpecs.reduce((sum, s) => sum + s.amount, 0),
+    [revisedInvoicesOverrides],
+  );
+  // Make-A-Payment state — mirrors the Proposal Project Hub. `extraPayments`
+  // gets cascaded after the revised static chronology so user-confirmed
+  // payments flow through to Payment Progress / Next Payment / per-invoice
+  // status just like in the Proposal flow. `paymentTarget` non-null = dialog
+  // open, snapshotting the next-due invoice's remaining balance + label.
+  const [extraPayments, setExtraPayments] = useState<ExtraPaymentSpec[]>([]);
+  const [paymentTarget, setPaymentTarget] = useState<PaymentTarget | null>(null);
+  // Next-due invoice derived from the revised data — the same row
+  // InvoicesPaymentsSection's "Next Payment" card surfaces. Drives the
+  // Make-A-Payment dialog header so the user always sees the invoice they
+  // were about to pay.
+  const revisedNextDueInvoice = useMemo(() => {
+    const data = buildInvoicesData(
+      revisedContractTotal,
+      extraPayments,
+      config.invoiceMode,
+      revisedInvoicesOverrides,
+    );
+    return data.INVOICES.find((inv) => inv.received < inv.amount) ?? null;
+  }, [revisedContractTotal, extraPayments, config.invoiceMode, revisedInvoicesOverrides]);
+  const openMakePayment = useCallback(() => {
+    if (!revisedNextDueInvoice) return;
+    setPaymentTarget({
+      amount: Math.max(0, revisedNextDueInvoice.amount - revisedNextDueInvoice.received),
+      description: `${revisedNextDueInvoice.label} · 1722 Willis Ave NW`,
+    });
+  }, [revisedNextDueInvoice]);
+  const handlePaymentConfirmed = useCallback((info: ConfirmedPaymentInfo) => {
+    setExtraPayments((prev) => {
+      const nextId = String(2200 + prev.length);
+      const now = new Date();
+      const month = now.toLocaleString('en-US', { month: 'short' });
+      const paidOn = `${month} ${now.getDate()}, ${now.getFullYear()}`;
+      const time = now.toLocaleString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+      const paidOnFull = `${paidOn}, ${time.toLowerCase().replace('am', 'a.m.').replace('pm', 'p.m.')}`;
+      return [
+        ...prev,
+        {
+          paymentId: nextId,
+          paidOn,
+          paidOnFull,
+          amountApplied: info.amountApplied,
+          platformFee: info.platformFee,
+          paidBy: 'Junyu Zhang',
+          method: info.methodLabel,
+          processedWith: 'ArcSite Payment',
+          status: info.status,
+        },
+      ];
+    });
+  }, []);
   // Revised Payment & Schedule dialog — re-uses the proposal Summary's
   // PaymentScheduleDialog as a starting point. Values mirror the right-
   // column financials (New Contract Total, Estimated Monthly Payment).
@@ -833,7 +1102,7 @@ export default function ChangeOrderPage() {
   const [scheduleData, setScheduleData] = useState<PaymentScheduleData | null>(null);
   const openSchedule = () =>
     setScheduleData({
-      optionLabel: 'Add Pool-Side Gates & Extra Panels',
+      optionLabel: 'Remove East-Side Run',
       projectName: '1722 Willis Ave NW, Grand Rapids, MI 49504',
       contractTotal: 12000,
       monthly: 469.06,
@@ -842,6 +1111,25 @@ export default function ChangeOrderPage() {
       apr: 4,
     });
   const closeSchedule = () => setScheduleData(null);
+  // Signature overlay — reuses the Proposal flow's SignatureOverlay verbatim
+  // so the Sign & Approve buttons (right column + mobile sticky footer) open
+  // the same signature/approve modal as Type=Proposal.
+  const [showSignatureOverlay, setShowSignatureOverlay] = useState(false);
+  // Post-approval state — mirrors OptionsPageResponsive's approved/approvedAt
+  // pair. Flipped behind the still-animating SignatureOverlay (onApproveStart)
+  // so its exit reveals the Project Home tab in its Approved Change Order
+  // layout, matching the Proposal Project Home post-approval format.
+  //
+  // Initialized from the shared `pageIntent` so toggling Type from the
+  // Proposal Project Hub (pageIntent === 'hub.home') lands on the Change
+  // Order Project Hub instead of the Approval Page; the inverse direction
+  // is handled by OptionsPageResponsive, which already treats any
+  // `hub.*` intent as "starts approved".
+  const startsApproved = pageIntent === 'hub.home' || pageIntent === 'hub.contract' || pageIntent === 'hub.invoices' || pageIntent === 'hub.changes';
+  const [approved, setApproved] = useState(startsApproved);
+  const [approvedAt, setApprovedAt] = useState<Date | null>(
+    startsApproved ? new Date() : null,
+  );
   const [addons, setAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
   // Initialize from the shared `pageIntent` so that switching from Proposal
   // mode lands on the equivalent CO tab.
@@ -852,18 +1140,19 @@ export default function ChangeOrderPage() {
     return 'home';
   });
 
-  // Publish the current tab to the shared `pageIntent`. The 'home' tab is
-  // the Change Order Approval Page — its Proposal equivalent is the Option
-  // Approval Page (Summary).
+  // Publish the current tab to the shared `pageIntent`. The Home tab maps
+  // to 'summary' when pending (Change Order Approval Page ↔ Option Approval
+  // Page) and to 'hub.home' once approved (Change Order Project Hub ↔
+  // Proposal Project Hub) so Type toggles round-trip on the matching state.
   useEffect(() => {
-    const map: Record<ProjectHubTab, 'summary' | 'hub.contract' | 'hub.invoices' | 'hub.changes'> = {
-      home: 'summary',
+    const map: Record<ProjectHubTab, 'summary' | 'hub.home' | 'hub.contract' | 'hub.invoices' | 'hub.changes'> = {
+      home: approved ? 'hub.home' : 'summary',
       contract: 'hub.contract',
       invoices: 'hub.invoices',
       changes: 'hub.changes',
     };
     setPageIntent(map[tab]);
-  }, [tab, setPageIntent]);
+  }, [tab, approved, setPageIntent]);
 
   // Reset page scroll when switching between Change Order tabs so each tab
   // opens at the top instead of inheriting the previous tab's scroll offset.
@@ -872,11 +1161,48 @@ export default function ChangeOrderPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [tab]);
+  // Sticky footer — reuses ProjectHubStickyFooter from the Proposal Project
+  // Hub. On the Home tab, only show it once the inline Make A Payment button
+  // has scrolled off (parallel to how the Proposal hub gates its footer); on
+  // the Invoices tab, always show it (no inline CTA there).
+  const paymentBtnRef = useRef<HTMLButtonElement>(null);
+  const [paymentBtnVisible, setPaymentBtnVisible] = useState(true);
+  useEffect(() => {
+    if (!approved) return;
+    const el = paymentBtnRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPaymentBtnVisible(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [approved, tab]);
   // Product detail sheet state — only used by the Current Approved Contract
   // tab. The Home tab's left column is owned by SummaryPageResponsive, which
   // manages its own sheet internally.
   const [productDetail, setProductDetail] = useState<ProductDetailContent | null>(null);
 
+  // Restart Userflow — DevConsole's top button bumps `restartTick`. For
+  // Type=Change Order we land back on the Home tab in the pre-approval
+  // (Change Order Approval Page) state, mirroring how the Proposal flow
+  // resets to its cover/landing page. Compared against a ref so this only
+  // fires on an actual tick increment, not on the initial mount.
+  const lastCoRestartTickRef = useRef(restartTick);
+  useEffect(() => {
+    if (lastCoRestartTickRef.current === restartTick) return;
+    lastCoRestartTickRef.current = restartTick;
+    setTab('home');
+    setApproved(false);
+    setApprovedAt(null);
+    setShowSignatureOverlay(false);
+    setExtraPayments([]);
+    setPaymentTarget(null);
+    setProductDetail(null);
+    setScheduleData(null);
+    setAddons(DEFAULT_ADDONS);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [restartTick]);
   // Track whether the inline "View Pending Change Order" button (top of the
   // mobile Contract tab) is on screen — if so, the mobile sticky footer
   // hides itself, then slides back in once the button scrolls out of view.
@@ -896,6 +1222,19 @@ export default function ChangeOrderPage() {
   const isInvoicesTab = tab === 'invoices';
   const isChangesTab = tab === 'changes';
   const selectedAddons = addons.filter((a) => a.selected);
+  // Post-approval the Change Order Project Hub mirrors the Proposal Project
+  // Hub for the contract tab — same "Contract Document" label, same
+  // ContractDocSection content. The Change History tab stays so the user can
+  // still review the snapshot of the CO that was just approved.
+  const isApprovedContractTab = approved && isContractTab;
+  const hubTabs: TabDef[] | undefined = approved
+    ? [
+        { id: 'home', label: 'Project Home' },
+        { id: 'contract', label: 'Contract Document' },
+        { id: 'invoices', label: 'Invoices & Payments' },
+        { id: 'changes', label: 'Change History' },
+      ]
+    : undefined;
 
   // Body slide-in direction — derived from the previous tab so forward
   // navigation (Home → Contract → Invoices → Changes) slides in from the
@@ -959,11 +1298,14 @@ export default function ChangeOrderPage() {
         addons={addons}
         setAddons={setAddons}
         singleOptionMode
-        signatureRequired={false}
+        signatureRequired={config.signatureRequired}
         onBack={() => {}}
-        onShowCover={() => {}}
-        onRequestSign={() => {}}
-        stickyHeader={<ProjectHubStickyHeader active={tab} onChange={setTab} />}
+        // Type=Change Order has no cover page — the PageHeader home icon
+        // instead navigates back to the Project Home tab (Approval Page or
+        // Project Hub variant, depending on `approved` state).
+        onShowCover={() => setTab('home')}
+        onRequestSign={() => setShowSignatureOverlay(true)}
+        stickyHeader={<ProjectHubStickyHeader active={tab} onChange={setTab} tabs={hubTabs} />}
         bodyTransitionKey={tab}
         bodyTransitionDirection={slideDirection}
         rightColumnTopPx={80}
@@ -975,14 +1317,26 @@ export default function ChangeOrderPage() {
               onViewChangeHistory={() => setTab('changes')}
               viewPendingButtonRef={viewPendingButtonRef}
             />
+          ) : approved ? (
+            <ApprovedChangeOrderTitleBlock approvedAt={approvedAt} />
           ) : (
             <ChangeOrderHeaderBlock />
           )
         }
         hideMobileRightColumn={isContractTab}
-        hideMobileStickyFooter={isChangesTab}
+        hideMobileStickyFooter={
+          isChangesTab ||
+          (tab === 'home' && approved) ||
+          // Approved Contract Document tab has its own internal sticky
+          // footer (rendered inside ContractDocSection), so suppress the
+          // SummaryPageResponsive default.
+          isApprovedContractTab ||
+          // Approved Invoices & Payments tab reuses the Proposal hub's
+          // InvoicesPaymentsSection which doesn't ship a sticky footer.
+          (isInvoicesTab && approved)
+        }
         mobileStickyFooterOverride={
-          isContractTab || isInvoicesTab ? (
+          isApprovedContractTab || (isInvoicesTab && approved) ? undefined : isContractTab || isInvoicesTab ? (
             <ContractDocStickyFooter
               approvedAt={new Date()}
               onHeightChange={() => {}}
@@ -1017,13 +1371,45 @@ export default function ChangeOrderPage() {
             <ChangeOrderRightColumn
               onViewInvoices={() => setTab('invoices')}
               onViewContract={() => setTab('contract')}
+              onViewChangeHistory={() => setTab('changes')}
               onOpenSchedule={openSchedule}
+              onRequestSign={() => setShowSignatureOverlay(true)}
+              onMakePayment={openMakePayment}
+              makePaymentBtnRef={paymentBtnRef}
+              extraPayments={extraPayments}
+              invoicesOverrides={revisedInvoicesOverrides}
+              approved={approved}
+              approvedAt={approvedAt}
             />
           )
         }
-        replaceLeftColumn={isContractTab ? contractLeftColumn : undefined}
+        replaceLeftColumn={isApprovedContractTab ? undefined : isContractTab ? contractLeftColumn : undefined}
         bodyOverride={
-          isInvoicesTab ? (
+          isApprovedContractTab ? (
+            // Post-approval the Change Order Project Hub reuses the Proposal
+            // Project Hub's Contract Document tab verbatim — same component,
+            // same sticky footer, same `approvedAt` plumbing.
+            <div className="lg:pb-8">
+              <ContractDocSection
+                approvedAt={approvedAt ?? new Date()}
+                onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              />
+            </div>
+          ) : isInvoicesTab && approved ? (
+            // Post-approval the Change Order Project Hub reuses the Proposal
+            // Project Hub's Invoices & Payments tab verbatim, fed by the
+            // revised invoice schedule + payment chronology.
+            <div className="lg:pb-8">
+              <InvoicesPaymentsSection
+                onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                contractTotal={revisedContractTotal}
+                extraPayments={extraPayments}
+                invoiceMode={config.invoiceMode}
+                overrides={revisedInvoicesOverrides}
+                onMakePayment={openMakePayment}
+              />
+            </div>
+          ) : isInvoicesTab ? (
             <ChangeOrderInvoicesView
               onViewPendingChangeOrder={() => setTab('home')}
               viewPendingButtonRef={viewPendingButtonRef}
@@ -1033,6 +1419,11 @@ export default function ChangeOrderPage() {
               products={flattenSelectedUpgrades(STUB_OPTION.products)}
               onViewPendingChangeOrder={() => setTab('home')}
               onViewCurrentApprovedContract={() => setTab('contract')}
+              onMakePayment={openMakePayment}
+              onRequestSign={() => setShowSignatureOverlay(true)}
+              signatureRequired={config.signatureRequired}
+              approved={approved}
+              approvedAt={approvedAt}
             />
           ) : undefined
         }
@@ -1083,6 +1474,46 @@ export default function ChangeOrderPage() {
         }
         mobileScheduleList={<RevisedInvoicesList invoices={afterPanel.invoices} heading={afterPanel.invoicesHeading} />}
       />
+      {showSignatureOverlay && (
+        <SignatureOverlay
+          clientName="Michael Rozier"
+          signatureRequired={config.signatureRequired}
+          onClose={() => setShowSignatureOverlay(false)}
+          onApproveStart={() => {
+            // Flip approved state behind the still-playing exit animation so
+            // the Project Home tab is already in its Approved layout when the
+            // overlay finishes sliding out.
+            setApproved(true);
+            setApprovedAt(new Date());
+          }}
+          onApproved={() => setShowSignatureOverlay(false)}
+        />
+      )}
+      {/* Make-A-Payment dialog — wired so the Change Order Project Hub's
+          Invoices & Payments tab Make A Payment CTA behaves identically to
+          the Proposal Project Hub: opens the same dialog, confirms append
+          ExtraPaymentSpec → cascades into the revised schedule. */}
+      <MakePaymentDialog
+        target={paymentTarget}
+        onClose={() => setPaymentTarget(null)}
+        onConfirm={handlePaymentConfirmed}
+        paymentResult={config.paymentResult}
+        paymentInfoInput={config.paymentInfoInput}
+      />
+      {/* Sticky footer — reused verbatim from the Proposal Project Hub. Shows
+          on the Home tab once the inline Make A Payment scrolls off and on
+          the Invoices & Payments tab unconditionally. Hidden when every
+          invoice is settled (no next-due row). */}
+      {approved && revisedNextDueInvoice && (tab === 'home' || tab === 'invoices') && (
+        <ProjectHubStickyFooter
+          visible={(tab === 'home' && !paymentBtnVisible) || tab === 'invoices'}
+          nextPaymentAmount={Math.max(0, revisedNextDueInvoice.amount - revisedNextDueInvoice.received)}
+          nextPaymentPercent={Number(revisedNextDueInvoice.label.match(/\((\d+)%\)/)?.[1] ?? 0)}
+          nextPaymentDueDate={revisedNextDueInvoice.dueDate}
+          onMakePayment={openMakePayment}
+          onShowNextInvoice={openMakePayment}
+        />
+      )}
     </>
   );
 }

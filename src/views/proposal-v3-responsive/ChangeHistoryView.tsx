@@ -216,6 +216,11 @@ export default function ChangeHistoryView({
   products,
   onViewPendingChangeOrder,
   onViewCurrentApprovedContract,
+  onMakePayment,
+  onRequestSign,
+  signatureRequired = true,
+  approved = false,
+  approvedAt = null,
 }: {
   products: FenceProduct[];
   /** Invoked when the user taps "View Pending Change Order" from an approved
@@ -226,12 +231,55 @@ export default function ChangeHistoryView({
    *  out-of-date / original-contract detail panel. The host routes this to
    *  the Current Approved Contract tab. */
   onViewCurrentApprovedContract?: () => void;
+  /** Invoked when the user taps "Make A Payment" from the current approved
+   *  change order's detail panel (post-approval only). The host opens the
+   *  same MakePaymentDialog used by the Invoices & Payments tab. */
+  onMakePayment?: () => void;
+  /** Invoked when the user taps "Sign & Approve" from the pending change
+   *  order's detail panel. The host opens the same SignatureOverlay used by
+   *  the Change Order Approval Page's primary CTA. */
+  onRequestSign?: () => void;
+  /** DevConsole → Signature toggle. Forwarded to the pending CO's primary
+   *  CTA so its label tracks the same Sign & Approve / Approve mode the
+   *  Approval Page uses. */
+  signatureRequired?: boolean;
+  /** When true, the latest pending CO has just been approved — flip its
+   *  status from 'pending' to 'approved' (with an `approvedOn` date) and
+   *  demote the previously-approved CO to 'outOfDate'. */
+  approved?: boolean;
+  approvedAt?: Date | null;
 }) {
+  // Promote / demote statuses once the pending CO has been approved so the
+  // Change History timeline reflects the new contract chain: the newest CO
+  // is now the active one, and the prior active CO drops to "out of date".
+  const items = useMemo<HistoryItem[]>(() => {
+    if (!approved) return HISTORY_ITEMS;
+    const d = approvedAt ?? new Date();
+    const approvedOnLabel = `${d.toLocaleString('en-US', { month: 'short' })} ${d
+      .getDate()
+      .toString()
+      .padStart(2, '0')}, ${d.getFullYear()}`;
+    return HISTORY_ITEMS.map((it) => {
+      if (it.status === 'pending') {
+        const { validUntil: _validUntil, ...rest } = it;
+        return {
+          ...rest,
+          status: 'approved',
+          approvedOn: approvedOnLabel,
+          // Timeline status line ("APPROVED on …") reads from `date`, so
+          // keep the two in lockstep when the status flips.
+          date: approvedOnLabel,
+        };
+      }
+      if (it.status === 'approved') return { ...it, status: 'outOfDate' };
+      return it;
+    });
+  }, [approved, approvedAt]);
   // Default selection — the latest node on the timeline (newest-first ordering).
-  const [selectedId, setSelectedId] = useState<string>(HISTORY_ITEMS[0].id);
+  const [selectedId, setSelectedId] = useState<string>(items[0].id);
   const selected = useMemo(
-    () => HISTORY_ITEMS.find((i) => i.id === selectedId) ?? HISTORY_ITEMS[0],
-    [selectedId],
+    () => items.find((i) => i.id === selectedId) ?? items[0],
+    [items, selectedId],
   );
 
   // Mobile (< lg) shows a paginated layout: the timeline list and the detail
@@ -330,7 +378,7 @@ export default function ChangeHistoryView({
             className="change-history-list-scroll overflow-y-auto lg:overflow-visible max-h-[calc(100dvh-140px)] lg:max-h-none"
           >
             <HistoryList
-              items={HISTORY_ITEMS}
+              items={items}
               selectedId={selectedId}
               onSelect={handleSelect}
             />
@@ -373,6 +421,17 @@ export default function ChangeHistoryView({
           status={selected.status}
           onViewPendingChangeOrder={onViewPendingChangeOrder}
           onViewCurrentApprovedContract={onViewCurrentApprovedContract}
+          onMakePayment={onMakePayment}
+          onRequestSign={onRequestSign}
+          signatureRequired={signatureRequired}
+          // Post-approval the just-approved CO is the current contract (no
+          // pending CO sits above it). Identify it as the first 'approved'
+          // row in the timeline so its CTA reads "Make A Payment".
+          isCurrentApprovedCo={
+            approved &&
+            selected.status === 'approved' &&
+            items.find((i) => i.status === 'approved')?.id === selected.id
+          }
         />
         <PaymentSnapshotSection item={selected} />
         <ProjectHubDrawingSection />
@@ -736,15 +795,54 @@ function DetailCtaRow({
   status,
   onViewPendingChangeOrder,
   onViewCurrentApprovedContract,
+  onMakePayment,
+  onRequestSign,
+  isCurrentApprovedCo = false,
+  signatureRequired = true,
 }: {
   status: HistoryStatus;
   onViewPendingChangeOrder?: () => void;
   onViewCurrentApprovedContract?: () => void;
+  onMakePayment?: () => void;
+  /** Pending CO detail panel mirrors the Project Home's primary action —
+   *  opens the same SignatureOverlay used by the Change Order Approval
+   *  Page's Sign & Approve button. */
+  onRequestSign?: () => void;
+  /** True for the just-approved (current) Change Order — no pending CO sits
+   *  above it, so swap the "View Pending Change Order" link for a Make A
+   *  Payment CTA that opens the same MakePaymentDialog the Project Hub uses. */
+  isCurrentApprovedCo?: boolean;
+  /** DevConsole → Signature toggle. When false, the pending CO's primary
+   *  CTA reads "Approve" instead of "Sign & Approve" — same wording shift
+   *  the Approval Page applies on its primary buttons. */
+  signatureRequired?: boolean;
 }) {
   const [contactOpen, setContactOpen] = useState(false);
   return (
     <div className="flex flex-col items-start w-full">
-      {status === 'approved' && (
+      {status === 'pending' && (
+        <button
+          type="button"
+          onClick={onRequestSign}
+          className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer mt-4 lg:mt-3"
+        >
+          <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+            {signatureRequired ? <>Sign &amp; Approve</> : 'Approve'}
+          </span>
+        </button>
+      )}
+      {status === 'approved' && isCurrentApprovedCo && (
+        <button
+          type="button"
+          onClick={onMakePayment}
+          className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer mt-4 lg:mt-3"
+        >
+          <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+            Make A Payment
+          </span>
+        </button>
+      )}
+      {status === 'approved' && !isCurrentApprovedCo && (
         <BorderlessLinkButton
           icon={<JumpArrowGlyph />}
           label="View Pending Change Order"
