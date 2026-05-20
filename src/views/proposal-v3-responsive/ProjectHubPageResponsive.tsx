@@ -1803,13 +1803,18 @@ export default function ProjectHubPageResponsive({
         )}
 
         {activeTab === 'invoices' && (
-          <InvoicesPaymentsSection
-            onScrollToTop={scrollToTop}
-            onMakePayment={openMakePayment}
-            contractTotal={financials.contractTotal}
-            extraPayments={extraPayments}
-            invoiceMode={devConfig.invoiceMode}
-          />
+          // `pt-4 lg:pt-0` adds 16px on mobile so the gap from the sticky
+          // tab bar to the "Invoices" heading matches the Project Home tab
+          // (32px total: 16 outer + 16 InvoicesPaymentsSection's pt-4).
+          <div className="pt-4 lg:pt-0">
+            <InvoicesPaymentsSection
+              onScrollToTop={scrollToTop}
+              onMakePayment={openMakePayment}
+              contractTotal={financials.contractTotal}
+              extraPayments={extraPayments}
+              invoiceMode={devConfig.invoiceMode}
+            />
+          </div>
         )}
 
         {activeTab === 'changes' && (

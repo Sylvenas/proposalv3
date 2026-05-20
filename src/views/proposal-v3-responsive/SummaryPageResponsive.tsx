@@ -1515,27 +1515,30 @@ export default function SummaryPageResponsive({
         setContentPb(32);
         return;
       }
+      // Measure any fixed-bottom footer currently in the DOM. This covers
+      // SummaryPageResponsive's own StickyFooter, ContractDocStickyFooter,
+      // and external footers like ChangeOrderPage's ProjectHubStickyFooter
+      // (rendered post-approval on the home/invoices tab). The
+      // `hideMobileStickyFooter` flag only suppresses SummaryPageResponsive's
+      // default footer, not external ones, so we must query the DOM rather
+      // than gate on the flag.
+      const fixedFooterEl = document.querySelector<HTMLElement>(
+        '.lg\\:hidden.fixed.bottom-0.left-0.right-0'
+      );
+      const footerH = fixedFooterEl
+        ? fixedFooterEl.getBoundingClientRect().height
+        : 0;
+      const footerClearance = footerH > 0 ? footerH + 24 : 0;
+
       const el = mobileSummaryRef.current;
       if (!el) {
         // No mobile-summary anchor — happens when `bodyOverride` is used
-        // (Invoices tab) or `hideMobileRightColumn` is set (Contract tab).
-        // Reserve space for the sticky footer by measuring its actual
-        // rendered height (ContractDocStickyFooter on Change Order's
-        // Contract/Invoices tabs is taller than the default StickyFooter),
-        // then add 24px breathing room so the last card doesn't visually
-        // butt up against it.
-        if (hideMobileStickyFooter) {
-          pbRef.current = 0;
-          setContentPb(0);
-          return;
-        }
-        const footerEl = document.querySelector<HTMLElement>(
-          '.lg\\:hidden.fixed.bottom-0.left-0.right-0'
-        );
-        const footerH = footerEl ? footerEl.getBoundingClientRect().height : 80;
-        const pad = footerH + 24;
-        pbRef.current = pad;
-        setContentPb(pad);
+        // (Invoices tab) or `hideMobileRightColumn` is set (Contract tab or
+        // post-approval Change Order home tab). Reserve space matching the
+        // measured footer height plus breathing room so the last card
+        // doesn't visually butt up against it.
+        pbRef.current = footerClearance;
+        setContentPb(footerClearance);
         return;
       }
       const rect = el.getBoundingClientRect();
@@ -1543,8 +1546,12 @@ export default function SummaryPageResponsive({
       const viewportH = window.innerHeight;
       // Subtract the padding we previously added to get base document height
       const baseDocH = document.documentElement.scrollHeight - pbRef.current;
-      // extra = amount needed so that maxScroll = summaryAbsTop
-      const extra = Math.max(0, summaryAbsTop - (baseDocH - viewportH));
+      // summaryExtra = amount needed so that maxScroll = summaryAbsTop
+      const summaryExtra = Math.max(0, summaryAbsTop - (baseDocH - viewportH));
+      // Minimum clearance keeps the Back to Top button (rendered below the
+      // mobile Summary block) above the sticky footer when the summary is
+      // tall enough to fully occupy the viewport at max scroll.
+      const extra = Math.max(summaryExtra, footerClearance);
       pbRef.current = extra;
       setContentPb(extra);
     };
@@ -1789,9 +1796,27 @@ export default function SummaryPageResponsive({
           <StickyFooter
             visible={showStickyFooter}
             financials={financials}
-            onScrollToSummary={() =>
-              mobileSummaryRef.current?.scrollIntoView({ behavior: 'smooth' })
-            }
+            onScrollToSummary={() => {
+              const el = mobileSummaryRef.current;
+              if (!el) return;
+              // Account for any pinned headers at the destination so the
+              // summary block isn't clipped underneath them. Covers both
+              // the SummaryPageResponsive fixed StickyHeader and the
+              // ChangeOrderPage `sticky top-0` ProjectHub tab bar.
+              const stickyWrapper = stickyHeader
+                ? document.querySelector<HTMLElement>('.sticky.top-0.z-\\[51\\]')
+                : null;
+              const fixedHeader = document.querySelector<HTMLElement>(
+                '.lg\\:hidden.fixed.top-0.left-0.right-0'
+              );
+              const stickyH = stickyWrapper?.getBoundingClientRect().height ?? 0;
+              const fixedH = fixedHeader
+                ? fixedHeader.getBoundingClientRect().height
+                : 0;
+              const offset = Math.max(stickyH, fixedH);
+              const top = el.getBoundingClientRect().top + window.scrollY - offset;
+              window.scrollTo({ top, behavior: 'smooth' });
+            }}
             onSignApprove={onRequestSign}
             approveLabel={approveCtaLabel}
             onViewSchedule={openSchedule}
