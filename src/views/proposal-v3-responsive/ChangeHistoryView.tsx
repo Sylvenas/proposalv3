@@ -12,6 +12,10 @@ import {
   DesktopPaymentRecordRow,
   InvoicesDataContext,
   buildInvoicesData,
+  type ExtraPaymentSpec,
+  type Invoice,
+  type InvoiceMode,
+  type InvoiceSpec,
 } from './InvoicesPaymentsSection';
 import {
   DrawingSection as ProjectHubDrawingSection,
@@ -221,6 +225,10 @@ export default function ChangeHistoryView({
   signatureRequired = true,
   approved = false,
   approvedAt = null,
+  extraPayments = [],
+  revisedContractTotal = 12000,
+  revisedInvoicesOverrides,
+  invoiceMode = 'happyPath',
 }: {
   products: FenceProduct[];
   /** Invoked when the user taps "View Pending Change Order" from an approved
@@ -248,6 +256,20 @@ export default function ChangeHistoryView({
    *  demote the previously-approved CO to 'outOfDate'. */
   approved?: boolean;
   approvedAt?: Date | null;
+  /** User-confirmed Make-A-Payment entries cascaded into the latest
+   *  approved CO's Payment Snapshot so progress + invoice statuses +
+   *  Payment Records track real-time payments. */
+  extraPayments?: ExtraPaymentSpec[];
+  /** Revised contract total post-approval — drives the live snapshot's
+   *  totals when payments are applied. */
+  revisedContractTotal?: number;
+  /** Invoice schedule shape for the live snapshot — same overrides
+   *  Invoices & Payments uses so the cascade matches. */
+  revisedInvoicesOverrides?: {
+    invoiceSpecs?: InvoiceSpec[];
+    staticChronology?: ExtraPaymentSpec[];
+  };
+  invoiceMode?: InvoiceMode;
 }) {
   // Promote / demote statuses once the pending CO has been approved so the
   // Change History timeline reflects the new contract chain: the newest CO
@@ -281,6 +303,26 @@ export default function ChangeHistoryView({
     () => items.find((i) => i.id === selectedId) ?? items[0],
     [items, selectedId],
   );
+
+  // Live payment status for the current approved CO — drives both the
+  // PaymentSnapshotSection live overlay and the DetailCtaRow's swap from
+  // "Make A Payment" to the "Payment submitted in full" / "Contract Paid in
+  // Full" completion line.
+  const livePaymentStatus = useMemo(() => {
+    const data = buildInvoicesData(
+      revisedContractTotal,
+      extraPayments,
+      invoiceMode,
+      revisedInvoicesOverrides,
+    );
+    const nextDue = data.INVOICES.find((inv) => inv.received < inv.amount);
+    const hasProcessing = data.PAYMENT_RECORDS.some((rec) => rec.status === 'processing');
+    return {
+      isFullyPaid: !nextDue,
+      hasProcessing,
+      fullyPaidOn: data.PAYMENT_RECORDS[0]?.paidOn,
+    };
+  }, [revisedContractTotal, extraPayments, invoiceMode, revisedInvoicesOverrides]);
 
   // Mobile (< lg) shows a paginated layout: the timeline list and the detail
   // panel are separate "pages". Tapping a timeline card sets the selection
@@ -432,8 +474,22 @@ export default function ChangeHistoryView({
             selected.status === 'approved' &&
             items.find((i) => i.status === 'approved')?.id === selected.id
           }
+          isFullyPaid={livePaymentStatus.isFullyPaid}
+          hasProcessing={livePaymentStatus.hasProcessing}
+          fullyPaidOn={livePaymentStatus.fullyPaidOn}
         />
-        <PaymentSnapshotSection item={selected} />
+        <PaymentSnapshotSection
+          item={selected}
+          isLatestApproved={
+            approved &&
+            selected.status === 'approved' &&
+            items.find((i) => i.status === 'approved')?.id === selected.id
+          }
+          extraPayments={extraPayments}
+          revisedContractTotal={revisedContractTotal}
+          revisedInvoicesOverrides={revisedInvoicesOverrides}
+          invoiceMode={invoiceMode}
+        />
         <ProjectHubDrawingSection />
         <ProjectHubProductsSection
           products={products}
@@ -799,6 +855,9 @@ function DetailCtaRow({
   onRequestSign,
   isCurrentApprovedCo = false,
   signatureRequired = true,
+  isFullyPaid = false,
+  hasProcessing = false,
+  fullyPaidOn,
 }: {
   status: HistoryStatus;
   onViewPendingChangeOrder?: () => void;
@@ -816,6 +875,17 @@ function DetailCtaRow({
    *  CTA reads "Approve" instead of "Sign & Approve" — same wording shift
    *  the Approval Page applies on its primary buttons. */
   signatureRequired?: boolean;
+  /** When `isCurrentApprovedCo` and every invoice has been covered, the
+   *  Make A Payment button is replaced with a payment-completion line
+   *  mirroring the Project Home's PaymentProgressAndNextPayment copy. */
+  isFullyPaid?: boolean;
+  /** When `isFullyPaid` and at least one payment is still settling, the
+   *  line reads "Payment submitted in full on …" (vs. "Contract Paid in
+   *  Full on …" once everything clears). */
+  hasProcessing?: boolean;
+  /** Display date used in the fully-paid completion line — most recent
+   *  payment's paid-on date. */
+  fullyPaidOn?: string;
 }) {
   const [contactOpen, setContactOpen] = useState(false);
   return (
@@ -831,7 +901,7 @@ function DetailCtaRow({
           </span>
         </button>
       )}
-      {status === 'approved' && isCurrentApprovedCo && (
+      {status === 'approved' && isCurrentApprovedCo && !isFullyPaid && (
         <button
           type="button"
           onClick={onMakePayment}
@@ -841,6 +911,12 @@ function DetailCtaRow({
             Make A Payment
           </span>
         </button>
+      )}
+      {status === 'approved' && isCurrentApprovedCo && isFullyPaid && (
+        <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal w-full mt-4 lg:mt-3">
+          {hasProcessing ? 'Payment submitted in full on' : 'Contract Paid in Full on'}{' '}
+          {fullyPaidOn ?? ''}
+        </p>
       )}
       {status === 'approved' && !isCurrentApprovedCo && (
         <BorderlessLinkButton
@@ -884,17 +960,156 @@ function PhoneGlyph() {
   );
 }
 
+// ── Live panel builder ───────────────────────────────────────────────────────
+// Converts a `buildInvoicesData()` result + the static panel template into
+// the panel shape PaymentSnapshotSection renders. Used only for the latest
+// approved CO so Make-A-Payment confirmations flow into Progress totals,
+// per-invoice rows, and the progress percentage label.
+function buildLivePanel(
+  data: ReturnType<typeof buildInvoicesData>,
+  template: {
+    progressLabel: string;
+    invoicesHeading: string;
+    outstandingMode?: 'paidInFull' | 'refund';
+  },
+): {
+  progressLabel: string;
+  received: string;
+  processing: string;
+  invoiceTotal: string;
+  outstanding: string;
+  outstandingMode?: 'paidInFull' | 'refund';
+  invoicesHeading: string;
+  invoices: ReturnType<typeof invoiceToRowData>[];
+} {
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`;
+  let received = 0;
+  let processing = 0;
+  for (const rec of data.PAYMENT_RECORDS) {
+    if (rec.status === 'completed') received += rec.amountApplied;
+    else if (rec.status === 'processing') processing += rec.amountApplied;
+  }
+  const invoiceTotal = data.INVOICES.reduce((s, inv) => s + inv.amount, 0);
+  const outstanding = Math.max(0, invoiceTotal - received - processing);
+  // Progress = received + processing as a fraction of invoice total — mirrors
+  // the Invoices & Payments view's two-segment bar.
+  const pct = invoiceTotal > 0
+    ? Math.round(((received + processing) / invoiceTotal) * 100)
+    : 0;
+  // Preserve the template's "Current Progress" / "Revised Progress" prefix so
+  // the label stays in sync with whichever record this snapshot belongs to.
+  const progressLabelPrefix = template.progressLabel.replace(/·.*$/, '').trim();
+  const outstandingMode: 'paidInFull' | 'refund' | undefined =
+    outstanding === 0 ? 'paidInFull' : template.outstandingMode;
+  return {
+    progressLabel: `${progressLabelPrefix} · ${pct}%`,
+    received: fmt(received),
+    processing: fmt(processing),
+    invoiceTotal: fmt(invoiceTotal),
+    outstanding: fmt(outstanding),
+    outstandingMode,
+    invoicesHeading: template.invoicesHeading.replace(/·.*$/, `· ${data.INVOICES.length}`),
+    invoices: data.INVOICES.map((inv) => invoiceToRowData(inv, data.paidOnDate)),
+  };
+}
+
+// Converts an `Invoice` (from buildInvoicesData) into the `InvoiceRowData`
+// shape used by InvoiceComparisonRow — same status-line wording the Invoices
+// & Payments mobile cards use.
+function invoiceToRowData(
+  inv: Invoice,
+  paidOnDate: (n: number) => string | undefined,
+): {
+  num: number;
+  label: string;
+  paid: string;
+  total: string;
+  statusLine: string;
+  status: 'paid' | 'processing' | 'overPaid' | 'partial' | 'pending';
+} {
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`;
+  const isFullyCovered = inv.received >= inv.amount && inv.received > 0;
+  let statusLine: string;
+  if (isFullyCovered) {
+    const prefix = inv.status === 'processing' ? 'Submitted on' : 'Paid on';
+    statusLine = `${prefix} ${paidOnDate(inv.number) ?? inv.dueDate}`;
+  } else {
+    statusLine = `Due on ${inv.dueDate}`;
+  }
+  const status: 'paid' | 'processing' | 'overPaid' | 'partial' | 'pending' =
+    inv.status === 'paid' ? 'paid'
+      : inv.status === 'processing' ? 'processing'
+      : inv.status === 'partial' ? 'partial'
+      : 'pending';
+  return {
+    num: inv.number,
+    label: inv.label,
+    paid: inv.received > 0 ? fmt(inv.received) : '-',
+    total: fmt(inv.amount),
+    statusLine,
+    status,
+  };
+}
+
 // ── Payment Snapshot ──────────────────────────────────────────────────────────
 // Mini version of InvoicesPaymentsSection's progress + invoices + payments,
 // styled to match the Figma "Payment Snapshot" section.
-function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
+function PaymentSnapshotSection({
+  item,
+  isLatestApproved = false,
+  extraPayments = [],
+  revisedContractTotal = 12000,
+  revisedInvoicesOverrides,
+  invoiceMode = 'happyPath',
+}: {
+  item: HistoryItem;
+  /** True only for the latest approved CO's snapshot — the one whose
+   *  current schedule is in effect. Live payment cascades land here so
+   *  older approved/out-of-date snapshots stay frozen as history. */
+  isLatestApproved?: boolean;
+  extraPayments?: ExtraPaymentSpec[];
+  revisedContractTotal?: number;
+  revisedInvoicesOverrides?: {
+    invoiceSpecs?: InvoiceSpec[];
+    staticChronology?: ExtraPaymentSpec[];
+  };
+  invoiceMode?: InvoiceMode;
+}) {
   // Mirror the Invoices & Payments tab — pending records render the After
   // CO panel (revised schedule); approved records render the Before CO
   // panel (current schedule). Both react to the Developer Console's
   // Existing Payment toggle via the shared hook.
   const { before, after } = useChangeOrderInvoicePanels();
-  const invoicesData = useChangeOrderPaymentRecords();
-  const panel = item.status === 'pending' ? after : before;
+  const staticInvoicesData = useChangeOrderPaymentRecords();
+  // For the live (latest-approved) snapshot, rebuild the schedule + payment
+  // chronology via the same `buildInvoicesData` Invoices & Payments uses so
+  // every Make-A-Payment confirmation cascades into Progress, per-invoice
+  // status, and Payment Records.
+  const liveData = useMemo(
+    () =>
+      isLatestApproved && extraPayments.length > 0
+        ? buildInvoicesData(
+            revisedContractTotal,
+            extraPayments,
+            invoiceMode,
+            revisedInvoicesOverrides,
+          )
+        : null,
+    [isLatestApproved, extraPayments, revisedContractTotal, invoiceMode, revisedInvoicesOverrides],
+  );
+  // Panel selection:
+  //  • Pending CO     → `after`  (the schedule the CO proposes once approved).
+  //  • Latest approved CO → `after`  (its post-approval state IS the current
+  //                                   active contract; falling back to `before`
+  //                                   would surface the previous contract's
+  //                                   total, not what the customer owes now).
+  //  • Older approved / out-of-date / original → `before`
+  //                                   (frozen historical pre-CO snapshot).
+  const staticPanel =
+    item.status === 'pending' || isLatestApproved ? after : before;
+  const livePanel = liveData ? buildLivePanel(liveData, staticPanel) : null;
+  const panel = livePanel ?? staticPanel;
+  const invoicesData = liveData ?? staticInvoicesData;
   // Bar segment widths derived from the panel's received / processing
   // strings so the bar tracks the Invoices & Payments view exactly.
   const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;

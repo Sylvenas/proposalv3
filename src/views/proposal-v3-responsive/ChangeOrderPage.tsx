@@ -39,6 +39,7 @@ import ValidUntilPill from './ValidUntilPill';
 import PricingDisclaimers from './PricingDisclaimers';
 import ContractDocSection, { ContractDocStickyFooter, PdfPages } from './ContractDocSection';
 import BorderlessLinkButton from './BorderlessLinkButton';
+import BackToTopButton from './BackToTopButton';
 import InvoicesPaymentsSection, {
   DesktopPaymentRecordsTable,
   InvoicesDataContext,
@@ -860,6 +861,14 @@ function ChangeOrderInvoicesView({
           per-status accent bar, columns, mobile cards, and responsive
           rules. Placeholder contractTotal until the real wiring lands. */}
       <ChangeOrderPaymentRecords />
+
+      {/* Back to Top — mobile only; matches the affordance at the bottom of
+          the regular Project Hub / Invoices views. */}
+      <div className="lg:hidden flex justify-center w-full pt-2">
+        <BackToTopButton
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        />
+      </div>
     </div>
   );
 }
@@ -1291,6 +1300,27 @@ export default function ChangeOrderPage() {
     </>
   );
 
+  // Right-column summary — shared between the desktop sticky column and,
+  // post-approval on mobile, the top-of-page slot so the approved Change
+  // Order Project Hub mirrors the Proposal Project Hub's mobile layout
+  // (Project Home Details above all section cards).
+  const changeOrderRightColumn = (
+    <ChangeOrderRightColumn
+      onViewInvoices={() => setTab('invoices')}
+      onViewContract={() => setTab('contract')}
+      onViewChangeHistory={() => setTab('changes')}
+      onOpenSchedule={openSchedule}
+      onRequestSign={() => setShowSignatureOverlay(true)}
+      onMakePayment={openMakePayment}
+      makePaymentBtnRef={paymentBtnRef}
+      extraPayments={extraPayments}
+      invoicesOverrides={revisedInvoicesOverrides}
+      approved={approved}
+      approvedAt={approvedAt}
+    />
+  );
+  const isApprovedHomeTab = approved && tab === 'home';
+
   return (
     <>
       <SummaryPageResponsive
@@ -1310,20 +1340,38 @@ export default function ChangeOrderPage() {
         bodyTransitionDirection={slideDirection}
         rightColumnTopPx={80}
         mobileTopTitleOverride={
+          // `-mt-2` trims 8px from above so every override lands 32px below
+          // the sticky header bottom (matching the Proposal Project Hub).
+          // ActionHeaderSpacer is 40px on XS; the target is pt-8 = 32px.
           isContractTab ? (
-            <ContractTabRightColumn
-              onViewInvoices={() => setTab('invoices')}
-              onViewPendingChangeOrder={() => setTab('home')}
-              onViewChangeHistory={() => setTab('changes')}
-              viewPendingButtonRef={viewPendingButtonRef}
-            />
+            <div className="-mt-2">
+              <ContractTabRightColumn
+                onViewInvoices={() => setTab('invoices')}
+                onViewPendingChangeOrder={() => setTab('home')}
+                onViewChangeHistory={() => setTab('changes')}
+                viewPendingButtonRef={viewPendingButtonRef}
+              />
+            </div>
+          ) : isApprovedHomeTab ? (
+            // Approved Change Order Project Home (mobile): the right column
+            // moves to the top of the page so the financial summary + CTAs
+            // are the first thing the user sees, matching the Proposal
+            // Project Hub's mobile layout. The mobile duplicate at the
+            // bottom is suppressed via `hideMobileRightColumn`. `pb-5`
+            // matches the Proposal Project Hub's mobile gap between the
+            // top right column and the first scope card.
+            <div className="-mt-2 pb-5">{changeOrderRightColumn}</div>
           ) : approved ? (
-            <ApprovedChangeOrderTitleBlock approvedAt={approvedAt} />
+            <div className="-mt-2">
+              <ApprovedChangeOrderTitleBlock approvedAt={approvedAt} />
+            </div>
           ) : (
-            <ChangeOrderHeaderBlock />
+            <div className="-mt-2">
+              <ChangeOrderHeaderBlock />
+            </div>
           )
         }
-        hideMobileRightColumn={isContractTab}
+        hideMobileRightColumn={isContractTab || isApprovedHomeTab}
         hideMobileStickyFooter={
           isChangesTab ||
           (tab === 'home' && approved) ||
@@ -1368,19 +1416,7 @@ export default function ChangeOrderPage() {
           isContractTab ? (
             <ContractTabRightColumn onViewInvoices={() => setTab('invoices')} onViewPendingChangeOrder={() => setTab('home')} onViewChangeHistory={() => setTab('changes')} />
           ) : (
-            <ChangeOrderRightColumn
-              onViewInvoices={() => setTab('invoices')}
-              onViewContract={() => setTab('contract')}
-              onViewChangeHistory={() => setTab('changes')}
-              onOpenSchedule={openSchedule}
-              onRequestSign={() => setShowSignatureOverlay(true)}
-              onMakePayment={openMakePayment}
-              makePaymentBtnRef={paymentBtnRef}
-              extraPayments={extraPayments}
-              invoicesOverrides={revisedInvoicesOverrides}
-              approved={approved}
-              approvedAt={approvedAt}
-            />
+            changeOrderRightColumn
           )
         }
         replaceLeftColumn={isApprovedContractTab ? undefined : isContractTab ? contractLeftColumn : undefined}
@@ -1399,7 +1435,10 @@ export default function ChangeOrderPage() {
             // Post-approval the Change Order Project Hub reuses the Proposal
             // Project Hub's Invoices & Payments tab verbatim, fed by the
             // revised invoice schedule + payment chronology.
-            <div className="lg:pb-8">
+            // `pt-4 lg:pt-0` adds 16px on mobile so the gap from the sticky
+            // tab bar to the "Invoices" heading matches the approved home
+            // tab (32px total: 16 outer + 16 InvoicesPaymentsSection's pt-4).
+            <div className="pt-4 lg:pt-0 lg:pb-8">
               <InvoicesPaymentsSection
                 onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 contractTotal={revisedContractTotal}
@@ -1410,21 +1449,36 @@ export default function ChangeOrderPage() {
               />
             </div>
           ) : isInvoicesTab ? (
-            <ChangeOrderInvoicesView
-              onViewPendingChangeOrder={() => setTab('home')}
-              viewPendingButtonRef={viewPendingButtonRef}
-            />
+            // `pt-2 lg:pt-0` adds 8px on mobile so the gap from the sticky
+            // tab bar to the "Progress & Schedule" heading matches the
+            // approved home tab (32px total: 8 outer + 24
+            // ChangeOrderInvoicesView's pt-6).
+            <div className="pt-2 lg:pt-0">
+              <ChangeOrderInvoicesView
+                onViewPendingChangeOrder={() => setTab('home')}
+                viewPendingButtonRef={viewPendingButtonRef}
+              />
+            </div>
           ) : isChangesTab ? (
-            <ChangeHistoryView
-              products={flattenSelectedUpgrades(STUB_OPTION.products)}
-              onViewPendingChangeOrder={() => setTab('home')}
-              onViewCurrentApprovedContract={() => setTab('contract')}
-              onMakePayment={openMakePayment}
-              onRequestSign={() => setShowSignatureOverlay(true)}
-              signatureRequired={config.signatureRequired}
-              approved={approved}
-              approvedAt={approvedAt}
-            />
+            // `pt-2 lg:pt-0` adds 8px on mobile so the gap from the sticky
+            // tab bar to the search field matches the approved home tab
+            // (32px total: 8 outer + 24 ChangeHistoryView's pt-6).
+            <div className="pt-2 lg:pt-0">
+              <ChangeHistoryView
+                products={flattenSelectedUpgrades(STUB_OPTION.products)}
+                onViewPendingChangeOrder={() => setTab('home')}
+                onViewCurrentApprovedContract={() => setTab('contract')}
+                onMakePayment={openMakePayment}
+                onRequestSign={() => setShowSignatureOverlay(true)}
+                signatureRequired={config.signatureRequired}
+                approved={approved}
+                approvedAt={approvedAt}
+                extraPayments={extraPayments}
+                revisedContractTotal={revisedContractTotal}
+                revisedInvoicesOverrides={revisedInvoicesOverrides}
+                invoiceMode={config.invoiceMode}
+              />
+            </div>
           ) : undefined
         }
       />
