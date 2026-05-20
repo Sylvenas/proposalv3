@@ -110,6 +110,279 @@ function computeFinancials(baseMaterials: number, addons: AddonItem[]): Financia
   return { materials, discount, tax, contractTotal, monthly };
 }
 
+// ── ProjectHomeCTAs ───────────────────────────────────────────────────────────
+// CTA stack from the Project Home Details panel (Make A Payment / Financing
+// Service / Invoice & Payment Record / Contact Sales / Download Contract).
+// Extracted from ProjectHomeDetails so the Change Order Project Hub can
+// surface the exact same set of post-approval actions. Contact Sales owns
+// its own modal state internally; the parent only supplies wiring for the
+// payment/records shortcuts.
+export function ProjectHomeCTAs({
+  nextDue,
+  financingService = 'enable',
+  paymentBtnRef,
+  onMakePayment,
+  onShowPaymentRecords,
+  downloadCtaOverride,
+  belowMainCtas,
+}: {
+  /** True when there is still a balance owed — toggles between Make A
+   *  Payment + Financing/IPRR and a single View Invoices & Payments CTA. */
+  nextDue: boolean;
+  financingService?: 'enable' | 'disable';
+  paymentBtnRef?: React.Ref<HTMLButtonElement>;
+  onMakePayment?: () => void;
+  onShowPaymentRecords?: () => void;
+  /** When provided, replaces the default "Download Contract [PDF]" outlined
+   *  button as the last CTA in the main stack. Lets the Change Order Project
+   *  Hub swap in a "Change History" button while keeping the surrounding
+   *  buttons in lockstep with the Proposal hub. */
+  downloadCtaOverride?: React.ReactNode;
+  /** Optional content rendered immediately below the main CTA group (and
+   *  above the existing optional "View Invoice & Payment Record" link). Used
+   *  by the Change Order Project Hub to surface the original Download
+   *  Contract button as a borderless link once Change History has taken its
+   *  outlined slot. */
+  belowMainCtas?: React.ReactNode;
+}) {
+  const [contactSalesOpen, setContactSalesOpen] = useState(false);
+  return (
+    <>
+      <div className="flex flex-col gap-3 items-start w-full">
+
+        {nextDue ? (
+          <>
+            <button ref={paymentBtnRef} onClick={onMakePayment} className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer">
+              <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                Make A Payment
+              </span>
+            </button>
+
+            {financingService === 'enable' ? (
+              <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
+                <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                  <img src={IMG_CALCULATOR} alt="" style={{ width: 14.9, height: 20 }} />
+                </div>
+                <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                  Financing Service
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={onShowPaymentRecords}
+                className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
+              >
+                <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                  <CreditCardIcon />
+                </div>
+                <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+                  Invoice &amp; Payment Record
+                </span>
+              </button>
+            )}
+          </>
+        ) : (
+          <button
+            onClick={onShowPaymentRecords}
+            className="bg-white border border-solid border-[#262626] flex h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
+          >
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              View Invoices &amp; Payments
+            </span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setContactSalesOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={contactSalesOpen}
+          className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
+        >
+          <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+            <PhoneIcon size={18} />
+          </div>
+          <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+            Contact Sales
+          </span>
+        </button>
+        <ContactSalesModal open={contactSalesOpen} onClose={() => setContactSalesOpen(false)} />
+
+        {downloadCtaOverride ?? (
+          <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
+            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+              <img src={IMG_DOWNLOAD} alt="" style={{ width: 16, height: 17 }} />
+            </div>
+            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
+              Download Contract [PDF]
+            </span>
+          </button>
+        )}
+
+      </div>
+
+      {belowMainCtas}
+
+      {nextDue && financingService === 'enable' && (
+        <BorderlessLinkButton
+          icon={<CreditCardIcon />}
+          label="View Invoice & Payment Record"
+          onClick={onShowPaymentRecords}
+        />
+      )}
+    </>
+  );
+}
+
+// ── PaymentProgressAndNextPayment ─────────────────────────────────────────────
+// The Payment Progress (paid / contract total + thin bar) + Next Payment
+// (remaining / subtitle) block that sits at the top of Project Home Details.
+// Extracted from ProjectHomeDetails so the Change Order Project Hub can render
+// the exact same visual with after-CO data sourced from the Invoices &
+// Payments tab. The component is presentation-only — callers supply the
+// already-computed amounts and the next-due invoice descriptor.
+export function PaymentProgressAndNextPayment({
+  paidAmount,
+  receivedAmount,
+  processingAmount,
+  contractTotal,
+  nextDue,
+  fullyPaidOn,
+  paymentCompletionIndication = 'seal',
+}: {
+  paidAmount: number;
+  receivedAmount: number;
+  processingAmount: number;
+  contractTotal: number;
+  /** When null, the block renders the fully-paid status copy (seal or check
+   *  per `paymentCompletionIndication`); otherwise the Next Payment subblock
+   *  shows the remaining amount + percent + due date. */
+  nextDue: { remaining: number; percent: number; dueDate: string } | null;
+  /** Date string to surface when fully paid ("Contract Paid in Full on …" or
+   *  "Payment submitted in full on …"). Caller passes the most recent payment
+   *  date, falling back to a derived date when nothing is left to pay. */
+  fullyPaidOn: string;
+  paymentCompletionIndication?: 'check' | 'seal';
+}) {
+  const progressRatio = contractTotal > 0 ? Math.min(1, paidAmount / contractTotal) : 0;
+  return (
+    <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-4 lg:gap-3 items-start py-4 lg:py-3 w-full">
+      <div className="relative w-full">
+        <div className="flex flex-col items-start gap-1 w-full">
+          <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
+            <span className="leading-normal">Payment Progress </span>
+            <span className="leading-normal" style={{ fontSize: 7.74 }}>1</span>
+          </p>
+          <p
+            className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
+            style={{ fontWeight: 300 }}
+          >
+            {fmtDollars(paidAmount)}{' '}
+            <span style={{ color: '#a0a0a0' }}>/ {fmtDollars(contractTotal)}</span>
+          </p>
+          <div className="rounded-full overflow-hidden flex" style={{ width: '60%', height: 2, background: '#e0e0e0' }}>
+            {processingAmount > 0 ? (
+              <>
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${(receivedAmount / contractTotal) * 100}%`,
+                    background: '#262626',
+                  }}
+                />
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${(processingAmount / contractTotal) * 100}%`,
+                    background: '#737373',
+                    animation: 'paymentProgressProcessingPulse 1s ease-in-out infinite',
+                  }}
+                />
+              </>
+            ) : (
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${progressRatio * 100}%`, background: '#262626' }}
+              />
+            )}
+          </div>
+          <style>{`
+            @keyframes paymentProgressProcessingPulse {
+              0%, 100% { opacity: 1; }
+              50%      { opacity: 0.18; }
+            }
+          `}</style>
+          {processingAmount > 0 && (
+            <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal">
+              Includes {fmtDollars(processingAmount)} still processing
+            </p>
+          )}
+          {!nextDue && paymentCompletionIndication === 'seal' && (
+            <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal w-full pt-2">
+              {processingAmount > 0 ? 'Payment submitted in full on' : 'Contract Paid in Full on'} {fullyPaidOn}
+            </p>
+          )}
+        </div>
+        {!nextDue && paymentCompletionIndication === 'seal' && (
+          <img
+            src={IMG_PAID_SEAL}
+            alt="Paid in full"
+            className="absolute pointer-events-none"
+            style={{
+              width: 84,
+              height: 84,
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%) rotate(-15deg)',
+              transformOrigin: 'center',
+              opacity: 0.5,
+              mixBlendMode: 'multiply',
+            }}
+          />
+        )}
+      </div>
+
+      {!nextDue && paymentCompletionIndication === 'check' && (
+        <div className="flex items-center gap-2 w-full">
+          <span
+            className="flex items-center justify-center rounded-full shrink-0"
+            style={{ width: 20, height: 20, background: '#04b50b' }}
+            aria-hidden
+          >
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M3 7.2 L5.6 9.8 L11 4.4"
+                stroke="white"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal">
+            Contract Paid in Full on {fullyPaidOn}
+          </p>
+        </div>
+      )}
+
+      {nextDue && (
+        <div className="flex flex-col items-start w-full">
+          <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
+            <span className="leading-normal">Next Payment </span>
+            <span className="leading-normal" style={{ fontSize: 7.74 }}>2</span>
+          </p>
+          <p className="text-[20px] sm:text-[24px] xl:text-[32px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
+            {fmtDollars(nextDue.remaining)}
+          </p>
+          <p className="text-[14px] sm:text-[16px] 2xl:text-[20px] font-normal text-[#262626] leading-normal w-full pt-4 lg:pt-3">
+            {nextDue.percent}% balance due at project completion {nextDue.dueDate}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Format helper ─────────────────────────────────────────────────────────────
 function fmtDollars(n: number, decimals = 0): string {
   return (
@@ -876,7 +1149,7 @@ function InfoDuotoneIcon() {
 // Project Hub sticky footer — XS/S/M only, shown when the top "Make A Payment"
 // button scrolls out of the viewport. Mirrors the next-payment pricing from
 // ProjectHomeDetails so totals stay in sync when addons change.
-function ProjectHubStickyFooter({
+export function ProjectHubStickyFooter({
   visible,
   nextPaymentAmount,
   nextPaymentPercent,
@@ -1009,7 +1282,6 @@ function ProjectHomeDetails({
   financingService?: 'enable' | 'disable';
 }) {
   // ── Payment progress ─────────────────────────────────────────────────────
-  const [contactSalesOpen, setContactSalesOpen] = useState(false);
   // Mobile (< lg) only — toggled by the "Read more" / "Show less" buttons
   // to swap the single-line truncated note ① for the full ①② disclaimer
   // text (note ② only when there's still a balance owed).
@@ -1054,248 +1326,29 @@ function ProjectHomeDetails({
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
 
-      {/* Contract Amount
-           Low density  (< lg):  py=Gutter(8px)=py-2,  gap=XS(4px)=gap-1
-           Med density  (lg+):   py=Gutter(12px)=py-3, gap=XS(8px)=gap-2 */}
-      <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-4 lg:gap-3 items-start py-4 lg:py-3 w-full">
-
-        {/* Payment Progress (+ Paid In Full seal on the right when fully paid).
-            In paid state we also fold the "Contract Paid in Full on …" line
-            into the left column so it sits next to the seal instead of
-            wrapping underneath it. The seal is absolutely positioned over
-            the right edge of the section so its presence doesn't shrink the
-            content column — the progress bar keeps its pre-paid width — and
-            it's vertically centered against the whole content stack. */}
-        <div className="relative w-full">
-          <div className="flex flex-col items-start gap-1 w-full">
-            <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
-              <span className="leading-normal">Payment Progress </span>
-              <span className="leading-normal" style={{ fontSize: 7.74 }}>1</span>
-            </p>
-            <p
-              className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap"
-              style={{ fontWeight: 300 }}
-            >
-              {fmtDollars(PAID_AMOUNT)}{' '}
-              <span style={{ color: '#a0a0a0' }}>/ {fmtDollars(contractTotal)}</span>
-            </p>
-            {/* Progress bar — ~3/5 width, thin 2px track.
-                Whenever there's in-flight ACH money, split the bar into
-                a solid black cleared segment + a dark-gray pulsing
-                segment for the processing portion. The pulse keeps the
-                "still settling" state visible across every progress
-                state (partial, fully covered, etc.). When nothing is in
-                flight, fall back to the original single-segment bar. */}
-            <div className="rounded-full overflow-hidden flex" style={{ width: '60%', height: 2, background: '#e0e0e0' }}>
-              {processingAmount > 0 ? (
-                <>
-                  <div
-                    className="h-full"
-                    style={{
-                      width: `${(receivedAmount / contractTotal) * 100}%`,
-                      background: '#262626',
-                    }}
-                  />
-                  <div
-                    className="h-full"
-                    style={{
-                      width: `${(processingAmount / contractTotal) * 100}%`,
-                      background: '#737373',
-                      animation: 'paymentProgressProcessingPulse 1s ease-in-out infinite',
-                    }}
-                  />
-                </>
-              ) : (
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${progressRatio * 100}%`, background: '#262626' }}
-                />
-              )}
-            </div>
-            <style>{`
-              @keyframes paymentProgressProcessingPulse {
-                0%, 100% { opacity: 1; }
-                50%      { opacity: 0.18; }
-              }
-            `}</style>
-            {/* Secondary caption — surfaces the in-flight ACH amount in
-                small secondary-grey text right under the bar. Hidden when
-                there's nothing settling so the line never reads as a
-                placeholder. */}
-            {processingAmount > 0 && (
-              <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal">
-                Includes {fmtDollars(processingAmount)} still processing
-              </p>
-            )}
-            {/* Seal mode: paid date sits inside the Payment Progress block
-                so it reads alongside the rotated seal on the right. */}
-            {!nextDue && paymentCompletionIndication === 'seal' && (
-              <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal w-full pt-2">
-                {processingAmount > 0 ? 'Payment submitted in full on' : 'Contract Paid in Full on'} {fullyPaidOn ?? subtitleDate}
-              </p>
-            )}
-          </div>
-          {!nextDue && paymentCompletionIndication === 'seal' && (
-            <img
-              src={IMG_PAID_SEAL}
-              alt="Paid in full"
-              className="absolute pointer-events-none"
-              style={{
-                width: 84,
-                height: 84,
-                right: 0,
-                top: '50%',
-                transform: 'translateY(-50%) rotate(-15deg)',
-                transformOrigin: 'center',
-                // 50% opacity + multiply blend so the seal absorbs the
-                // background tint instead of sitting opaquely on top.
-                opacity: 0.5,
-                mixBlendMode: 'multiply',
-              }}
-            />
-          )}
-        </div>
-
-        {/* Check-mark mode: separate row below the Payment Progress block
-            with a green tick + paid date, no seal. */}
-        {!nextDue && paymentCompletionIndication === 'check' && (
-          <div className="flex items-center gap-2 w-full">
-            <span
-              className="flex items-center justify-center rounded-full shrink-0"
-              style={{ width: 20, height: 20, background: '#04b50b' }}
-              aria-hidden
-            >
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                <path
-                  d="M3 7.2 L5.6 9.8 L11 4.4"
-                  stroke="white"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal">
-              Contract Paid in Full on {fullyPaidOn ?? subtitleDate}
-            </p>
-          </div>
-        )}
-
-        {/* Next Payment — once every invoice is paid we drop the "Next
-            Payment / $X" framing for a fully-paid status note instead. */}
-        {nextDue ? (
-          <div className="flex flex-col items-start w-full">
-            <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[0] overflow-hidden text-ellipsis w-full whitespace-nowrap">
-              <span className="leading-normal">Next Payment </span>
-              <span className="leading-normal" style={{ fontSize: 7.74 }}>2</span>
-            </p>
-            <p className="text-[20px] sm:text-[24px] xl:text-[32px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
-              {fmtDollars(remaining)}
-            </p>
-            <p className="text-[14px] sm:text-[16px] 2xl:text-[20px] font-normal text-[#262626] leading-normal w-full pt-4 lg:pt-3">
-              {subtitlePercent}% balance due at project completion {subtitleDate}
-            </p>
-          </div>
-        ) : null /* Paid-state copy is rendered inside the Payment Progress
-                    block above so it sits next to the seal. */}
-
-      </div>
+      <PaymentProgressAndNextPayment
+        paidAmount={PAID_AMOUNT}
+        receivedAmount={receivedAmount}
+        processingAmount={processingAmount}
+        contractTotal={contractTotal}
+        nextDue={
+          nextDue
+            ? { remaining, percent: subtitlePercent, dueDate: subtitleDate }
+            : null
+        }
+        fullyPaidOn={fullyPaidOn ?? subtitleDate}
+        paymentCompletionIndication={paymentCompletionIndication}
+      />
 
       {/* Actions */}
       <div className="flex flex-col gap-2 lg:gap-3 items-start pt-4 lg:pt-6 pb-2 lg:pb-3 w-full">
-        <div className="flex flex-col gap-3 items-start w-full">
-
-          {nextDue ? (
-            <>
-              {/* Make A Payment — primary red */}
-              <button ref={paymentBtnRef} onClick={onMakePayment} className="bg-[#d41a32] border-0 flex items-center justify-center h-10 px-4 rounded-[4px] w-full cursor-pointer">
-                <span className="text-[14px] font-semibold text-white text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
-                  Make A Payment
-                </span>
-              </button>
-
-              {/* Financing Service — when disabled via DevConsole, the slot
-                  becomes a shortcut to the Invoices & Payments tab. */}
-              {financingService === 'enable' ? (
-                <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
-                  <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-                    <img src={IMG_CALCULATOR} alt="" style={{ width: 14.9, height: 20 }} />
-                  </div>
-                  <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
-                    Financing Service
-                  </span>
-                </button>
-              ) : (
-                <button
-                  onClick={onShowPaymentRecords}
-                  className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
-                >
-                  <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-                    <CreditCardIcon />
-                  </div>
-                  <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
-                    Invoice &amp; Payment Record
-                  </span>
-                </button>
-              )}
-            </>
-          ) : (
-            // All invoices paid — Make A Payment / Financing are hidden in
-            // favor of a single shortcut to the Invoices & Payments tab.
-            // Secondary (outlined) style — payments are settled, so the CTA
-            // doesn't need primary emphasis.
-            <button
-              onClick={onShowPaymentRecords}
-              className="bg-white border border-solid border-[#262626] flex h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
-            >
-              <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
-                View Invoices &amp; Payments
-              </span>
-            </button>
-          )}
-
-          {/* Contact Sales — opens the shared sales contact card */}
-          <button
-            type="button"
-            onClick={() => setContactSalesOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={contactSalesOpen}
-            className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
-          >
-            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-              <PhoneIcon size={18} />
-            </div>
-            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
-              Contact Sales
-            </span>
-          </button>
-          <ContactSalesModal open={contactSalesOpen} onClose={() => setContactSalesOpen(false)} />
-
-          {/* Download Contract [PDF] */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
-            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-              <img src={IMG_DOWNLOAD} alt="" style={{ width: 16, height: 17 }} />
-            </div>
-            <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
-              Download Contract [PDF]
-            </span>
-          </button>
-
-        </div>
-
-          {/* Payment Schedule & Records — link-style, gutter gap from bordered
-              buttons. Redundant once all invoices are paid because the
-              outlined "View Invoices & Payments" CTA above already routes
-              there, so we hide it in that state. Also hidden when
-              Financing Service is disabled — the outlined "Invoice &
-              Payment Record" button replaces this link's destination. */}
-          {nextDue && financingService === 'enable' && (
-            <BorderlessLinkButton
-              icon={<CreditCardIcon />}
-              label="View Invoice & Payment Record"
-              onClick={onShowPaymentRecords}
-            />
-          )}
+        <ProjectHomeCTAs
+          nextDue={!!nextDue}
+          financingService={financingService}
+          paymentBtnRef={paymentBtnRef}
+          onMakePayment={onMakePayment}
+          onShowPaymentRecords={onShowPaymentRecords}
+        />
 
         {/* Disclaimers */}
         <div className="flex flex-col items-start pt-6 w-full">

@@ -648,37 +648,65 @@ function buildEnumeratedInvoicesData(
   };
 }
 
+/** Optional overrides that swap out the default invoice schedule and/or the
+ *  static payment chronology used by `buildInvoicesData`. Used by the Change
+ *  Order Project Hub so its Invoices & Payments tab reuses the Proposal
+ *  component but renders the post-CO (revised) schedule + chronology,
+ *  derived from `useChangeOrderInvoicePanels` / `useChangeOrderPaymentRecords`.
+ *
+ *  `invoiceSpecs` accepts raw amounts (instead of percent + contract total)
+ *  so callers can preserve the exact figures from a CO data source without
+ *  re-deriving them from percentages and risking rounding drift.
+ */
+export type InvoiceSpec = {
+  number: number;
+  label: string;
+  amount: number;
+  dueDate: string;
+};
+
 export function buildInvoicesData(
   contractTotal: number,
   extraPayments: ExtraPaymentSpec[] = [],
   mode: InvoiceMode = 'happyPath',
+  overrides?: {
+    invoiceSpecs?: InvoiceSpec[];
+    staticChronology?: ExtraPaymentSpec[];
+  },
 ): InvoicesData {
   if (mode === 'enumerate') {
     return buildEnumeratedInvoicesData(contractTotal, extraPayments);
   }
   // Invoice amounts: precise percentages of the contract total — sums to
-  // contractTotal up to ±$1 rounding.
-  const invSpecs = INVOICE_BLUEPRINT.map((bp) => ({
-    number: bp.number,
-    label:  bp.label,
-    amount: Math.round((contractTotal * bp.percent) / 100),
-    dueDate: bp.dueDate,
-  }));
+  // contractTotal up to ±$1 rounding. Callers can short-circuit this with
+  // `overrides.invoiceSpecs` (Change Order Project Hub) when the schedule
+  // already exists as exact dollar amounts elsewhere.
+  const invSpecs: InvoiceSpec[] =
+    overrides?.invoiceSpecs ??
+    INVOICE_BLUEPRINT.map((bp) => ({
+      number: bp.number,
+      label: bp.label,
+      amount: Math.round((contractTotal * bp.percent) / 100),
+      dueDate: bp.dueDate,
+    }));
 
   // Static payment chronology, oldest → newest:
   //   1030 — pays half of INVOICE #1 (leaves #1 partial).
   //   1091 — pays the remainder of INVOICE #1 + half of INVOICE #2.
   // After these we apply the dynamic `extraPayments` (user-confirmed payments
   // recorded via the Make A Payment dialog).
-  const inv1Amount = invSpecs[0].amount;
-  const inv2Amount = invSpecs[1].amount;
+  //
+  // Callers can supply `overrides.staticChronology` (Change Order Project Hub)
+  // to replace this baseline with a CO-specific payment history.
+  const inv1Amount = invSpecs[0]?.amount ?? 0;
+  const inv2Amount = invSpecs[1]?.amount ?? 0;
   const p1030Applied = Math.round(inv1Amount / 2);
   const p1091ToInv1  = Math.max(0, inv1Amount - p1030Applied);
   const p1091ToInv2  = Math.round(inv2Amount / 2);
   const p1091Applied = p1091ToInv1 + p1091ToInv2;
   const p1091Fee     = Math.round(p1091Applied * CARD_PROCESSING_FEE_RATE);
 
-  const staticChronology: ExtraPaymentSpec[] = [
+  const staticChronology: ExtraPaymentSpec[] = overrides?.staticChronology ?? [
     {
       paymentId:     '1030',
       paidOn:        'Jan 2, 2025',
@@ -1823,6 +1851,7 @@ export default function InvoicesPaymentsSection({
   contractTotal,
   extraPayments = [],
   invoiceMode = 'happyPath',
+  overrides,
 }: {
   onScrollToTop: () => void;
   /** Open the Make-A-Payment utility (managed by ProjectHubPageResponsive). */
@@ -1839,13 +1868,21 @@ export default function InvoicesPaymentsSection({
    *  existing 3-invoice schedule; 'enumerate' replaces it with a synthetic
    *  list covering every status × due-date variant. */
   invoiceMode?: InvoiceMode;
+  /** Override the default invoice schedule and/or payment chronology used
+   *  by `buildInvoicesData`. Lets the Change Order Project Hub reuse this
+   *  whole tab page while showing the post-CO (revised) schedule + records
+   *  derived from `useChangeOrderInvoicePanels` / `useChangeOrderPaymentRecords`. */
+  overrides?: {
+    invoiceSpecs?: InvoiceSpec[];
+    staticChronology?: ExtraPaymentSpec[];
+  };
 }) {
   // Build per-contract data once per `contractTotal` change. Helpers and
   // tables consume it via InvoicesDataContext so subcomponents don't have
   // to receive every helper individually.
   const data = useMemo(
-    () => buildInvoicesData(contractTotal, extraPayments, invoiceMode),
-    [contractTotal, extraPayments, invoiceMode],
+    () => buildInvoicesData(contractTotal, extraPayments, invoiceMode, overrides),
+    [contractTotal, extraPayments, invoiceMode, overrides],
   );
   const { INVOICES, PAYMENT_RECORDS, isInvoicePayable, toInvoiceDetail, toPaymentDetail } = data;
 
