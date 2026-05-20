@@ -30,6 +30,15 @@ export type ProposalStatus =
   | 'void'
   | 'signedOnDevice';
 export type CompanySlogan = 'enable' | 'disable';
+/** Payment state to simulate on the Change Order Approval Page.
+ *  'underPaid' (default) keeps the current state where the existing
+ *  contract still has outstanding balance. 'fullyPaid' and 'overPaid'
+ *  are reserved for upcoming UI variants. */
+export type ExistingPayment = 'underPaid' | 'fullyPaid' | 'overPaid';
+/** Color palette used for the Over Paid warning indications (progress bar,
+ *  row accent bar, "Need Refund" / "Overpaid" text). 'red' (default) is
+ *  the alert palette; 'yellow' uses the softer amber/orange tones. */
+export type OverpaidIndication = 'red' | 'yellow';
 /** Top-level document type rendered by the prototype. 'proposal' (default)
  *  runs the regular Proposal flow (Cover → Options → Summary → Project Hub).
  *  'changeOrder' switches to a placeholder Change Order page so that variant
@@ -149,6 +158,13 @@ export type DevConfig = {
   /** Top-level document type. 'proposal' (default) renders the regular flow;
    *  'changeOrder' swaps to the Change Order placeholder page. */
   type: ProposalType;
+  /** Existing-payment state on the Change Order Approval Page. Only meaningful
+   *  when `type === 'changeOrder'`. 'underPaid' (default) is the current
+   *  behavior. 'fullyPaid' / 'overPaid' are reserved for upcoming variants. */
+  existingPayment: ExistingPayment;
+  /** Palette used by the Over Paid status indications. Only meaningful
+   *  when `existingPayment === 'overPaid'`. */
+  overpaidIndication: OverpaidIndication;
 };
 
 type DevConsoleContextValue = {
@@ -193,6 +209,8 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     proposalStatus: 'regular',
     companySlogan: 'disable',
     type: 'proposal',
+    existingPayment: 'underPaid',
+    overpaidIndication: 'yellow',
   });
   const [isOpen, setIsOpen] = useState(false);
   const [restartTick, setRestartTick] = useState(0);

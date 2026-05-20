@@ -284,6 +284,31 @@ export default function DevConsole() {
                 onChange={(v) => setConfig((c) => ({ ...c, scheduledPaymentsCount: v }))}
               />
             </Section>
+            {config.type === 'changeOrder' && (
+              <Section title="Existing Payment">
+                <ToggleRow
+                  value={config.existingPayment}
+                  options={[
+                    { label: 'Under Paid', value: 'underPaid' as const },
+                    { label: 'Fully Paid', value: 'fullyPaid' as const },
+                    { label: 'Over Paid', value: 'overPaid' as const },
+                  ]}
+                  onChange={(v) => setConfig((c) => ({ ...c, existingPayment: v }))}
+                />
+              </Section>
+            )}
+            {config.type === 'changeOrder' && (
+              <Section title="Overpaid Indication">
+                <ToggleRow
+                  value={config.overpaidIndication}
+                  options={[
+                    { label: 'Yellow', value: 'yellow' as const },
+                    { label: 'Red', value: 'red' as const },
+                  ]}
+                  onChange={(v) => setConfig((c) => ({ ...c, overpaidIndication: v }))}
+                />
+              </Section>
+            )}
           </Cluster>
 
           <Cluster title="Project Hub">

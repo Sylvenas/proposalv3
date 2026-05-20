@@ -45,6 +45,8 @@ import PaymentScheduleDialog, {
 import {
   InvoiceComparisonRow,
   PaymentProgressBlock,
+  useChangeOrderInvoicePanels,
+  useChangeOrderPaymentRecords,
   type InvoiceRowData,
 } from './ChangeOrderInvoiceRow';
 
@@ -433,9 +435,8 @@ function ContractTabHeaderBlock() {
           callouts share dimensions across the app. */}
       <div className="bg-[#eef2f9] rounded-[6px] px-3 py-2.5 xl:px-4 xl:py-3 w-full">
         <p className="text-[14px] xl:text-[16px] text-[#262626] leading-[1.5]">
-          <span className="font-semibold">Note:</span> this contract is locked while a change order
-          is pending. Approve the change order to continue, or contact your sales representative to
-          withdraw it.
+          This contract is locked while a change order is pending. Approve the change order to
+          continue, or contact your sales representative to withdraw it.
         </p>
       </div>
     </div>
@@ -449,15 +450,29 @@ function ContractTabHeaderBlock() {
 function ContractTabRightColumn({
   onViewInvoices,
   onViewPendingChangeOrder,
+  onViewChangeHistory,
   viewPendingButtonRef,
 }: {
   onViewInvoices?: () => void;
   onViewPendingChangeOrder?: () => void;
+  onViewChangeHistory?: () => void;
   /** Optional ref attached to the "View Pending Change Order" button's
    *  wrapper. ChangeOrderPage uses it with IntersectionObserver to hide
    *  the mobile sticky footer while this inline CTA is on screen. */
   viewPendingButtonRef?: React.Ref<HTMLDivElement>;
 }) {
+  // Pull the Before-CO panel for the current contract so the Payment
+  // Progress block here tracks the Invoices & Payments tab and reacts
+  // to the Existing Payment toggle.
+  const { before: beforePanel } = useChangeOrderInvoicePanels();
+  const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
+  const totalNum = parseDollars(beforePanel.invoiceTotal);
+  const receivedNum = parseDollars(beforePanel.received);
+  const processingNum = parseDollars(beforePanel.processing);
+  const paidNum = receivedNum + processingNum;
+  // Fill never exceeds 100% — Over Paid stops at the rail's end.
+  const paidPct = totalNum > 0 ? Math.min(100, (paidNum / totalNum) * 100) : 0;
+  const fmt = (n: number) => `$${n.toLocaleString('en-US')}`;
   return (
     <div
       className="flex flex-col gap-6 xl:gap-8 2xl:gap-12 w-full"
@@ -468,15 +483,15 @@ function ContractTabRightColumn({
       {/* Financials */}
       <div className="bg-white flex flex-col items-start w-full">
         <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
-          {/* Payment Progress block — same shape as ProjectHomeDetails, with
-              the 60%-width 2px track and ~50% black fill matching $5,000 of
-              $9,999. */}
+          {/* Payment Progress — paid (received + processing) over the
+              current contract total, driven by the shared Before-CO data
+              so it stays in sync with the Invoices & Payments tab. */}
           <div className="flex flex-col items-start gap-1 w-full">
             <p className="text-[12px] xl:text-[14px] text-[#737373] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
               Payment Progress
             </p>
             <p className="text-[16px] sm:text-[20px] xl:text-[24px] text-[#262626] overflow-hidden text-ellipsis w-full leading-normal whitespace-nowrap">
-              $5,000 <span style={{ color: '#a0a0a0' }}>/ $9,999</span>
+              {fmt(paidNum)} <span style={{ color: '#a0a0a0' }}>/ {fmt(totalNum)}</span>
             </p>
             <div
               className="rounded-full overflow-hidden flex"
@@ -484,7 +499,7 @@ function ContractTabRightColumn({
             >
               <div
                 className="h-full rounded-full"
-                style={{ width: '50%', background: '#262626' }}
+                style={{ width: `${paidPct}%`, background: '#262626' }}
               />
             </div>
           </div>
@@ -505,7 +520,7 @@ function ContractTabRightColumn({
             label="Payment Records"
             onClick={onViewInvoices}
           />
-          <OutlinedButton>
+          <OutlinedButton onClick={onViewChangeHistory}>
             <BackArrowGlyph />
             Change History
           </OutlinedButton>
@@ -539,9 +554,18 @@ function SignedContractSection() {
 // for now; real wiring will replace them as the workflow gets built out.
 function ChangeOrderInvoicesView({
   onViewPendingChangeOrder,
+  viewPendingButtonRef,
 }: {
   onViewPendingChangeOrder?: () => void;
+  /** Optional ref attached to the mobile "View Pending Change Order" link's
+   *  wrapper. ChangeOrderPage uses it with IntersectionObserver to hide the
+   *  mobile sticky footer while this inline CTA is on screen. */
+  viewPendingButtonRef?: React.Ref<HTMLDivElement>;
 }) {
+  // Before-CO / After-CO comparison-panel data is built by the shared
+  // helper so the Change History snapshot (which mirrors the same Existing
+  // Payment state) stays in lockstep.
+  const { before: beforePanel, after: afterPanel } = useChangeOrderInvoicePanels();
   return (
     <div
       className="flex flex-col gap-8 w-full pt-6 lg:pt-8"
@@ -552,8 +576,16 @@ function ChangeOrderInvoicesView({
           the card, then a larger gap before the comparison panels. */}
       <div className="flex flex-col gap-3 w-full">
         <div className="flex flex-col gap-3 w-full">
-          <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-semibold text-[#262626] tracking-[0.06em] uppercase inline-flex items-center gap-1.5">
+          {/* Mobile (XS-M): reuse the ChangeOrderPaymentRecords "Payment
+              Records" component's typography (12px → 16px at sm, title case).
+              Desktop (lg+): keep the uppercase "PROGRESS & SCHEDULE" heading
+              aligned with the PAYMENT RECORDS · 2 desktop table heading. */}
+          <p className="lg:hidden text-[12px] sm:text-[16px] font-semibold text-[#262626] leading-normal inline-flex items-center gap-1.5">
             <span>Progress &amp; Schedule</span>
+            <LockGlyph />
+          </p>
+          <p className="hidden lg:inline-flex text-[14px] xl:text-[16px] font-semibold text-[#262626] whitespace-nowrap leading-normal items-center gap-1.5">
+            <span>PROGRESS &amp; SCHEDULE</span>
             <LockGlyph />
           </p>
           <p className="font-normal text-[12px] xl:text-[14px] text-[#737373] leading-[1.5]">
@@ -573,7 +605,7 @@ function ChangeOrderInvoicesView({
               <p className="text-[11px] sm:text-[12px] xl:text-[13px] font-semibold text-[#737373] tracking-[0.06em] uppercase">
                 Pending Change Order #3
               </p>
-              <p className="text-[16px] sm:text-[18px] xl:text-[20px] font-medium text-[#262626] leading-tight">
+              <p className="text-[16px] sm:text-[18px] lg:text-[16px] xl:text-[18px] font-medium text-[#262626] leading-tight">
                 Add Pool-Side Gates &amp; Extra Panels
               </p>
             </div>
@@ -597,6 +629,7 @@ function ChangeOrderInvoicesView({
                     { label: 'NET CHANGE', value: '-$999.00', valueColor: '#d41a32' },
                     { label: 'REVISED TOTAL', value: '$12,000.00' },
                   ]}
+                  valueClassName="text-[18px] sm:text-[20px] lg:text-[18px] xl:text-[20px] leading-normal whitespace-nowrap font-normal pt-1 mt-auto"
                 />
               </div>
               {/* Desktop-only "View Change Order" column — matches the
@@ -620,7 +653,7 @@ function ChangeOrderInvoicesView({
                   (matches the BorderlessLinkButton used in ChangeHistoryView's
                   DetailCtaRow so the two views share the same CTA style).
                   No leading icon — the label alone is the affordance here. */}
-              <div className="lg:hidden w-full">
+              <div ref={viewPendingButtonRef} className="lg:hidden w-full">
                 <BorderlessLinkButton
                   icon={null}
                   label="View Pending Change Order"
@@ -633,37 +666,18 @@ function ChangeOrderInvoicesView({
       </div>
 
       {/* Side-by-side comparison */}
-      <div className="flex flex-col lg:flex-row gap-4 w-full">
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-4 w-full">
         <ComparisonPanel
+          className="order-2 lg:order-none"
           accent="neutral"
           heading="Before Change Order"
-          progressLabel="Current Progress · 31%"
-          received="$1,000"
-          processing="$3,000"
-          invoiceTotal="$12,999"
-          outstanding="$3,999"
-          invoicesHeading="Current Invoices · 3"
-          invoices={[
-            { num: 1, label: 'Deposit (15%)', paid: '$2,000', total: '$2,000', statusLine: 'Paid on Mar 23, 2026', status: 'paid' },
-            { num: 2, label: 'Balance (32%)', paid: '$2,000', total: '$3,999', statusLine: 'Due on May 2, 2026', status: 'partial' },
-            { num: 3, label: 'Balance (15%)', paid: '-', total: '$2,000', statusLine: 'Due on Jun 11, 2026', status: 'pending' },
-            { num: 4, label: 'Balance (38%)', paid: '-', total: '$5,000', statusLine: 'Due on Aug 20, 2026', status: 'pending' },
-          ]}
+          {...beforePanel}
         />
         <ComparisonPanel
+          className="order-1 lg:order-none"
           accent="blue"
           heading="After Change Order Approval"
-          progressLabel="Revised Progress · 33%"
-          received="$1,000"
-          processing="$3,000"
-          invoiceTotal="$12,000"
-          outstanding="$3,999"
-          invoicesHeading="Revised Invoices · 4"
-          invoices={[
-            { num: 1, label: 'Deposit (16%)', paid: '$2,000', total: '$2,000', statusLine: 'Paid on Mar 23, 2026', status: 'paid' },
-            { num: 2, label: 'Balance (42%)', paid: '$2,000', total: '$5,000', statusLine: 'Due on May 2, 2026', status: 'partial' },
-            { num: 3, label: 'Balance (42%)', paid: '-', total: '$5,000', statusLine: 'Due on Jun 11, 2026', status: 'pending' },
-          ]}
+          {...afterPanel}
         />
       </div>
 
@@ -677,34 +691,10 @@ function ChangeOrderInvoicesView({
 }
 
 function ChangeOrderPaymentRecords() {
-  // Override the synthetic PAYMENT_RECORDS from buildInvoicesData so the two
-  // payment amounts reconcile to the invoice paid totals shown above. 1091
-  // (newer, $3,000) is in `processing` so the progress bar's "Processing"
-  // segment maps to a real, in-flight payment record. 1030 ($1,000) is the
-  // settled "Received" portion.
-  const data = useMemo(() => {
-    const base = buildInvoicesData(12999);
-    // Swap payment methods between the two records — 1030 should pay by
-    // Credit Card and 1091 by Check (mirror of the synthetic defaults).
-    const methods = base.PAYMENT_RECORDS.map((r) => r.method);
-    const overridden = base.PAYMENT_RECORDS.map((rec, i) => {
-      // Index 0 is newest-first (1091, Mar 23) — the $3,000 processing
-      // payment. Index 1 (1030, Jan 2) is the $1,000 completed payment.
-      const isProcessing = i === 0;
-      const amount = isProcessing ? 3000 : 1000;
-      // Swap method with the sibling record.
-      const swappedMethod = methods[methods.length - 1 - i] ?? rec.method;
-      return {
-        ...rec,
-        amountApplied: amount,
-        platformFee: 0,
-        amountPaid: amount,
-        method: swappedMethod,
-        status: isProcessing ? ('processing' as const) : ('completed' as const),
-      };
-    });
-    return { ...base, PAYMENT_RECORDS: overridden };
-  }, []);
+  // Payment Records are sourced from the shared hook so the Change
+  // History snapshot lists the same chronology + methods (Cash / Cash /
+  // Check; $2,000 / $2,000 / $8,000 or $8,999).
+  const data = useChangeOrderPaymentRecords();
   return (
     <InvoicesDataContext.Provider value={data}>
       <div className="w-full pt-4">
@@ -736,6 +726,8 @@ function ComparisonPanel({
   outstanding,
   invoicesHeading,
   invoices,
+  className,
+  outstandingMode = 'normal',
 }: {
   accent: 'neutral' | 'blue';
   heading: string;
@@ -746,6 +738,11 @@ function ComparisonPanel({
   outstanding: string;
   invoicesHeading: string;
   invoices: InvoiceRowData[];
+  className?: string;
+  /** Passed through to PaymentProgressBlock. 'refund' flips "Outstanding"
+   *  → "Need Refund" (red amount); 'paidInFull' replaces the cell with a
+   *  green "Paid in Full" indicator. */
+  outstandingMode?: 'normal' | 'refund' | 'paidInFull';
 }) {
   const bg = accent === 'blue' ? '#eef2f9' : '#f5f5f5';
   // Derive progress-bar segment widths from the dollar strings so the bar
@@ -756,14 +753,14 @@ function ComparisonPanel({
   const receivedPct = totalNum > 0 ? (parseDollars(received) / totalNum) * 100 : 0;
   const processingPct = totalNum > 0 ? (parseDollars(processing) / totalNum) * 100 : 0;
   return (
-    <div className="flex flex-col gap-3 w-full lg:flex-1">
+    <div className={`flex flex-col gap-3 w-full lg:flex-1${className ? ` ${className}` : ''}`}>
       <p className="font-normal text-[12px] xl:text-[14px] text-[#737373] leading-[14px]">{heading}</p>
       {/* Single merged tinted card — Progress block and Invoices block share
           one outer background + border-radius + padding so they read as one
           card. `flex-1` lets it grow to match the sibling panel's height. */}
       <div
-        className="flex flex-col gap-6 w-full flex-1"
-        style={{ background: bg, borderRadius: 8, padding: '24px 20px' }}
+        className="flex flex-col gap-6 lg:gap-8 w-full flex-1 py-6 px-4 sm:px-8 lg:px-6 xl:px-8 2xl:px-12"
+        style={{ background: bg, borderRadius: 8 }}
       >
         {/* Progress block — shared with ChangeHistoryView's Payment Snapshot.
             `padding="0"` drops its own card chrome so it sits flush inside
@@ -778,6 +775,8 @@ function ComparisonPanel({
           processingPct={processingPct}
           bg="transparent"
           padding="0"
+          labelClassName="text-[12px] font-semibold text-[#262626] uppercase tracking-[0.06em]"
+          outstandingMode={outstandingMode}
         />
 
         {/* Invoices block — no own bg/padding/radius; inherits the merged
@@ -820,6 +819,11 @@ function flattenSelectedUpgrades(products: FenceProduct[]): FenceProduct[] {
 
 export default function ChangeOrderPage() {
   const { config, pageIntent, setPageIntent } = useDevConsole();
+  // Shared Before / After CO panel data drives the Pending Revised Payment
+  // Schedule dialog so it matches the Invoices & Payments tab and the
+  // Change History snapshot — all three react to the Existing Payment
+  // toggle in lockstep.
+  const { after: afterPanel } = useChangeOrderInvoicePanels();
   // Revised Payment & Schedule dialog — re-uses the proposal Summary's
   // PaymentScheduleDialog as a starting point. Values mirror the right-
   // column financials (New Contract Total, Estimated Monthly Payment).
@@ -860,6 +864,14 @@ export default function ChangeOrderPage() {
     };
     setPageIntent(map[tab]);
   }, [tab, setPageIntent]);
+
+  // Reset page scroll when switching between Change Order tabs so each tab
+  // opens at the top instead of inheriting the previous tab's scroll offset.
+  // `behavior: 'instant'` overrides the global `scroll-behavior: smooth` so
+  // the reset is a hard jump, not an animated scroll-up.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [tab]);
   // Product detail sheet state — only used by the Current Approved Contract
   // tab. The Home tab's left column is owned by SummaryPageResponsive, which
   // manages its own sheet internally.
@@ -960,6 +972,7 @@ export default function ChangeOrderPage() {
             <ContractTabRightColumn
               onViewInvoices={() => setTab('invoices')}
               onViewPendingChangeOrder={() => setTab('home')}
+              onViewChangeHistory={() => setTab('changes')}
               viewPendingButtonRef={viewPendingButtonRef}
             />
           ) : (
@@ -973,7 +986,7 @@ export default function ChangeOrderPage() {
             <ContractDocStickyFooter
               approvedAt={new Date()}
               onHeightChange={() => {}}
-              visible={isContractTab ? !pendingCtaVisible : true}
+              visible={!pendingCtaVisible}
               hideApprovalLine
               topAction={
                 <OutlinedButton onClick={() => setTab('home')}>
@@ -982,18 +995,24 @@ export default function ChangeOrderPage() {
                 </OutlinedButton>
               }
               expandedDescription={
-                <>
-                  <span className="font-semibold">Note:</span> this contract is locked while a change
-                  order is pending. Approve the change order to continue, or contact your sales
-                  representative to withdraw it.
-                </>
+                isInvoicesTab ? (
+                  <>
+                    Payments are temporarily locked while this change order is pending approval.
+                    Approve it or contact your sales representative to withdraw it.
+                  </>
+                ) : (
+                  <>
+                    This contract is locked while a change order is pending. Approve the change
+                    order to continue, or contact your sales representative to withdraw it.
+                  </>
+                )
               }
             />
           ) : undefined
         }
         rightColumn={
           isContractTab ? (
-            <ContractTabRightColumn onViewInvoices={() => setTab('invoices')} onViewPendingChangeOrder={() => setTab('home')} />
+            <ContractTabRightColumn onViewInvoices={() => setTab('invoices')} onViewPendingChangeOrder={() => setTab('home')} onViewChangeHistory={() => setTab('changes')} />
           ) : (
             <ChangeOrderRightColumn
               onViewInvoices={() => setTab('invoices')}
@@ -1005,7 +1024,10 @@ export default function ChangeOrderPage() {
         replaceLeftColumn={isContractTab ? contractLeftColumn : undefined}
         bodyOverride={
           isInvoicesTab ? (
-            <ChangeOrderInvoicesView onViewPendingChangeOrder={() => setTab('home')} />
+            <ChangeOrderInvoicesView
+              onViewPendingChangeOrder={() => setTab('home')}
+              viewPendingButtonRef={viewPendingButtonRef}
+            />
           ) : isChangesTab ? (
             <ChangeHistoryView
               products={flattenSelectedUpgrades(STUB_OPTION.products)}
@@ -1027,68 +1049,100 @@ export default function ChangeOrderPage() {
         scheduledPaymentsCount={config.scheduledPaymentsCount}
         title="Pending Revised Payment Schedule"
         optionLabelPrefix="Change Order #3"
-        progressBlock={
-          <PaymentProgressBlock
-            progressLabel="Revised Progress · 33%"
-            received="$1,000"
-            processing="$3,000"
-            outstanding="$8,000"
-            invoiceTotal="$12,000"
-            receivedPct={8.33}
-            processingPct={25}
-            bg="transparent"
-            padding="0"
-          />
-        }
-        scheduleList={(() => {
-          const revisedInvoices: InvoiceRowData[] = [
-            { num: 1, label: 'Deposit (16%)', paid: '$2,000', total: '$2,000', statusLine: 'Paid on Mar 23, 2026', status: 'paid' },
-            { num: 2, label: 'Balance (42%)', paid: '$2,000', total: '$5,000', statusLine: 'Due on May 2, 2026', status: 'partial' },
-            { num: 3, label: 'Balance (42%)', paid: '-', total: '$5,000', statusLine: 'Due on Jun 11, 2026', status: 'pending' },
-          ];
+        progressBlock={(() => {
+          const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
+          const totalNum = parseDollars(afterPanel.invoiceTotal);
+          const receivedPct = totalNum > 0 ? (parseDollars(afterPanel.received) / totalNum) * 100 : 0;
+          const processingPct = totalNum > 0 ? (parseDollars(afterPanel.processing) / totalNum) * 100 : 0;
           return (
-            <div className="flex flex-col gap-2 w-full">
-              <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-                Revised Invoices · {revisedInvoices.length}
-              </p>
-              <div className="flex flex-col gap-2 w-full">
-                {revisedInvoices.map((inv) => (
-                  <InvoiceComparisonRow key={inv.num} row={inv} bg="#f5f5f5" />
-                ))}
-              </div>
-            </div>
+            <PaymentProgressBlock
+              progressLabel={afterPanel.progressLabel}
+              received={afterPanel.received}
+              processing={afterPanel.processing}
+              outstanding={afterPanel.outstanding}
+              outstandingMode={afterPanel.outstandingMode}
+              invoiceTotal={afterPanel.invoiceTotal}
+              receivedPct={receivedPct}
+              processingPct={processingPct}
+              bg="transparent"
+              padding="0"
+            />
           );
         })()}
-        mobileScheduleList={<RevisedInvoicesList />}
+        scheduleList={
+          <div className="flex flex-col gap-2 w-full">
+            <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
+              {afterPanel.invoicesHeading}
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              {afterPanel.invoices.map((inv) => (
+                <InvoiceComparisonRow key={inv.num} row={inv} bg="#f5f5f5" />
+              ))}
+            </div>
+          </div>
+        }
+        mobileScheduleList={<RevisedInvoicesList invoices={afterPanel.invoices} heading={afterPanel.invoicesHeading} />}
       />
     </>
   );
 }
 
 // Revised invoices rendered with the same MobileInvoiceCard used on the
-// Invoices & Payments tab. Wraps the cards in a minimal InvoicesDataContext
-// so `useInvoicesData()` resolves the paid-on date for the cleared invoice.
-function RevisedInvoicesList() {
+// Invoices & Payments tab. Adapts the shared InvoiceRowData rows into the
+// MobileInvoiceCard's InvoiceData shape so the bottom-sheet schedule stays
+// in sync with the Existing Payment state.
+function RevisedInvoicesList({
+  invoices,
+  heading,
+}: {
+  invoices: InvoiceRowData[];
+  heading: string;
+}) {
+  const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
   const data = useMemo(() => {
     const base = buildInvoicesData(12000);
+    // Per-row paid-on date — extracted from the row's statusLine so the
+    // bottom-sheet card stamps the correct date for any "Paid on …" row.
+    const paidOnByInv = new Map<number, string>();
+    for (const inv of invoices) {
+      const match = inv.statusLine.match(/^(?:Paid|Submitted) on (.+)$/);
+      if (match) paidOnByInv.set(inv.num, match[1]);
+    }
     return {
       ...base,
-      paidOnDate: (n: number) => (n === 1 ? 'Mar 23, 2026' : undefined),
+      paidOnDate: (n: number) => paidOnByInv.get(n),
     };
-  }, []);
-  const invoices: InvoiceData[] = [
-    { number: 1, label: 'Deposit (16%)', amount: 2000, received: 2000, status: 'paid',    dueDate: 'Mar 23, 2026', dueState: 'none'   },
-    { number: 2, label: 'Balance (42%)', amount: 5000, received: 2000, status: 'partial', dueDate: 'May 2, 2026',  dueState: 'normal' },
-    { number: 3, label: 'Balance (42%)', amount: 5000, received: 0,    status: 'unpaid',  dueDate: 'Jun 11, 2026', dueState: 'normal' },
-  ];
+  }, [invoices]);
+  const mobileInvoices: InvoiceData[] = invoices.map((inv) => {
+    const amount = parseDollars(inv.total);
+    const received = inv.paid === '-' ? 0 : parseDollars(inv.paid);
+    const status: InvoiceData['status'] =
+      inv.status === 'paid' || inv.status === 'overPaid'
+        ? 'paid'
+        : inv.status === 'processing'
+          ? 'processing'
+          : inv.status === 'partial'
+            ? 'partial'
+            : 'unpaid';
+    const dueMatch = inv.statusLine.match(/^Due on (.+)$/);
+    return {
+      number: inv.num,
+      label: inv.label,
+      amount,
+      received,
+      status,
+      dueDate: dueMatch ? dueMatch[1] : '',
+      dueState: status === 'unpaid' || status === 'partial' ? 'normal' : 'none',
+    };
+  });
   return (
     <InvoicesDataContext.Provider value={data}>
       <div className="flex flex-col gap-2 w-full">
         <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-          Revised Invoices · {invoices.length}
+          {heading}
         </p>
         <div className="flex flex-col gap-3 w-full">
-          {invoices.map((inv) => (
+          {mobileInvoices.map((inv) => (
             <MobileInvoiceCard key={inv.number} inv={inv} onOpen={() => {}} />
           ))}
         </div>
