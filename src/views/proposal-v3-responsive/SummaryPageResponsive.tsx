@@ -1519,10 +1519,21 @@ export default function SummaryPageResponsive({
       if (!el) {
         // No mobile-summary anchor — happens when `bodyOverride` is used
         // (Invoices tab) or `hideMobileRightColumn` is set (Contract tab).
-        // Reserve space for the sticky footer if it's still shown so the
-        // last bit of content isn't covered. 80px footer + 24px breathing
-        // room so the last card doesn't visually butt up against it.
-        const pad = hideMobileStickyFooter ? 0 : 104;
+        // Reserve space for the sticky footer by measuring its actual
+        // rendered height (ContractDocStickyFooter on Change Order's
+        // Contract/Invoices tabs is taller than the default StickyFooter),
+        // then add 24px breathing room so the last card doesn't visually
+        // butt up against it.
+        if (hideMobileStickyFooter) {
+          pbRef.current = 0;
+          setContentPb(0);
+          return;
+        }
+        const footerEl = document.querySelector<HTMLElement>(
+          '.lg\\:hidden.fixed.bottom-0.left-0.right-0'
+        );
+        const footerH = footerEl ? footerEl.getBoundingClientRect().height : 80;
+        const pad = footerH + 24;
         pbRef.current = pad;
         setContentPb(pad);
         return;
@@ -1538,14 +1549,23 @@ export default function SummaryPageResponsive({
       setContentPb(extra);
     };
 
-    // rAF ensures layout is fully settled before measuring
+    // rAF ensures layout is fully settled before measuring. We also re-run
+    // recalc whenever the sticky footer resizes (e.g., tab switch swapping
+    // StickyFooter ↔ ContractDocStickyFooter, or Read-more expansion growing
+    // the footer) so the bottom padding always tracks the live footer height.
     const raf = requestAnimationFrame(recalc);
     window.addEventListener('resize', recalc);
+    const footerEl = document.querySelector<HTMLElement>(
+      '.lg\\:hidden.fixed.bottom-0.left-0.right-0'
+    );
+    const ro = footerEl ? new ResizeObserver(recalc) : null;
+    if (footerEl && ro) ro.observe(footerEl);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', recalc);
+      ro?.disconnect();
     };
-  }, [hideMobileStickyFooter, bodyOverride]);
+  }, [hideMobileStickyFooter, bodyOverride, hideMobileRightColumn]);
 
   useEffect(() => {
     const el = ctaRef.current;

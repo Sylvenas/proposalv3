@@ -21,7 +21,12 @@ import { PdfPages } from './ContractDocSection';
 import BorderlessLinkButton from './BorderlessLinkButton';
 import BackToTopButton from './BackToTopButton';
 import { ContactSalesModal } from './SalesContactCard';
-import { InvoiceComparisonRow, PaymentProgressBlock } from './ChangeOrderInvoiceRow';
+import {
+  InvoiceComparisonRow,
+  PaymentProgressBlock,
+  useChangeOrderInvoicePanels,
+  useChangeOrderPaymentRecords,
+} from './ChangeOrderInvoiceRow';
 import ScrollHintArrows from './ScrollHintArrows';
 
 const BASE = '/images/proposal-v3-responsive';
@@ -632,9 +637,9 @@ function DetailNotice({ status }: { status: HistoryStatus }) {
         style={{ background: '#d1e7ff' }}
       >
         <p className="text-[14px] xl:text-[16px] text-[#262626] leading-[1.5]">
-          <span className="font-semibold">Note:</span> this contract is locked
-          while a change order is pending. Approve the change order to continue,
-          or contact your sales representative to withdraw it.
+          This contract is locked while a change order is pending. Approve the
+          change order to continue, or contact your sales representative to
+          withdraw it.
         </p>
       </div>
     );
@@ -659,7 +664,16 @@ export type TotalsRowCell = { label: string; value: string; valueColor?: string 
 /** Reusable label/value cell row — extracted so both ChangeHistoryView's
  *  DetailTotalsRow and ChangeOrderPage's Pending Change Order card render
  *  the same typography, dividers, and value baseline. */
-export function TotalsRow({ cells }: { cells: TotalsRowCell[] }) {
+export function TotalsRow({
+  cells,
+  valueClassName = 'text-[18px] sm:text-[20px] xl:text-[24px] leading-normal whitespace-nowrap font-normal pt-1 mt-auto',
+}: {
+  cells: TotalsRowCell[];
+  /** Override the value-row typography. ChangeOrderInvoicesView's Pending
+   *  Change Order card passes a one-notch-smaller scale on desktop so the
+   *  card sits more compactly next to the comparison panels. */
+  valueClassName?: string;
+}) {
   return (
     <div className="flex flex-row items-stretch w-full py-2">
       {cells.map((c, i) => (
@@ -682,7 +696,7 @@ export function TotalsRow({ cells }: { cells: TotalsRowCell[] }) {
               three columns share the same value baseline even when one label
               wraps to multiple lines (e.g., "NEW CONTRACT TOTAL" on mobile). */}
           <p
-            className="text-[18px] sm:text-[20px] xl:text-[24px] leading-normal whitespace-nowrap font-normal pt-1 mt-auto"
+            className={valueClassName}
             style={{ color: c.valueColor ?? '#262626' }}
           >
             {c.value}
@@ -776,28 +790,19 @@ function PhoneGlyph() {
 // Mini version of InvoicesPaymentsSection's progress + invoices + payments,
 // styled to match the Figma "Payment Snapshot" section.
 function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
-  // Static placeholder rows — these vary per record once real wiring lands.
-  const totalCents = 12999;
-  const received = 3000;
-  const processing = 3000;
-  const outstanding = totalCents - received - processing;
-
-  const invoices = [
-    { num: 1, label: 'Deposit (30%)', paid: '$2,000', total: '$3,000', statusLine: 'Paid on Mar 23, 2026', status: 'paid' as const },
-    { num: 2, label: 'Balance (40%)', paid: '$2,000', total: '$3,999', statusLine: 'Due on May 2, 2026', status: 'partial' as const },
-    { num: 3, label: 'Balance (30%)', paid: '-',      total: '$3,000', statusLine: 'Due on Jun 11, 2026', status: 'pending' as const },
-  ];
-
-  // Real payment records sourced from the same builder the Invoices & Payments
-  // tab uses — keeps the per-record rows in lockstep with the rest of the app.
-  const invoicesData = useMemo(() => buildInvoicesData(totalCents), [totalCents]);
-
-  // Bar segment widths (percentages of contract total).
-  const receivedPct  = (received    / totalCents) * 100;
-  const processingPct = (processing / totalCents) * 100;
-  void outstanding;
-
-  void item; // reserved for per-record payment data wiring
+  // Mirror the Invoices & Payments tab — pending records render the After
+  // CO panel (revised schedule); approved records render the Before CO
+  // panel (current schedule). Both react to the Developer Console's
+  // Existing Payment toggle via the shared hook.
+  const { before, after } = useChangeOrderInvoicePanels();
+  const invoicesData = useChangeOrderPaymentRecords();
+  const panel = item.status === 'pending' ? after : before;
+  // Bar segment widths derived from the panel's received / processing
+  // strings so the bar tracks the Invoices & Payments view exactly.
+  const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
+  const totalNum = parseDollars(panel.invoiceTotal);
+  const receivedPct = totalNum > 0 ? (parseDollars(panel.received) / totalNum) * 100 : 0;
+  const processingPct = totalNum > 0 ? (parseDollars(panel.processing) / totalNum) * 100 : 0;
 
   // Section title varies by record status:
   //   • pending     → "Pending Revised Payment Progress & Schedule" — the
@@ -819,11 +824,12 @@ function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
           instead of nesting another tier of cards. */}
       <div className="flex flex-col gap-6 w-full">
         <PaymentProgressBlock
-          progressLabel={`PROGRESS · ${Math.round(receivedPct + processingPct)}%`}
-          received="$3,000"
-          processing="$3,000"
-          invoiceTotal="$12,999"
-          outstanding="$3,999"
+          progressLabel={panel.progressLabel.replace(/.*Progress · /, 'PROGRESS · ')}
+          received={panel.received}
+          processing={panel.processing}
+          invoiceTotal={panel.invoiceTotal}
+          outstanding={panel.outstanding}
+          outstandingMode={panel.outstandingMode}
           receivedPct={receivedPct}
           processingPct={processingPct}
           bg="transparent"
@@ -832,10 +838,10 @@ function PaymentSnapshotSection({ item }: { item: HistoryItem }) {
 
         <div className="flex flex-col gap-2 w-full">
           <p className="text-[10px] sm:text-[12px] font-semibold text-[#737373] tracking-[0.5px] uppercase leading-normal">
-            INVOICES · {invoices.length}
+            INVOICES · {panel.invoices.length}
           </p>
           <div className="flex flex-col gap-2 w-full">
-            {invoices.map((inv) => (
+            {panel.invoices.map((inv) => (
               <InvoiceComparisonRow key={inv.num} row={inv} bg="#f5f5f5" />
             ))}
           </div>
