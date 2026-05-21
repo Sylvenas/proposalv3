@@ -38,6 +38,7 @@ import {
 import ValidUntilPill from './ValidUntilPill';
 import PricingDisclaimers from './PricingDisclaimers';
 import ContractDocSection, { ContractDocStickyFooter, PdfPages } from './ContractDocSection';
+import { OverpaidStickyFooter } from './OverpaidStickyFooter';
 import BorderlessLinkButton from './BorderlessLinkButton';
 import BackToTopButton from './BackToTopButton';
 import InvoicesPaymentsSection, {
@@ -1444,12 +1445,30 @@ export default function ChangeOrderPage() {
           // footer (rendered inside ContractDocSection), so suppress the
           // SummaryPageResponsive default.
           isApprovedContractTab ||
-          // Approved Invoices & Payments tab reuses the Proposal hub's
-          // InvoicesPaymentsSection which doesn't ship a sticky footer.
-          (isInvoicesTab && approved)
+          // Approved Invoices & Payments tab — suppress the default
+          // footer unless we're in Over Paid mode (which uses the
+          // ContractDocStickyFooter via `mobileStickyFooterOverride` below).
+          // Under Paid keeps the standalone ProjectHubStickyFooter
+          // (rendered further down) for its "Make A Payment" CTA;
+          // Fully Paid has no footer at all.
+          (isInvoicesTab && approved && config.existingPayment !== 'overPaid')
         }
         mobileStickyFooterOverride={
-          isApprovedContractTab || (isInvoicesTab && approved) ? undefined : isContractTab || isInvoicesTab ? (
+          isApprovedContractTab ? undefined : isInvoicesTab && approved && config.existingPayment === 'overPaid' ? (
+            // Approved Invoices & Payments tab on mobile, Over Paid mode —
+            // rendered via the dedicated OverpaidStickyFooter so future
+            // copy / layout tweaks specific to the overpaid flow stay
+            // isolated from the Contract Document tab's footer and the
+            // pre-approval pending-CO footer (both of which still use
+            // ContractDocStickyFooter from ContractDocSection.tsx). The
+            // refund amount is pulled from afterPanel.outstanding so the
+            // sticky alert tracks the same dollar figure surfaced in the
+            // Progress block + Amount Overpaid card on desktop.
+            <OverpaidStickyFooter
+              refundAmount={afterPanel.outstanding}
+              onHeightChange={() => {}}
+            />
+          ) : isContractTab || isInvoicesTab ? (
             <ContractDocStickyFooter
               approvedAt={new Date()}
               onHeightChange={() => {}}

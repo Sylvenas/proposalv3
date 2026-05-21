@@ -321,8 +321,8 @@ export default function DevConsole() {
                 <ToggleRow
                   value={config.invoiceStatusInComparison}
                   options={[
-                    { label: 'Omitted', value: 'omitted' as const },
                     { label: 'Shown', value: 'shown' as const },
+                    { label: 'Omitted', value: 'omitted' as const },
                   ]}
                   onChange={(v) =>
                     setConfig((c) => ({ ...c, invoiceStatusInComparison: v }))
