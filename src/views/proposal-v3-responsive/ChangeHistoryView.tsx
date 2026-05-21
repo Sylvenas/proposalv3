@@ -457,7 +457,7 @@ export default function ChangeHistoryView({
           <span>All Change History</span>
         </button>
         <DetailHeader item={selected} />
-        <DetailNotice status={selected.status} />
+        <DetailNotice status={selected.status} approved={approved} />
         <DetailTotalsRow item={selected} />
         <DetailCtaRow
           status={selected.status}
@@ -730,7 +730,17 @@ function DetailHeader({ item }: { item: HistoryItem }) {
   );
 }
 
-function DetailNotice({ status }: { status: HistoryStatus }) {
+function DetailNotice({
+  status,
+  approved,
+}: {
+  status: HistoryStatus;
+  /** Whether the latest Change Order is already approved. When false, a
+   *  pending CO sits above the currently-approved one — that approved row
+   *  still represents the active contract but is "locked" until the
+   *  pending CO is either approved or withdrawn. */
+  approved: boolean;
+}) {
   if (status === 'pending') {
     return (
       <div
@@ -746,6 +756,14 @@ function DetailNotice({ status }: { status: HistoryStatus }) {
     );
   }
   if (status === 'approved') {
+    // The "locked while a change order is pending" advisory applies only
+    // when a pending CO actually sits above this approved one (i.e.
+    // `approved === false` — the pending row hasn't been signed yet, and
+    // this approved row is the still-active-but-locked current contract).
+    // Once the pending CO is approved, it takes this row's place; the
+    // newly-approved row carries no pending CO above it, so no notice
+    // applies and we render nothing.
+    if (approved) return null;
     return (
       <div
         className="rounded-[6px] px-4 py-3 w-full"
@@ -913,10 +931,30 @@ function DetailCtaRow({
         </button>
       )}
       {status === 'approved' && isCurrentApprovedCo && isFullyPaid && (
-        <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal w-full mt-4 lg:mt-3">
-          {hasProcessing ? 'Payment submitted in full on' : 'Contract Paid in Full on'}{' '}
-          {fullyPaidOn ?? ''}
-        </p>
+        // Mirrors the `check` variant of PaymentProgressAndNextPayment so
+        // the snapshot row reads "✓ Contract Paid in Full on …" with the
+        // same green pill + white tick.
+        <div className="flex items-center gap-2 w-full mt-4 lg:mt-3">
+          <span
+            className="flex items-center justify-center rounded-full shrink-0"
+            style={{ width: 20, height: 20, background: '#04b50b' }}
+            aria-hidden
+          >
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path
+                d="M3 7.2 L5.6 9.8 L11 4.4"
+                stroke="white"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal">
+            {hasProcessing ? 'Payment submitted in full on' : 'Contract Paid in Full on'}{' '}
+            {fullyPaidOn ?? ''}
+          </p>
+        </div>
       )}
       {status === 'approved' && !isCurrentApprovedCo && (
         <BorderlessLinkButton

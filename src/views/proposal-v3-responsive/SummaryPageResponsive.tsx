@@ -1575,7 +1575,16 @@ export default function SummaryPageResponsive({
   }, [hideMobileStickyFooter, bodyOverride, hideMobileRightColumn]);
 
   useEffect(() => {
-    const el = ctaRef.current;
+    // Default Proposal path: observe the SummaryContent CTA stack (ctaRef is
+    // wired to the mobile instance only). When `rightColumn` is supplied
+    // (Change Order), SummaryContent isn't rendered — look for an element
+    // flagged with `data-sticky-footer-anchor` inside the mobile right-column
+    // wrapper instead, so callers can opt their inline Approve CTA into the
+    // same hide-footer-when-visible behavior.
+    const el =
+      ctaRef.current ??
+      mobileSummaryRef.current?.querySelector<HTMLElement>('[data-sticky-footer-anchor]') ??
+      null;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setShowStickyFooter(!entry.isIntersecting),
@@ -1583,7 +1592,7 @@ export default function SummaryPageResponsive({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [rightColumn, hideMobileRightColumn, bodyOverride]);
 
   return (
     <div className="bg-white min-h-screen">

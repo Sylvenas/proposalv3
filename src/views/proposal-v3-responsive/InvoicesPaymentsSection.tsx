@@ -18,7 +18,7 @@ import InvoicePaymentDetailDialog, {
 // soon as any portion is in processing, the whole invoice surfaces in this
 // state until the funds clear. Treated as paid for the sequential-payment
 // rule so the next invoice becomes payable immediately.
-type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'returned' | 'processing';
+type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'returned' | 'processing' | 'overPaid';
 
 /** Sub-state of the Due Date column for unpaid/partial invoices.
  *  - normal:  due date is in the future, render as plain date.
@@ -35,12 +35,27 @@ export type InvoiceMode = 'happyPath' | 'enumerate';
 export type Invoice = {
   number: number;
   label: string;       // e.g. "Deposit (20%)" / "Balance (60%)"
-  amount: number;      // total invoice amount
-  received: number;    // amount paid so far (≥ 0) — includes processing money
+  amount: number;      // total invoice amount — preserved verbatim from spec
+                       // even when the invoice is voided (so the row can
+                       // still render the original total with strikethrough).
+  received: number;    // amount paid so far (≥ 0). May exceed `amount` when
+                       // the invoice is over paid (`status === 'overPaid'`).
   status: InvoiceStatus;
   dueDate: string;     // displayed string e.g. "May 2, 2026"
   /** Due-date sub-state — drives the "Due Today" / "Overdue" badge. */
   dueState: DueState;
+  /** When true, the invoice's `amount` was wiped out by a contract reduction
+   *  (Change Order) — the row strikes through the original total and any
+   *  money already collected against it surfaces as overpayment. Voided
+   *  invoices do NOT contribute to the contract total. */
+  voided?: boolean;
+  /** Overrides the "Paid on …" / "Submitted on …" date shown on the row's
+   *  date line. When omitted, falls back to the cascade-derived date (the
+   *  last completing payment's `paidOn`). Used by the Change Order Project
+   *  Hub's post-approval Invoices tab so each row carries the panel-authored
+   *  date (the invoice's own milestone) rather than the consolidated
+   *  payment's actual date. */
+  paidOnOverride?: string;
 };
 
 /** Settlement status of a payment record.
@@ -87,6 +102,7 @@ const STATUS_BAR_COLOR: Record<InvoiceStatus, string> = {
   partial:    '#398ae7', // action/primary
   unpaid:     '#737373', // secondary (mobile bar) — desktop uses #bfbfbf
   returned:   '#d41a32', // error — payment was reversed
+  overPaid:   '#f97316', // overshoot — orange (Need Refund palette)
 };
 
 const STATUS_BAR_COLOR_DESKTOP: Record<InvoiceStatus, string> = {
@@ -95,6 +111,7 @@ const STATUS_BAR_COLOR_DESKTOP: Record<InvoiceStatus, string> = {
   partial:    '#398ae7',
   unpaid:     '#bfbfbf', // tertiary
   returned:   '#d41a32',
+  overPaid:   '#f97316',
 };
 
 const STATUS_LABEL: Record<InvoiceStatus, string> = {
@@ -103,6 +120,7 @@ const STATUS_LABEL: Record<InvoiceStatus, string> = {
   partial:    'PARTIALLY PAID',
   unpaid:     'UNPAID',
   returned:   'PAYMENT RETURNED',
+  overPaid:   'OVERPAID',
 };
 
 const STATUS_LABEL_COLOR: Record<InvoiceStatus, string> = {
@@ -111,6 +129,7 @@ const STATUS_LABEL_COLOR: Record<InvoiceStatus, string> = {
   partial:    '#398ae7',
   unpaid:     '#737373',
   returned:   '#d41a32',
+  overPaid:   '#f97316',
 };
 
 // ── Sample data (matches Figma) ───────────────────────────────────────────────
@@ -615,6 +634,7 @@ function buildEnumeratedInvoicesData(
       amount:   inv.amount,
       received: inv.received,
       dueDate:  inv.dueDate,
+      voided:   inv.voided,
       payments: paymentsForInvoice(inv.number),
     };
   }
@@ -663,6 +683,28 @@ export type InvoiceSpec = {
   label: string;
   amount: number;
   dueDate: string;
+  /** When true, the cascade leaves this invoice alone (no payments are
+   *  routed to it) AND its `amount` is excluded from the contract total
+   *  used by the progress bar / outstanding math. The row still renders
+   *  the original total — struck through in the UI. Used by the Change
+   *  Order Project Hub when a contract reduction zeroes out an invoice
+   *  whose existing payments now surface as overpayment. */
+  voided?: boolean;
+  /** When set, forces this invoice's `received` to this value and its
+   *  status to `'overPaid'` (when receivedOverride > amount) or `'paid'`
+   *  (when receivedOverride === amount). The cascade skips this invoice
+   *  so its overpayment doesn't leak into adjacent rows. Voided invoices
+   *  can carry a `receivedOverride` too — that represents money already
+   *  collected before the invoice was voided. */
+  receivedOverride?: number;
+  /** Pre-cascade status pin. When set together with `receivedOverride`,
+   *  the cascade trusts the spec's status instead of deriving one from
+   *  the amount/received pair — lets the Change Order Project Hub mark
+   *  a `voided` row as `'overPaid'` even though `amount === 0`. */
+  statusOverride?: InvoiceStatus;
+  /** Overrides the "Paid on …" / "Submitted on …" date for this invoice's
+   *  status line. Passed through to the resolved Invoice. */
+  paidOnOverride?: string;
 };
 
 export function buildInvoicesData(
@@ -735,8 +777,14 @@ export function buildInvoicesData(
   // (in-flight ACH) payments cascade exactly like completed ones — the
   // invoice they cover is marked PAID · PROCESSING via `processingApplied`
   // until the funds clear.
+  //
+  // Specs with `voided` or `receivedOverride` are SKIPPED by the cascade —
+  // their received/status come from the spec directly so the post-CO
+  // overpayment / voided semantics survive into the rendered Invoice rows.
   const allPaymentsChronological = [...staticChronology, ...extraPayments];
-  const received           = invSpecs.map(() => 0);
+  const received           = invSpecs.map((s) =>
+    s.receivedOverride !== undefined ? s.receivedOverride : 0,
+  );
   const processingApplied  = invSpecs.map(() => 0);
   const PAYMENT_DETAIL_EXTRAS: Record<string, PaymentDetailExtras> = {};
 
@@ -744,15 +792,20 @@ export function buildInvoicesData(
     let remainingFunds = p.amountApplied;
     const appliedTo: PaymentDetailExtras['appliedTo'] = [];
     for (let i = 0; i < invSpecs.length && remainingFunds > 0; i++) {
-      const owed = invSpecs[i].amount - received[i];
+      const spec = invSpecs[i];
+      // Voided or override-pinned invoices stay outside the cascade — their
+      // received is already set from the spec and the cascade must not
+      // double-count it (or leak overflow funds onto them).
+      if (spec.voided || spec.receivedOverride !== undefined) continue;
+      const owed = spec.amount - received[i];
       if (owed <= 0) continue;
       const apply = Math.min(remainingFunds, owed);
       received[i] += apply;
       if (p.status === 'processing') processingApplied[i] += apply;
       appliedTo.push({
         amount:        apply,
-        invoiceNumber: invSpecs[i].number,
-        invoiceLabel:  `INVOICE #${invSpecs[i].number} - ${invSpecs[i].label}`,
+        invoiceNumber: spec.number,
+        invoiceLabel:  `INVOICE #${spec.number} - ${spec.label}`,
       });
       remainingFunds -= apply;
     }
@@ -767,21 +820,34 @@ export function buildInvoicesData(
   // 'processing' regardless of whether the funds fully cover it. This takes
   // precedence over paid / partial — once a portion is in transit, the
   // whole invoice surfaces as PROCESSING until the bank clears it.
+  // `'overPaid'` only surfaces when the cascade-derived received exceeds
+  // the invoice amount (rare in the default path — used by CO callers via
+  // `receivedOverride`).
   const statusFor = (amount: number, rec: number, proc: number): InvoiceStatus =>
     proc > 0 ? 'processing'
-    : rec >= amount ? 'paid'
+    : rec > amount && amount > 0 ? 'overPaid'
+    : rec >= amount && amount > 0 ? 'paid'
     : rec > 0 ? 'partial'
     : 'unpaid';
 
-  const INVOICES: Invoice[] = invSpecs.map((s, i) => ({
-    number:   s.number,
-    label:    s.label,
-    amount:   s.amount,
-    received: received[i],
-    status:   statusFor(s.amount, received[i], processingApplied[i]),
-    dueDate:  s.dueDate,
-    dueState: 'normal',
-  }));
+  const INVOICES: Invoice[] = invSpecs.map((s, i) => {
+    const derivedStatus = statusFor(s.amount, received[i], processingApplied[i]);
+    // Voided rows with money already collected are overpayment by definition;
+    // voided rows with $0 collected stay as 'unpaid' (just struck-through).
+    const voidedStatus: InvoiceStatus =
+      s.voided && received[i] > 0 ? 'overPaid' : derivedStatus;
+    return {
+      number:         s.number,
+      label:          s.label,
+      amount:         s.amount,
+      received:       received[i],
+      status:         s.statusOverride ?? voidedStatus,
+      dueDate:        s.dueDate,
+      dueState:       'normal',
+      voided:         s.voided,
+      paidOnOverride: s.paidOnOverride,
+    };
+  });
 
   // PAYMENT_RECORDS is newest-first, so reverse the chronological list.
   // Static chronology entries are completed; user-confirmed extras may be
@@ -855,6 +921,7 @@ export function buildInvoicesData(
       amount:   inv.amount,
       received: inv.received,
       dueDate:  inv.dueDate,
+      voided:   inv.voided,
       payments: paymentsForInvoice(inv.number),
     };
   }
@@ -946,13 +1013,32 @@ export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () =>
   const barColor   = isPartlyProcessing ? '#398ae7' : STATUS_BAR_COLOR[inv.status];
   const labelColor = isPartlyProcessing ? '#398ae7' : STATUS_LABEL_COLOR[inv.status];
 
+  // Voided rows render the original total with strikethrough so the user
+  // can see what the invoice WAS before the contract reduction zeroed it.
+  const totalStyle: React.CSSProperties | undefined = inv.voided
+    ? { textDecoration: 'line-through' }
+    : undefined;
+
   // Amount / received presentation:
+  //   OVERPAID                 → "{received} / {amount}" (received in orange,
+  //                              amount struck through when voided). The
+  //                              "OVERPAID" status pill above already carries
+  //                              the label, so the amount row stays clean.
   //   PAID / PROCESSING fully  → green amount, no fraction
   //   PARTIAL / PROCESSING partly / RETURNED w/ received>0 → green received +
   //     black "/ total" (covers the half-paid Returned case too)
-  //   UNPAID / RETURNED w/0   → black amount
+  //   UNPAID / RETURNED w/0   → black amount (struck through when voided)
   const amountNode = (() => {
-    if (inv.received >= inv.amount && inv.received > 0) {
+    if (inv.status === 'overPaid') {
+      return (
+        <>
+          <span style={{ color: '#f97316' }}>{fmtDollars(inv.received)}</span>
+          <span style={{ color: '#262626' }}> / </span>
+          <span style={{ color: '#262626', ...totalStyle }}>{fmtDollars(inv.amount)}</span>
+        </>
+      );
+    }
+    if (inv.received >= inv.amount && inv.received > 0 && !inv.voided) {
       return (
         <span style={{ color: '#04b50b' }}>{fmtDollars(inv.amount)}</span>
       );
@@ -961,11 +1047,12 @@ export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () =>
       return (
         <>
           <span style={{ color: '#04b50b' }}>{fmtDollars(inv.received)}</span>
-          <span style={{ color: '#262626' }}> / {fmtDollars(inv.amount)}</span>
+          <span style={{ color: '#262626' }}> / </span>
+          <span style={{ color: '#262626', ...totalStyle }}>{fmtDollars(inv.amount)}</span>
         </>
       );
     }
-    return <span style={{ color: '#262626' }}>{fmtDollars(inv.amount)}</span>;
+    return <span style={{ color: '#262626', ...totalStyle }}>{fmtDollars(inv.amount)}</span>;
   })();
 
   // Mobile date text — for unpaid/partial we fold the due-state into the
@@ -977,16 +1064,26 @@ export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () =>
   // Both fully-paid and fully-covered-but-still-processing invoices read as
   // "Paid on {date}" on the date line — the status pill ("PAID" vs.
   // "PROCESSING") carries the clearance distinction.
-  const isFullyCovered = inv.received >= inv.amount && inv.received > 0;
+  // Settled-flavor rows (paid / fully-covered processing / overPaid / voided)
+  // all carry a "Paid on …" or "Submitted on …" date line. Voided rows are
+  // also treated as settled-flavor here since their money already landed
+  // (even though the invoice itself is now $0).
+  const isSettledFlavor =
+    (inv.received >= inv.amount && inv.received > 0) ||
+    inv.status === 'overPaid' ||
+    inv.voided;
   // Fully-covered invoices surface the real payment date — checked before
   // the `dueState === 'none'` branch so a paid invoice without an original
   // due date still shows when the money landed instead of a dash. Wording
   // follows the clearance state: cleared funds read "Paid on …"; an
   // in-flight ACH (PROCESSING) reads "Submitted on …" since the money
-  // hasn't actually settled yet.
-  const fullyCoveredPrefix = inv.status === 'processing' ? 'Submitted on' : 'Paid on';
-  const dateText = isFullyCovered
-    ? `${fullyCoveredPrefix} ${paidOnDate(inv.number) ?? inv.dueDate}`
+  // hasn't actually settled yet. `paidOnOverride` lets Change Order callers
+  // pin a panel-authored date (the invoice's own milestone) instead of the
+  // cascade-derived "last completing payment" date.
+  const settledPrefix = inv.status === 'processing' ? 'Submitted on' : 'Paid on';
+  const settledDate = inv.paidOnOverride ?? paidOnDate(inv.number) ?? inv.dueDate;
+  const dateText = isSettledFlavor
+    ? `${settledPrefix} ${settledDate}`
     : inv.dueState === 'none'
     ? '—'
     : inv.dueState === 'overdue'
@@ -994,7 +1091,10 @@ export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () =>
     : inv.dueState === 'today'
     ? `${inv.dueDate} (Today)`
     : inv.dueDate;
-  const dateColor = isFullyCovered
+  // Settled-flavor rows (including overPaid + voided) all share the same
+  // neutral date color — the row's status pill + amount carry the overpaid
+  // signal, so the date line stays restrained.
+  const dateColor = isSettledFlavor
     ? '#262626'
     : inv.dueState === 'none'    ? '#737373'
     : inv.dueState === 'overdue' ? '#d41a32'
@@ -1180,14 +1280,24 @@ function DesktopProgressAndNextPayment({
     .filter((r) => r.status === 'processing')
     .reduce((sum, r) => sum + r.amountApplied, 0);
   const outstanding = Math.max(0, contractTotal - receivedAmount - processingAmount);
+  // Overpayment surfaces when cumulative payments exceed the contract total
+  // (the Change Order Project Hub's Over Paid flow). Drives the orange bar
+  // palette and the "Need Refund $X" caption in place of "Outstanding".
+  const overpaidAmount = Math.max(0, receivedAmount + processingAmount - contractTotal);
+  const isOverpaid = overpaidAmount > 0;
 
   // Bar segment widths as percentages of the contract total. Clamped so a
   // ±$1 rounding error in the synthetic data never overflows the track.
+  // When overpaid, segments may sum to > 100% but the container's
+  // `overflow:hidden` clips the excess so the bar still reads as fully
+  // filled with the overpaid palette.
   const receivedPct   = contractTotal > 0
-    ? Math.min(100, (receivedAmount / contractTotal) * 100)
+    ? (isOverpaid ? (receivedAmount / contractTotal) * 100
+                  : Math.min(100, (receivedAmount / contractTotal) * 100))
     : 0;
   const processingPct = contractTotal > 0
-    ? Math.min(100 - receivedPct, (processingAmount / contractTotal) * 100)
+    ? (isOverpaid ? (processingAmount / contractTotal) * 100
+                  : Math.min(100 - receivedPct, (processingAmount / contractTotal) * 100))
     : 0;
 
   // Next due invoice — first row that still has a remaining balance.
@@ -1262,16 +1372,16 @@ function DesktopProgressAndNextPayment({
                         onMouseLeave={() => setBarHover(null)}
                         style={{
                           width: `${receivedPct}%`,
-                          background: '#04b50b',
+                          background: isOverpaid ? '#f97316' : '#04b50b',
                           filter: barHover === 'received' ? 'brightness(1.15)' : undefined,
                           cursor: 'help',
                         }}
                       />
                     )}
                     {processingAmount > 0 && (
-                      // Processing slice — hatched fill (diagonal stripes of
-                      // dark green over a light-green base) to convey the
-                      // in-flight "still settling" state.
+                      // Processing slice — hatched fill. Default palette is
+                      // green-on-green; overpaid mode shifts to the orange
+                      // refund palette to mirror the comparison panel.
                       <div
                         className="absolute top-0 h-full transition-[filter] duration-150"
                         onMouseEnter={() => setBarHover('processing')}
@@ -1279,9 +1389,10 @@ function DesktopProgressAndNextPayment({
                         style={{
                           left: `${receivedPct}%`,
                           width: `${processingPct}%`,
-                          backgroundColor: '#c4ecc6',
-                          backgroundImage:
-                            'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
+                          backgroundColor: isOverpaid ? '#fed7aa' : '#c4ecc6',
+                          backgroundImage: isOverpaid
+                            ? 'repeating-linear-gradient(-45deg, #fdba74 0, #fdba74 4px, transparent 4px, transparent 8px)'
+                            : 'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
                           filter: barHover === 'processing' ? 'brightness(0.92)' : undefined,
                           cursor: 'help',
                         }}
@@ -1381,12 +1492,20 @@ function DesktopProgressAndNextPayment({
                 </p>
               )}
             </div>
-            {/* Right-aligned summary — three states:
+            {/* Right-aligned summary — four states:
+                  • Overpaid:           "Need Refund $X · Invoice Total $Y" (orange)
                   • Outstanding > 0:    "$X outstanding of $Y"
                   • Fully covered + processing in flight: "Paid / Submitted in full · $Y"
                   • Fully covered + nothing processing:    "Paid in full · $Y" */}
             <p className="whitespace-nowrap">
-              {outstanding > 0 ? (
+              {isOverpaid ? (
+                <>
+                  <span className="text-[#737373]">Need Refund · </span>
+                  <span className="font-semibold" style={{ color: '#f97316' }}>{fmtDollars(overpaidAmount)}</span>
+                  <span className="text-[#737373]">{'   '}Invoice Total · </span>
+                  <span className="font-semibold text-[#262626]">{fmtDollars(contractTotal)}</span>
+                </>
+              ) : outstanding > 0 ? (
                 <>
                   <span className="font-semibold text-[#262626]">{fmtDollars(outstanding)}</span>
                   <span className="text-[#737373]">{' '}outstanding of {fmtDollars(contractTotal)}</span>
@@ -1460,6 +1579,22 @@ function DesktopProgressAndNextPayment({
                 </button>
               )}
             </>
+          ) : isOverpaid ? (
+            // Overpaid state — the contract is settled with a refund owed.
+            // Surface the refund amount + the panel's overpaid-orange palette
+            // so the card reads as a follow-up action rather than a sealed
+            // "paid in full" outcome.
+            <div className="flex flex-col gap-1 min-w-0">
+              <p
+                className="text-[24px] xl:text-[28px] font-semibold leading-normal whitespace-nowrap"
+                style={{ color: '#f97316' }}
+              >
+                {fmtDollars(overpaidAmount)}
+              </p>
+              <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal whitespace-nowrap">
+                Refund pending
+              </p>
+            </div>
           ) : (
             // Fully-paid state — replace the dollar/Due/CTA stack with a
             // status line + the rotated "PAID IN FULL" seal on the right.
@@ -1560,15 +1695,39 @@ function DesktopInvoiceRow({
   onMakePayment?: () => void;
 }) {
   const { paidOnDate } = useInvoicesData();
+  // For overpaid rows, the "Remaining" column flips to a negative refund
+  // amount in the overpaid-orange palette. Voided rows have an effective
+  // amount of $0 (the contract reduction wiped the obligation) so their
+  // entire received amount is refundable. For all other statuses, remaining
+  // is the standard `max(0, amount - received)` outstanding balance.
+  const effectiveAmount = inv.voided ? 0 : inv.amount;
+  const refundAmount = Math.max(0, inv.received - effectiveAmount);
   const remaining = Math.max(0, inv.amount - inv.received);
   // Fully-covered invoices (paid OR processing-with-received≥amount) render
   // a "Paid on {date}" line in the Due Date column instead of a due date.
+  // Overpaid + voided rows share the settled-flavor date treatment since
+  // their funds have already landed (the row just communicates the
+  // overshoot / void on top of that).
   const isFullyCovered = inv.received >= inv.amount && inv.received > 0;
+  const isSettledFlavor = isFullyCovered || inv.status === 'overPaid' || inv.voided;
   // PROCESSING palette splits on remaining balance: fully covered → green
   // (matches PAID); some still owed → blue (matches PARTIAL).
   const isPartlyProcessing = inv.status === 'processing' && !isFullyCovered;
   const barColor   = isPartlyProcessing ? '#398ae7' : STATUS_BAR_COLOR_DESKTOP[inv.status];
   const labelColor = isPartlyProcessing ? '#398ae7' : STATUS_LABEL_COLOR[inv.status];
+  // Voided rows render the original total struck through; overpaid rows
+  // surface the received amount in orange to communicate the overshoot.
+  const amountStyle: React.CSSProperties = inv.voided
+    ? { textDecoration: 'line-through' }
+    : {};
+  const receivedColor = inv.status === 'overPaid' ? '#f97316' : '#04b50b';
+  const settledDate = inv.paidOnOverride ?? paidOnDate(inv.number) ?? inv.dueDate;
+  const settledLabel = inv.status === 'processing' ? 'Submitted on' : 'Paid on';
+  // All settled-flavor rows (paid / processing fully / overPaid / voided)
+  // share the green "Paid on …" date color — the OVERPAID status pill +
+  // orange received amount already carry the overpaid signal, so the date
+  // line matches the PAID row treatment.
+  const settledColor = '#04b50b';
 
   // Processing rows render their left status strip as a hatched fill —
   // dark-green diagonal stripes over a light-green base — to match the
@@ -1623,26 +1782,36 @@ function DesktopInvoiceRow({
       <p className="flex-1 min-w-0 text-[14px] xl:text-[16px] text-[#262626] whitespace-nowrap leading-normal overflow-hidden text-ellipsis">
         {inv.label}
       </p>
-      {/* Amount */}
+      {/* Amount — voided rows render the original total with strikethrough. */}
       <p
         className="text-[14px] xl:text-[16px] text-[#262626] text-right whitespace-nowrap leading-normal"
-        style={{ width: cs(72) }}
+        style={{ width: cs(72), ...amountStyle }}
       >
         {fmtDollars(inv.amount)}
       </p>
-      {/* Received */}
+      {/* Received — orange for overpaid (signals the overshoot), green
+          otherwise. */}
       <p
         className="text-[14px] xl:text-[16px] text-right whitespace-nowrap leading-normal"
-        style={{ color: '#04b50b', width: cs(72) }}
+        style={{ color: receivedColor, width: cs(72) }}
       >
         {inv.received > 0 ? fmtDollars(inv.received) : '-'}
       </p>
-      {/* Remaining */}
+      {/* Remaining — outstanding balance in blue when partial/unpaid;
+          negative refund amount in overpaid-orange when the row is
+          overpaid or voided with money already collected. */}
       <p
         className="text-[14px] xl:text-[16px] text-right whitespace-nowrap leading-normal"
-        style={{ color: '#398ae7', width: cs(72) }}
+        style={{
+          color: refundAmount > 0 ? '#f97316' : '#398ae7',
+          width: cs(72),
+        }}
       >
-        {remaining > 0 ? fmtDollars(remaining) : '-'}
+        {refundAmount > 0
+          ? `-${fmtDollars(refundAmount)}`
+          : remaining > 0
+            ? fmtDollars(remaining)
+            : '-'}
       </p>
       {/* Spacer (matches Figma --xs/--m) */}
       <div className="shrink-0" style={{ width: cs(24) }} />
@@ -1659,14 +1828,16 @@ function DesktopInvoiceRow({
           amount): green "Paid on …"; partial / partly-processing: due date
           with overdue/today badge; unpaid: plain due date. */}
       <div className="relative flex items-center" style={{ width: cs(155), gap: cs(12) }}>
-        {/* Fully-covered — surface the real payment date even when the
+        {/* Settled-flavor — surface the real payment date even when the
             invoice has no original due date. Wording follows the clearance
             state: a paid invoice reads "Paid on …"; an in-flight ACH that
             covers the full amount but hasn't cleared yet reads
-            "Submitted on …", since the funds aren't actually paid yet. */}
-        {isFullyCovered && (
-          <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal" style={{ color: '#04b50b' }}>
-            {inv.status === 'processing' ? 'Submitted on' : 'Paid on'} {paidOnDate(inv.number) ?? inv.dueDate}
+            "Submitted on …", since the funds aren't actually paid yet.
+            Overpaid + voided rows reuse this treatment with the row's
+            overpaid-orange palette to mirror the comparison panel. */}
+        {isSettledFlavor && (
+          <p className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal" style={{ color: settledColor }}>
+            {settledLabel} {settledDate}
           </p>
         )}
         {(inv.status === 'partial' || (inv.status === 'processing' && !isFullyCovered)) && (

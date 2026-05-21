@@ -24,6 +24,12 @@ export type InvoiceDetail = {
   amount: number;
   received: number;
   dueDate: string;
+  /** When true the invoice's `amount` was wiped to $0 by a Change Order
+   *  contract reduction. The detail dialog renders the original total with
+   *  strikethrough on the Invoice Amount row and shifts the "Paid Amount
+   *  Total" breakdown so the entire received sum surfaces as refund-pending
+   *  (since the invoice no longer represents a real obligation). */
+  voided?: boolean;
   /** Payments that landed against this invoice (newest first). Each entry
    *  is the slice of a parent payment that was applied to this invoice —
    *  one parent payment can produce multiple entries across invoices.
@@ -68,6 +74,7 @@ const STATUS_LABEL: Record<InvoiceStatus, string> = {
   partial:    'PARTIALLY PAID',
   unpaid:     'UNPAID',
   returned:   'PAYMENT RETURNED',
+  overPaid:   'OVERPAID',
 };
 
 const STATUS_COLOR: Record<InvoiceStatus, string> = {
@@ -76,6 +83,7 @@ const STATUS_COLOR: Record<InvoiceStatus, string> = {
   partial:    '#398ae7',
   unpaid:     '#737373',
   returned:   '#d41a32',
+  overPaid:   '#f97316',
 };
 
 // ─── Format helpers ──────────────────────────────────────────────────────────
@@ -254,7 +262,15 @@ function InvoiceContent({
   invoice: InvoiceDetail;
   onOpenPayment?: (paymentId: string) => void;
 }) {
-  const remaining = Math.max(0, invoice.amount - invoice.received);
+  // Voided invoices have an effective amount of $0 (the Change Order
+  // contract reduction wiped the obligation), so the entire `received` sum
+  // surfaces as overpayment. Non-voided overpaid rows split into the amount
+  // applied (capped at the invoice total) and the refund-pending overshoot.
+  const effectiveAmount = invoice.voided ? 0 : invoice.amount;
+  const remaining = Math.max(0, effectiveAmount - invoice.received);
+  const refundAmount = Math.max(0, invoice.received - effectiveAmount);
+  const appliedAmount = Math.min(invoice.received, effectiveAmount);
+  const isOverpaid = refundAmount > 0;
   const [showRecords, setShowRecords] = useState(false);
   // Settlement breakdown of `invoice.received` — separates dollars that
   // have fully cleared (status='completed') from in-flight ACH dollars
@@ -302,28 +318,62 @@ function InvoiceContent({
       </FieldRow>
 
       <FieldRow label="Invoice Amount">
-        <p className="text-[20px] sm:text-[24px] font-semibold text-[#262626]">
+        <p
+          className="text-[20px] sm:text-[24px] font-semibold text-[#262626]"
+          style={invoice.voided ? { textDecoration: 'line-through' } : undefined}
+        >
           {fmtDollars(invoice.amount)}
         </p>
       </FieldRow>
 
       <FieldRow label="Paid Amount Total">
-        <p
-          className="text-[20px] sm:text-[24px] font-semibold"
-          style={{ color: invoice.received > 0 ? '#04b50b' : '#737373' }}
-        >
-          {fmtDollars(invoice.received)}
-        </p>
-        {/* Breakdown — only renders when any of this invoice's received
-            funds are still in-flight ACH. Mirrors the Payment record's
-            Amount Paid breakdown: green vertical rail on the left, then
-            stacked rows of `$X - Label`. */}
-        {processingPart > 0 && (
+        {/* Overpaid totals render in the orange refund palette + an inline
+            "OVERPAID" label, mirroring the "$X PROCESSING" treatment on the
+            Payment record dialog so the alert state reads at a glance. */}
+        {isOverpaid ? (
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p
+              className="text-[20px] sm:text-[24px] font-semibold"
+              style={{ color: '#f97316' }}
+            >
+              {fmtDollars(invoice.received)}
+            </p>
+            <span
+              className="text-[12px] sm:text-[14px] font-semibold tracking-[0.5px] uppercase"
+              style={{ color: '#f97316' }}
+            >
+              Overpaid
+            </span>
+          </div>
+        ) : (
+          <p
+            className="text-[20px] sm:text-[24px] font-semibold"
+            style={{ color: invoice.received > 0 ? '#04b50b' : '#737373' }}
+          >
+            {fmtDollars(invoice.received)}
+          </p>
+        )}
+        {/* Breakdown — surfaces under the Paid Amount Total whenever any of
+            this invoice's funds are still in-flight ACH OR the invoice is
+            overpaid (with a refund pending). Mirrors the Payment record's
+            Amount Paid breakdown: vertical rail on the left, then stacked
+            rows of `$X - Label`. The rail color picks the dominant alert:
+            orange for overpayment (refund owed), green otherwise. */}
+        {(processingPart > 0 || isOverpaid) && (
           <div
             className="flex flex-col gap-1 mt-3 pl-4 text-[14px] sm:text-[16px] leading-normal"
-            style={{ borderLeft: '2px solid #04b50b' }}
+            style={{ borderLeft: `2px solid ${isOverpaid ? '#f97316' : '#04b50b'}` }}
           >
-            {clearedReceived > 0 && (
+            {appliedAmount > 0 && isOverpaid && (
+              <p className="text-[#262626]">
+                <span className="font-semibold" style={{ color: '#04b50b' }}>
+                  {fmtDollars(appliedAmount)}
+                </span>
+                <span className="text-[#737373]">{'  -  '}</span>
+                Applied to this invoice
+              </p>
+            )}
+            {clearedReceived > 0 && !isOverpaid && (
               <p className="text-[#262626]">
                 <span className="font-semibold" style={{ color: '#04b50b' }}>
                   {fmtDollars(clearedReceived)}
@@ -332,13 +382,24 @@ function InvoiceContent({
                 Received
               </p>
             )}
-            <p className="text-[#262626]">
-              <span className="font-semibold" style={{ color: '#398ae7' }}>
-                {fmtDollars(processingPart)}
-              </span>
-              <span className="text-[#737373]">{'  -  '}</span>
-              Still Processing
-            </p>
+            {processingPart > 0 && (
+              <p className="text-[#262626]">
+                <span className="font-semibold" style={{ color: '#398ae7' }}>
+                  {fmtDollars(processingPart)}
+                </span>
+                <span className="text-[#737373]">{'  -  '}</span>
+                Still Processing
+              </p>
+            )}
+            {isOverpaid && (
+              <p className="text-[#262626]">
+                <span className="font-semibold" style={{ color: '#f97316' }}>
+                  {fmtDollars(refundAmount)}
+                </span>
+                <span className="text-[#737373]">{'  -  '}</span>
+                Refund pending
+              </p>
+            )}
           </div>
         )}
       </FieldRow>

@@ -234,7 +234,13 @@ function ChangeOrderRightColumn({
       ),
     [extraPayments, config.invoiceMode, invoicesOverrides],
   );
-  const contractTotalNum = invoiceData.INVOICES.reduce((s, inv) => s + inv.amount, 0);
+  // Voided invoices' totals are wiped by the contract reduction, so they
+  // don't contribute to the contract total displayed in the Project Home
+  // progress block (matches `afterPanel.invoiceTotal`).
+  const contractTotalNum = invoiceData.INVOICES.reduce(
+    (s, inv) => s + (inv.voided ? 0 : inv.amount),
+    0,
+  );
   const receivedNum = invoiceData.PAYMENT_RECORDS
     .filter((r) => r.status === 'completed')
     .reduce((s, r) => s + r.amountApplied, 0);
@@ -336,6 +342,7 @@ function ChangeOrderRightColumn({
               <button
                 type="button"
                 onClick={onRequestSign}
+                data-sticky-footer-anchor
                 className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
               >
                 <span
@@ -1020,12 +1027,42 @@ export default function ChangeOrderPage() {
     const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
     const stripDatePrefix = (s: string) =>
       s.replace(/^(Due on |Submitted on |Paid on )/, '');
-    const invoiceSpecs: InvoiceSpec[] = afterPanel.invoices.map((inv) => ({
-      number: inv.num,
-      label: inv.label,
-      amount: parseDollars(inv.total),
-      dueDate: stripDatePrefix(inv.statusLine),
-    }));
+    // Map afterPanel rows (panel-format `InvoiceRowData`) into the cascade's
+    // `InvoiceSpec` format. Overpaid / voided rows carry explicit overrides
+    // so the cascade doesn't try to redo the math:
+    //   - voided:               amount stays as the original total (for the
+    //                           strikethrough render) but the spec is
+    //                           flagged so it's excluded from the contract
+    //                           total used by the progress bar.
+    //   - overPaid + voided:    receivedOverride = the paid amount (the
+    //                           money already collected, now refundable)
+    //                           and statusOverride = 'overPaid' so the row
+    //                           renders the orange palette.
+    //   - overPaid (not void):  receivedOverride = the paid amount (which
+    //                           exceeds the invoice total).
+    //   - paid / processing / partial / pending: cascade handles them.
+    // paidOnOverride pins the panel's hand-authored "Paid on …" / "Submitted
+    // on …" date so the row matches the comparison panel verbatim instead
+    // of inheriting the last-payment's actual date.
+    const invoiceSpecs: InvoiceSpec[] = afterPanel.invoices.map((inv) => {
+      const total = parseDollars(inv.total);
+      const paid = parseDollars(inv.paid);
+      const dateText = stripDatePrefix(inv.statusLine);
+      const isSettledFlavor = inv.status === 'paid' || inv.status === 'processing' || inv.status === 'overPaid';
+      const spec: InvoiceSpec = {
+        number: inv.num,
+        label: inv.label,
+        amount: total,
+        dueDate: dateText,
+      };
+      if (inv.voided) spec.voided = true;
+      if (inv.status === 'overPaid') {
+        spec.receivedOverride = paid;
+        spec.statusOverride = 'overPaid';
+      }
+      if (isSettledFlavor) spec.paidOnOverride = dateText;
+      return spec;
+    });
     // PAYMENT_RECORDS is newest-first; the cascade expects oldest-first.
     const staticChronology: ExtraPaymentSpec[] = [...coPaymentRecordsData.PAYMENT_RECORDS]
       .reverse()
@@ -1042,8 +1079,14 @@ export default function ChangeOrderPage() {
       }));
     return { invoiceSpecs, staticChronology };
   }, [afterPanel, coPaymentRecordsData]);
+  // Voided invoices' amounts have been wiped by the contract reduction, so
+  // they don't contribute to the contract total used by the progress bar /
+  // outstanding math (matches `afterPanel.invoiceTotal`).
   const revisedContractTotal = useMemo(
-    () => revisedInvoicesOverrides.invoiceSpecs.reduce((sum, s) => sum + s.amount, 0),
+    () => revisedInvoicesOverrides.invoiceSpecs.reduce(
+      (sum, s) => sum + (s.voided ? 0 : s.amount),
+      0,
+    ),
     [revisedInvoicesOverrides],
   );
   // Make-A-Payment state — mirrors the Proposal Project Hub. `extraPayments`
@@ -1174,6 +1217,13 @@ export default function ChangeOrderPage() {
   // Hub. On the Home tab, only show it once the inline Make A Payment button
   // has scrolled off (parallel to how the Proposal hub gates its footer); on
   // the Invoices tab, always show it (no inline CTA there).
+  //
+  // The ref is attached only to the mobile-instance Make A Payment button
+  // (`mobileChangeOrderRightColumn` passes it; `desktopChangeOrderRightColumn`
+  // omits it). Without that split, the desktop instance — which is
+  // `display:none` on XS/S/M — would clobber the ref and report
+  // `isIntersecting:false` to IntersectionObserver, pinning the footer
+  // permanently visible.
   const paymentBtnRef = useRef<HTMLButtonElement>(null);
   const [paymentBtnVisible, setPaymentBtnVisible] = useState(true);
   useEffect(() => {
@@ -1304,7 +1354,15 @@ export default function ChangeOrderPage() {
   // post-approval on mobile, the top-of-page slot so the approved Change
   // Order Project Hub mirrors the Proposal Project Hub's mobile layout
   // (Project Home Details above all section cards).
-  const changeOrderRightColumn = (
+  //
+  // Two variants: the mobile one carries `makePaymentBtnRef` so the sticky
+  // footer can hide while the inline Make A Payment button is on-screen; the
+  // desktop one omits the ref (it lives inside a `hidden lg:block` wrapper
+  // that's `display:none` on XS/S/M, and IntersectionObserver would report
+  // it as never-intersecting and pin the footer permanently visible).
+  // Mirrors how ProjectHubPageResponsive only wires `paymentBtnRef` into the
+  // mobile ProjectHomeDetails instance.
+  const renderChangeOrderRightColumn = (withPaymentBtnRef: boolean) => (
     <ChangeOrderRightColumn
       onViewInvoices={() => setTab('invoices')}
       onViewContract={() => setTab('contract')}
@@ -1312,13 +1370,15 @@ export default function ChangeOrderPage() {
       onOpenSchedule={openSchedule}
       onRequestSign={() => setShowSignatureOverlay(true)}
       onMakePayment={openMakePayment}
-      makePaymentBtnRef={paymentBtnRef}
+      makePaymentBtnRef={withPaymentBtnRef ? paymentBtnRef : undefined}
       extraPayments={extraPayments}
       invoicesOverrides={revisedInvoicesOverrides}
       approved={approved}
       approvedAt={approvedAt}
     />
   );
+  const mobileChangeOrderRightColumn = renderChangeOrderRightColumn(true);
+  const desktopChangeOrderRightColumn = renderChangeOrderRightColumn(false);
   const isApprovedHomeTab = approved && tab === 'home';
 
   return (
@@ -1360,7 +1420,7 @@ export default function ChangeOrderPage() {
             // bottom is suppressed via `hideMobileRightColumn`. `pb-5`
             // matches the Proposal Project Hub's mobile gap between the
             // top right column and the first scope card.
-            <div className="-mt-2 pb-5">{changeOrderRightColumn}</div>
+            <div className="-mt-2 pb-5">{mobileChangeOrderRightColumn}</div>
           ) : approved ? (
             <div className="-mt-2">
               <ApprovedChangeOrderTitleBlock approvedAt={approvedAt} />
@@ -1416,7 +1476,15 @@ export default function ChangeOrderPage() {
           isContractTab ? (
             <ContractTabRightColumn onViewInvoices={() => setTab('invoices')} onViewPendingChangeOrder={() => setTab('home')} onViewChangeHistory={() => setTab('changes')} />
           ) : (
-            changeOrderRightColumn
+            // SummaryPageResponsive's `rightColumn` slot renders inside both
+            // the mobile (`lg:hidden`) and desktop (`hidden lg:block`)
+            // wrappers. On the approved home tab, `hideMobileRightColumn` is
+            // true so only the desktop wrapper materializes here (the mobile
+            // copy moves to `mobileTopTitleOverride`); on the pending tab,
+            // both wrappers render, but the pending right column has no Make
+            // A Payment button so `paymentBtnRef` is irrelevant. Either way,
+            // we want the no-ref desktop variant in this slot.
+            desktopChangeOrderRightColumn
           )
         }
         replaceLeftColumn={isApprovedContractTab ? undefined : isContractTab ? contractLeftColumn : undefined}

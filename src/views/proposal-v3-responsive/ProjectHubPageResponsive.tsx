@@ -265,6 +265,11 @@ export function PaymentProgressAndNextPayment({
   paymentCompletionIndication?: 'check' | 'seal';
 }) {
   const progressRatio = contractTotal > 0 ? Math.min(1, paidAmount / contractTotal) : 0;
+  // Overpayment surfaces when the total paid exceeds the contract total
+  // (Change Order Project Hub's Over Paid flow). The overflow is the
+  // refund the customer is owed.
+  const refundAmount = Math.max(0, paidAmount - contractTotal);
+  const isOverpaid = refundAmount > 0;
   return (
     <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-4 lg:gap-3 items-start py-4 lg:py-3 w-full">
       <div className="relative w-full">
@@ -312,9 +317,16 @@ export function PaymentProgressAndNextPayment({
               50%      { opacity: 0.18; }
             }
           `}</style>
-          {processingAmount > 0 && (
+          {(processingAmount > 0 || isOverpaid) && (
             <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal">
-              Includes {fmtDollars(processingAmount)} still processing
+              Includes{' '}
+              {processingAmount > 0 && (
+                <>{fmtDollars(processingAmount)} still processing</>
+              )}
+              {processingAmount > 0 && isOverpaid && ' and '}
+              {isOverpaid && (
+                <>{fmtDollars(refundAmount)} to be refunded</>
+              )}
             </p>
           )}
           {!nextDue && paymentCompletionIndication === 'seal' && (
