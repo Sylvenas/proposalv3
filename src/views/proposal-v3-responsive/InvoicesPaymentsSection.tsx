@@ -2,11 +2,22 @@
 
 import { createContext, useContext, useMemo, useState } from 'react';
 import BackToTopButton from './BackToTopButton';
+import { useDevConsole } from './DevConsoleContext';
 import InvoicePaymentDetailDialog, {
   type DetailContent,
   type InvoiceDetail,
   type PaymentDetail,
 } from './InvoicePaymentDetailDialog';
+import { ContactSalesModal } from './SalesContactCard';
+
+// Overpaid palette — kept in sync with ChangeOrderInvoiceRow.tsx's
+// OVERPAID_PALETTE so the hatched bar on this tab matches the comparison
+// table's row treatment when "Invoice Status in Comparison Table" is set
+// to Shown in the dev console.
+const OVERPAID_HATCH_PALETTE = {
+  red:    { base: '#f4cdcf', stripe: '#e57180' },
+  yellow: { base: '#fed7aa', stripe: '#fdba74' },
+} as const;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 // 'returned' = a previously-applied payment was reversed by the bank, so the
@@ -1006,6 +1017,13 @@ function DueDateText({
 // ─────────────────────────────────────────────────────────────────────────────
 export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () => void }) {
   const { paidOnDate } = useInvoicesData();
+  const { config } = useDevConsole();
+  // "Shown" mode (dev console Invoice Status in Comparison Table) swaps
+  // the OVERPAID row's solid orange bar for a hatched fill — the same
+  // treatment the comparison table's InvoiceComparisonRow uses, so all
+  // surfaces stay in lockstep.
+  const overpaidHatched =
+    inv.status === 'overPaid' && config.invoiceStatusInComparison === 'shown';
   // PROCESSING with a remaining balance still pending the user's next
   // payment renders in the same blue as PARTIAL, since the invoice isn't
   // fully covered yet. Fully-covered PROCESSING uses the green PAID palette.
@@ -1107,10 +1125,10 @@ export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () =>
       onClick={onOpen}
       className="bg-[#fafafa] flex gap-2 items-stretch w-full overflow-hidden text-left p-0 border-0 cursor-pointer"
     >
-      {/* Left status bar — processing uses the same hatched fill (light-green
-          base + dark-green diagonal stripes) as the desktop row's strip and
-          the desktop progress-bar processing slice, so the in-flight state
-          reads the same across breakpoints. */}
+      {/* Left status bar — processing uses a hatched green fill; overpaid
+          in "Shown" mode uses a hatched orange fill (matches the
+          InvoiceComparisonRow's bar style); everything else is a solid bar
+          colored from STATUS_BAR_COLOR. */}
       {inv.status === 'processing' ? (
         <div
           className="shrink-0"
@@ -1121,6 +1139,20 @@ export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () =>
               'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
           }}
         />
+      ) : overpaidHatched ? (
+        (() => {
+          const hp = OVERPAID_HATCH_PALETTE[config.overpaidIndication];
+          return (
+            <div
+              className="shrink-0"
+              style={{
+                width: 5,
+                backgroundColor: hp.base,
+                backgroundImage: `repeating-linear-gradient(-45deg, ${hp.stripe} 0, ${hp.stripe} 4px, transparent 4px, transparent 8px)`,
+              }}
+            />
+          );
+        })()
       ) : (
         <div className="shrink-0" style={{ width: 5, background: barColor }} />
       )}
@@ -1269,6 +1301,10 @@ function DesktopProgressAndNextPayment({
   // segment's "highlighted" visual + the tooltip rendered above the bar.
   // Reverts to null on mouse-leave so the tooltip dismisses cleanly.
   const [barHover, setBarHover] = useState<'received' | 'processing' | 'next' | null>(null);
+  // Overpaid state surfaces a Contact Sales CTA inside the Need Refund
+  // card — clicking opens the standard ContactSalesModal (same component
+  // used by ContactSalesButton elsewhere).
+  const [contactSalesOpen, setContactSalesOpen] = useState(false);
 
   // Settlement breakdown — completed dollars sit in the dark-green slice,
   // in-flight ACH dollars in the light-green slice. Returned amounts are
@@ -1493,40 +1529,57 @@ function DesktopProgressAndNextPayment({
               )}
             </div>
             {/* Right-aligned summary — four states:
-                  • Overpaid:           "Need Refund $X · Invoice Total $Y" (orange)
+                  • Overpaid:           "Need Refund · $X    Invoice Total · $Y"
+                                         (two flex items with gap-6, mirroring
+                                         the Received / Processing pair on
+                                         the left so the chevrons line up).
                   • Outstanding > 0:    "$X outstanding of $Y"
                   • Fully covered + processing in flight: "Paid / Submitted in full · $Y"
                   • Fully covered + nothing processing:    "Paid in full · $Y" */}
-            <p className="whitespace-nowrap">
-              {isOverpaid ? (
-                <>
+            {isOverpaid ? (
+              <div className="flex items-center gap-6 flex-wrap justify-end">
+                <p className="whitespace-nowrap">
                   <span className="text-[#737373]">Need Refund · </span>
                   <span className="font-semibold" style={{ color: '#f97316' }}>{fmtDollars(overpaidAmount)}</span>
-                  <span className="text-[#737373]">{'   '}Invoice Total · </span>
+                </p>
+                <p className="whitespace-nowrap">
+                  <span className="text-[#737373]">Invoice Total · </span>
                   <span className="font-semibold text-[#262626]">{fmtDollars(contractTotal)}</span>
-                </>
-              ) : outstanding > 0 ? (
-                <>
-                  <span className="font-semibold text-[#262626]">{fmtDollars(outstanding)}</span>
-                  <span className="text-[#737373]">{' '}outstanding of {fmtDollars(contractTotal)}</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-[#737373]">
-                    {processingAmount > 0 ? 'Paid / Submitted in full · ' : 'Paid in full · '}
-                  </span>
-                  <span className="font-semibold text-[#262626]">{fmtDollars(contractTotal)}</span>
-                </>
-              )}
-            </p>
+                </p>
+              </div>
+            ) : outstanding > 0 ? (
+              <p className="whitespace-nowrap">
+                <span className="font-semibold text-[#262626]">{fmtDollars(outstanding)}</span>
+                <span className="text-[#737373]">{' '}outstanding of {fmtDollars(contractTotal)}</span>
+              </p>
+            ) : (
+              <p className="whitespace-nowrap">
+                <span className="text-[#737373]">
+                  {processingAmount > 0 ? 'Paid / Submitted in full · ' : 'Paid in full · '}
+                </span>
+                <span className="font-semibold text-[#262626]">{fmtDollars(contractTotal)}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* NEXT PAYMENT — cols 9-12 */}
+      {/* NEXT PAYMENT — cols 9-12. Header swaps with the contract state:
+          - Overpaid          → "Amount Overpaid" (orange refund amount +
+                                 inline "contact your sales representative"
+                                 link in the card below).
+          - Fully covered + no overshoot → "Payment Completed" (aligns
+                                 with the green "Paid in full" / sealed
+                                 card content).
+          - Otherwise         → "Next Payment" (an upcoming invoice's
+                                 remaining balance + Make A Payment CTA). */}
       <div className="col-span-4 flex flex-col gap-3">
         <p className="text-[14px] xl:text-[16px] font-semibold text-[#262626] tracking-[0.5px] uppercase leading-normal">
-          Next Payment
+          {isOverpaid
+            ? 'Amount Overpaid'
+            : !nextDue
+              ? 'Payment Completed'
+              : 'Next Payment'}
         </p>
         <div
           className="relative flex items-center justify-between gap-4 w-full flex-1 transition-colors overflow-hidden"
@@ -1581,18 +1634,51 @@ function DesktopProgressAndNextPayment({
             </>
           ) : isOverpaid ? (
             // Overpaid state — the contract is settled with a refund owed.
-            // Surface the refund amount + the panel's overpaid-orange palette
-            // so the card reads as a follow-up action rather than a sealed
-            // "paid in full" outcome.
-            <div className="flex flex-col gap-1 min-w-0">
+            // Refund amount sits on top; the guidance sentence reads
+            // underneath with the "contact your sales representative"
+            // phrase rendered as an inline grey-underlined link that
+            // opens the same ContactSalesModal a button would (the CTA
+            // was inlined into the copy to keep the card calm and
+            // advisory rather than action-bearing).
+            <div className="flex flex-col gap-2 w-full">
               <p
                 className="text-[24px] xl:text-[28px] font-semibold leading-normal whitespace-nowrap"
                 style={{ color: '#f97316' }}
               >
                 {fmtDollars(overpaidAmount)}
               </p>
-              <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal whitespace-nowrap">
-                Refund pending
+              <p className="text-[12px] xl:text-[14px] text-[#737373] leading-[1.5]">
+                This contract has been overpaid. Please{' '}
+                {/* Rendered as a span (not a button) so the underlined
+                    phrase can break across lines like surrounding inline
+                    text. role="button" + tabIndex + onKeyDown preserve
+                    keyboard activation semantics. */}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setContactSalesOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setContactSalesOpen(true);
+                    }
+                  }}
+                  aria-haspopup="dialog"
+                  aria-expanded={contactSalesOpen}
+                  className="cursor-pointer"
+                  style={{
+                    color: '#737373',
+                    textDecoration: 'underline',
+                    textDecorationColor: '#737373',
+                    // Halve the default underline weight — browsers render
+                    // `auto` at ~5-10% of font size (≈1-2px here); pinning
+                    // to 0.5px makes the rule sit thinner under the link.
+                    textDecorationThickness: '0.5px',
+                  }}
+                >
+                  contact your sales representative
+                </span>
+                {' '}to request a refund or get further assistance.
               </p>
             </div>
           ) : (
@@ -1624,6 +1710,9 @@ function DesktopProgressAndNextPayment({
           )}
         </div>
       </div>
+      {/* Overpaid card's Contact Sales button opens this modal — same
+          component the standalone ContactSalesButton uses elsewhere. */}
+      <ContactSalesModal open={contactSalesOpen} onClose={() => setContactSalesOpen(false)} />
     </div>
   );
 }
@@ -1732,10 +1821,20 @@ function DesktopInvoiceRow({
   // Processing rows render their left status strip as a hatched fill —
   // dark-green diagonal stripes over a light-green base — to match the
   // hatched processing slice on the desktop progress bar (same 4px:4px
-  // ratio, same colors). All other statuses keep the solid 4px CSS
+  // ratio, same colors). Overpaid rows in "Shown" mode (dev console
+  // Invoice Status in Comparison Table) get the same hatched treatment
+  // but with the overpaid palette colors, mirroring the comparison
+  // table's bar style. All other statuses keep the solid 4px CSS
   // border. The hatch is rendered as an absolutely-positioned 4px-wide
   // overlay since CSS borders can't carry a hatched fill.
+  const { config } = useDevConsole();
   const isProcessingStatus = inv.status === 'processing';
+  const overpaidHatched =
+    inv.status === 'overPaid' && config.invoiceStatusInComparison === 'shown';
+  const hatchedBar = isProcessingStatus || overpaidHatched;
+  const hatchPalette = overpaidHatched
+    ? OVERPAID_HATCH_PALETTE[config.overpaidIndication]
+    : { base: '#c4ecc6', stripe: '#6fd073' };
   return (
     <div
       onClick={() => onOpen(inv)}
@@ -1747,27 +1846,26 @@ function DesktopInvoiceRow({
           onOpen(inv);
         }
       }}
-      className={`relative group bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors flex items-center w-full cursor-pointer ${isProcessingStatus ? '' : 'border-l-4 border-solid'}`}
+      className={`relative group bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors flex items-center w-full cursor-pointer ${hatchedBar ? '' : 'border-l-4 border-solid'}`}
       style={{
         height: 48,
-        borderColor: isProcessingStatus ? undefined : barColor,
+        borderColor: hatchedBar ? undefined : barColor,
         fontFamily: 'Segoe UI, sans-serif',
         gap: cs(12),
-        // Add the 4px the missing border would have taken so processing
+        // Add the 4px the missing border would have taken so hatched
         // rows align with the rest of the table at the same content
         // start-x.
-        paddingLeft: isProcessingStatus ? `calc(${cs(24)} + 4px)` : cs(24),
+        paddingLeft: hatchedBar ? `calc(${cs(24)} + 4px)` : cs(24),
         paddingRight: cs(24),
       }}
     >
-      {isProcessingStatus && (
+      {hatchedBar && (
         <div
           className="absolute top-0 left-0 h-full pointer-events-none"
           style={{
             width: 4,
-            backgroundColor: '#c4ecc6',
-            backgroundImage:
-              'repeating-linear-gradient(-45deg, #6fd073 0, #6fd073 4px, transparent 4px, transparent 8px)',
+            backgroundColor: hatchPalette.base,
+            backgroundImage: `repeating-linear-gradient(-45deg, ${hatchPalette.stripe} 0, ${hatchPalette.stripe} 4px, transparent 4px, transparent 8px)`,
           }}
         />
       )}
