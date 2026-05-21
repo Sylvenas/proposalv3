@@ -958,7 +958,10 @@ export function ContactSalesButton() {
 // Mirrors the yellow pill + body copy from the cover curtain so the expired
 // context follows the user through Summary; left-aligned to match the
 // surrounding Summary column rather than the centered cover treatment.
-function ExpiredNotice() {
+// Exported and parameterized so the Change Order Approval Page can reuse
+// the same yellow pill + body copy with "change order" as the subject when
+// Type=Change Order, Change Order Status=Expired.
+export function ExpiredNotice({ subject = 'proposal' }: { subject?: 'proposal' | 'change order' } = {}) {
   return (
     <div className="flex flex-col items-start gap-3 w-full">
       <span className="inline-flex items-center gap-2 bg-[#facc15] text-[#262626] text-[14px] xl:text-[16px] px-3 py-2.5 xl:px-4 xl:py-3 rounded-[6px] leading-none">
@@ -969,7 +972,11 @@ function ExpiredNotice() {
         </span>
       </span>
       <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-light text-[#737373] leading-normal">
-        This proposal has expired. Some information may be out of date. Please contact your sales representative for an updated proposal.
+        {subject === 'change order' ? (
+          <>This change order has expired. Some information may be out of date. Please contact your sales representative for an updated change order or to withdraw this one.</>
+        ) : (
+          <>This proposal has expired. Some information may be out of date. Please contact your sales representative for an updated proposal.</>
+        )}
       </p>
     </div>
   );

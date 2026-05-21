@@ -396,7 +396,13 @@ function DesktopHeader({
     <div
       ref={containerRef}
       className="hidden lg:flex bg-white w-full border-b-[0.5px] border-[rgba(0,0,0,0.2)] items-center px-6 relative"
-      style={{ fontFamily: 'Segoe UI, sans-serif', gap: 24 }}
+      // 52px matches the Summary page's ActionHeader (and the Change Order
+      // / Project Hub variants of the same surface) so the sticky bar height
+      // is uniform across every desktop screen — Summary's "Change Option"
+      // back bar, the Proposal Project Hub tabs, and the Change Order tabs
+      // all align to the same 52px row instead of the natural 42px the tab
+      // buttons would size to on their own.
+      style={{ fontFamily: 'Segoe UI, sans-serif', gap: 24, height: 52 }}
     >
       {tabs.map((t, i) => {
         const isActive = t.id === active;
