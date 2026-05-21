@@ -185,6 +185,18 @@ export type InvoiceRowData = {
   voided?: boolean;
 };
 
+// Maps InvoiceRowData.status to the uppercase status label used by the
+// "Invoice Status in Comparison Table" Shown mode. Mirrors the labels
+// already exposed by InvoicesPaymentsSection's STATUS_LABEL map so the
+// comparison row stays in lockstep with the Invoices & Payments table.
+const ROW_STATUS_LABEL: Record<InvoiceRowData['status'], string> = {
+  paid:       'PAID',
+  processing: 'PROCESSING',
+  partial:    'PARTIALLY PAID',
+  pending:    'UNPAID',
+  overPaid:   'OVERPAID',
+};
+
 export function InvoiceComparisonRow({
   row,
   bg = '#ffffff',
@@ -196,6 +208,8 @@ export function InvoiceComparisonRow({
    *  section's white background. */
   bg?: string;
 }) {
+  const { config } = useDevConsole();
+  const showStatusInLabel = config.invoiceStatusInComparison === 'shown';
   const overpaidPalette = useOverpaidPalette();
   // Accent bar: solid green for paid, hatched green for processing
   // (matches InvoicesPaymentsSection's PROCESSING row treatment — light
@@ -212,10 +226,13 @@ export function InvoiceComparisonRow({
             'repeating-linear-gradient(-45deg, #6fd073 0px, #6fd073 4px, transparent 4px, transparent 8px)',
         }
       : row.status === 'overPaid'
-        ? // Yellow palette uses a solid bar (matches the row's overall
-          // softer treatment); red keeps the hatched accent for stronger
-          // alert affordance.
-          overpaidPalette.mode === 'yellow'
+        ? // Yellow palette uses a solid bar by default (matches the row's
+          // overall softer treatment); red keeps the hatched accent for
+          // stronger alert affordance. "Shown" mode forces the hatched
+          // treatment regardless of palette so the indicator mirrors the
+          // processing-row's hatched style with the overpaid palette
+          // colors swapped in.
+          overpaidPalette.mode === 'yellow' && !showStatusInLabel
           ? { background: overpaidPalette.solid }
           : {
               backgroundColor: overpaidPalette.hatchBase,
@@ -245,30 +262,95 @@ export function InvoiceComparisonRow({
       <div style={{ width: 4, flexShrink: 0, ...barStyle }} />
       <div className="flex-1 flex flex-row items-start justify-between px-4 py-3">
         <div className="flex flex-col gap-0.5">
-          <p className="text-[12px] xl:text-[14px] font-semibold text-[#737373] leading-normal">
-            INVOICE #{row.num}
-          </p>
-          <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal">{row.label}</p>
+          {/* "Shown" mode (dev console "Invoice Status in Comparison Table")
+              leads with the schedule slot ("#N · Balance (4%)") and
+              drops the date underneath it (left-aligned grey footnote).
+              The right column carries the amount + status pill in the
+              same stacking order. */}
+          {showStatusInLabel ? (
+            <>
+              <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal">
+                <span>#{row.num}</span>
+                <span>{' · '}</span>
+                <span>{row.label}</span>
+              </p>
+              <p
+                className="text-[12px] xl:text-[14px] leading-normal whitespace-nowrap"
+                style={{ color: '#737373' }}
+              >
+                {row.statusLine}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[12px] xl:text-[14px] font-semibold text-[#737373] leading-normal">
+                INVOICE #{row.num}
+              </p>
+              <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal">{row.label}</p>
+            </>
+          )}
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <p
-            className="text-[12px] xl:text-[14px] leading-normal whitespace-nowrap"
-            style={{ color: settledColors ? '#04b50b' : '#737373' }}
-          >
-            {row.statusLine}
-          </p>
-          <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal whitespace-nowrap">
-            {row.status === 'overPaid' && (
-              <span style={{ color: paidAmountColor }}>Overpaid </span>
-            )}
-            <span style={{ color: paidAmountColor }}>{row.paid}</span>
-            <span> / </span>
-            <span
-              style={row.voided ? { textDecoration: 'line-through' } : undefined}
-            >
-              {row.total}
-            </span>
-          </p>
+          {/* Right column:
+              - Default ("Omitted"): date on top (green for settled / grey
+                for due), amount underneath in neutral.
+              - "Shown" mode: amount on top, status pill underneath in its
+                palette color and right-aligned — the status pill takes
+                the date's old position+alignment as part of the
+                status/date swap with the left column. */}
+          {showStatusInLabel ? (
+            <>
+              {/* Shown mode: drop the inline "Overpaid" prefix on the
+                  amount — the OVERPAID status pill sitting directly
+                  underneath already carries the alert, so the prefix
+                  would just duplicate the signal. */}
+              <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal whitespace-nowrap">
+                <span style={{ color: paidAmountColor }}>{row.paid}</span>
+                <span> / </span>
+                <span
+                  style={row.voided ? { textDecoration: 'line-through' } : undefined}
+                >
+                  {row.total}
+                </span>
+              </p>
+              <p
+                className="text-[12px] xl:text-[14px] font-semibold leading-normal whitespace-nowrap"
+                style={{
+                  color:
+                    row.status === 'paid' || row.status === 'processing'
+                      ? '#04b50b'
+                      : row.status === 'partial'
+                        ? '#398ae7'
+                        : row.status === 'overPaid'
+                          ? overpaidPalette.text
+                          : '#737373',
+                }}
+              >
+                {ROW_STATUS_LABEL[row.status]}
+              </p>
+            </>
+          ) : (
+            <>
+              <p
+                className="text-[12px] xl:text-[14px] leading-normal whitespace-nowrap"
+                style={{ color: settledColors ? '#04b50b' : '#737373' }}
+              >
+                {row.statusLine}
+              </p>
+              <p className="text-[14px] xl:text-[16px] text-[#262626] leading-normal whitespace-nowrap">
+                {row.status === 'overPaid' && (
+                  <span style={{ color: paidAmountColor }}>Overpaid </span>
+                )}
+                <span style={{ color: paidAmountColor }}>{row.paid}</span>
+                <span> / </span>
+                <span
+                  style={row.voided ? { textDecoration: 'line-through' } : undefined}
+                >
+                  {row.total}
+                </span>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

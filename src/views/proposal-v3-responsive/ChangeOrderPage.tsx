@@ -612,10 +612,15 @@ function ContractTabHeaderBlock() {
           <LockGlyph />
         </p>
       </div>
-      {/* Lock notice — pale neutral background per the latest mock; padding
-          + text scale still mirror the ExpiredNotice pill so the two info
-          callouts share dimensions across the app. */}
-      <div className="bg-[#eef2f9] rounded-[6px] px-3 py-2.5 xl:px-4 xl:py-3 w-full">
+      {/* Lock notice — pale blue advisory background, matching the
+          Change History DetailNotice ("contract locked while a CO is
+          pending") so both surfaces share one info-callout color across
+          the app. Padding + text scale still mirror the ExpiredNotice
+          pill so the callouts share dimensions. */}
+      <div
+        className="rounded-[6px] px-3 py-2.5 xl:px-4 xl:py-3 w-full"
+        style={{ background: '#d1e7ff' }}
+      >
         <p className="text-[14px] xl:text-[16px] text-[#262626] leading-[1.5]">
           This contract is locked while a change order is pending. Approve the change order to
           continue, or contact your sales representative to withdraw it.
