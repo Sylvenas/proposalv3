@@ -38,7 +38,7 @@ const IMG_DOWNLOAD = `${BASE}/download.svg`;
 const IMG_PHONE = `${BASE}/phone.svg`;
 
 // ── Data model ────────────────────────────────────────────────────────────────
-type HistoryStatus = 'pending' | 'approved' | 'outOfDate' | 'original';
+type HistoryStatus = 'pending' | 'expired' | 'approved' | 'outOfDate' | 'original';
 
 type HistoryItem = {
   id: string;
@@ -117,6 +117,11 @@ const HISTORY_ITEMS: HistoryItem[] = [
 // Status → colors (used both for the timeline dot and the amount text).
 const STATUS_DOT: Record<HistoryStatus, string> = {
   pending: '#3b82f6',
+  // Expired carries the same warning-red as the primary CTA so the timeline
+  // dot + "EXPIRED" label read as an alert rather than a passive state. The
+  // yellow background on the detail-panel banner stays untouched — it's the
+  // notification surface, not the warning indicator.
+  expired: '#d41a32',
   approved: '#04b50b',
   outOfDate: '#a0a0a0',
   original: '#a0a0a0',
@@ -225,6 +230,7 @@ export default function ChangeHistoryView({
   signatureRequired = true,
   approved = false,
   approvedAt = null,
+  expired = false,
   extraPayments = [],
   revisedContractTotal = 12000,
   revisedInvoicesOverrides,
@@ -256,6 +262,12 @@ export default function ChangeHistoryView({
    *  demote the previously-approved CO to 'outOfDate'. */
   approved?: boolean;
   approvedAt?: Date | null;
+  /** When true (Change Order Status = Expired, pre-approval), flip the
+   *  pending CO timeline row from 'pending' → 'expired': yellow dot,
+   *  "EXPIRED on …" status line, yellow detail-panel banner with the
+   *  ExpiredNotice copy, and the EXPIRED ON totals cell. Mirrors the
+   *  Change Order Approval Page's expired treatment. */
+  expired?: boolean;
   /** User-confirmed Make-A-Payment entries cascaded into the latest
    *  approved CO's Payment Snapshot so progress + invoice statuses +
    *  Payment Records track real-time payments. */
@@ -275,7 +287,15 @@ export default function ChangeHistoryView({
   // Change History timeline reflects the new contract chain: the newest CO
   // is now the active one, and the prior active CO drops to "out of date".
   const items = useMemo<HistoryItem[]>(() => {
-    if (!approved) return HISTORY_ITEMS;
+    if (!approved) {
+      if (!expired) return HISTORY_ITEMS;
+      // Pre-approval expired state — flip the pending CO to 'expired'.
+      // The previously-approved row stays approved (it's still the active
+      // contract; the locked-while-pending advisory continues to apply).
+      return HISTORY_ITEMS.map((it) =>
+        it.status === 'pending' ? { ...it, status: 'expired' } : it,
+      );
+    }
     const d = approvedAt ?? new Date();
     const approvedOnLabel = `${d.toLocaleString('en-US', { month: 'short' })} ${d
       .getDate()
@@ -296,7 +316,7 @@ export default function ChangeHistoryView({
       if (it.status === 'approved') return { ...it, status: 'outOfDate' };
       return it;
     });
-  }, [approved, approvedAt]);
+  }, [approved, approvedAt, expired]);
   // Default selection — the latest node on the timeline (newest-first ordering).
   const [selectedId, setSelectedId] = useState<string>(items[0].id);
   const selected = useMemo(
@@ -706,6 +726,25 @@ function StatusLine({ item }: { item: HistoryItem }) {
           <span className="text-[#737373]"> Valid Until {item.date}</span>
         </>
       );
+    case 'expired':
+      // "EXPIRED on {validUntil}" — the date shown is the actual expiration
+      // (item.validUntil), not item.date. `item.date` is the CO's creation
+      // timestamp surfaced in the pending row's "Valid Until" status line by
+      // historical convention, but once the row flips to expired the meaningful
+      // anchor is when the CO *expired*, which is item.validUntil. Keeping the
+      // two surfaces (timeline status line + detail-panel "EXPIRED ON" cell)
+      // pointing at the same field avoids the visible date mismatch.
+      //
+      // The EXPIRED label uses the warning-red (#d41a32) shared with the
+      // primary CTA so the row reads as an alert rather than the softer
+      // pending blue / approved green / out-of-date amber. The detail-panel
+      // banner stays yellow (notification surface).
+      return (
+        <>
+          <span style={{ color: '#d41a32', fontWeight: 600 }}>EXPIRED</span>
+          <span className="text-[#737373]"> on {item.validUntil ?? item.date}</span>
+        </>
+      );
     case 'approved':
       return (
         <>
@@ -756,6 +795,23 @@ function DetailNotice({
           This change order is pending approval. Numbers shown reflect the
           proposed scope; the active contract still applies until you sign and
           approve.
+        </p>
+      </div>
+    );
+  }
+  if (status === 'expired') {
+    // Yellow banner that mirrors the Change Order Approval Page's
+    // ExpiredNotice copy — same `#facc15` background as the right-column
+    // pill, same body text so the two surfaces stay in lockstep.
+    return (
+      <div
+        className="rounded-[6px] px-4 py-3 w-full"
+        style={{ background: '#facc15' }}
+      >
+        <p className="text-[14px] xl:text-[16px] text-[#262626] leading-[1.5]">
+          This change order has expired. Some information may be out of date.
+          Please contact your sales representative for an updated change order
+          or to withdraw this one.
         </p>
       </div>
     );
@@ -858,11 +914,17 @@ function DetailTotalsRow({ item }: { item: HistoryItem }) {
     });
   }
   cells.push({
-    label: item.status === 'pending' ? 'NEW CONTRACT TOTAL' : 'CONTRACT TOTAL',
+    label:
+      item.status === 'pending' || item.status === 'expired'
+        ? 'NEW CONTRACT TOTAL'
+        : 'CONTRACT TOTAL',
     value: item.contractTotal,
   });
   if (item.validUntil) {
-    cells.push({ label: 'VALID UNTIL', value: item.validUntil });
+    cells.push({
+      label: item.status === 'expired' ? 'EXPIRED ON' : 'VALID UNTIL',
+      value: item.validUntil,
+    });
   } else if (item.approvedOn) {
     cells.push({ label: 'APPROVED ON', value: item.approvedOn });
   }
@@ -1149,7 +1211,7 @@ function PaymentSnapshotSection({
   //  • Older approved / out-of-date / original → `before`
   //                                   (frozen historical pre-CO snapshot).
   const staticPanel =
-    item.status === 'pending' || isLatestApproved ? after : before;
+    item.status === 'pending' || item.status === 'expired' || isLatestApproved ? after : before;
   const livePanel = liveData ? buildLivePanel(liveData, staticPanel) : null;
   const panel = livePanel ?? staticPanel;
   const invoicesData = liveData ?? staticInvoicesData;
@@ -1166,7 +1228,7 @@ function PaymentSnapshotSection({
   //   • approved    → "Payment Progress & Schedule" — active billing cadence.
   //   • outOfDate / original → "Payment Snapshot" — historical figures only.
   const sectionLabel =
-    item.status === 'pending'
+    item.status === 'pending' || item.status === 'expired'
       ? 'Pending Revised Payment Progress & Schedule'
       : item.status === 'approved'
         ? 'Payment Progress & Schedule'

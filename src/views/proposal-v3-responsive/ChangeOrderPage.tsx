@@ -13,6 +13,7 @@ import SummaryPageResponsive, {
   ADDON_DESCRIPTIONS,
   ContactSalesButton,
   DEFAULT_ADDONS,
+  ExpiredNotice,
   OptionSummaryTitleBlock,
   SectionCard,
   type AddonItem,
@@ -120,14 +121,22 @@ const STUB_OPTION: FenceOption = {
 // Shared Change Order header — eyebrow + title + address + Valid Until pill.
 // Rendered both at the top of the mobile layout (via SummaryPageResponsive's
 // `mobileTopTitleOverride`) and inside the right-column summary panel.
-function ChangeOrderHeaderBlock() {
+// When Change Order Status = Expired the Valid Until pill is swapped for the
+// shared ExpiredNotice (reused from the Summary page) with "change order" as
+// the subject — the change order is no longer approvable, so the timestamp
+// becomes a past-tense "Expired on" header plus a short body line.
+function ChangeOrderHeaderBlock({ expired = false }: { expired?: boolean }) {
   return (
     <div className="flex flex-col gap-4">
       <OptionSummaryTitleBlock
         eyebrow="Pending Change Order #3"
         titleOverride="Remove East-Side Run"
       />
-      <ValidUntilPill date="April 30, 2026" className="self-start" />
+      {expired ? (
+        <ExpiredNotice subject="change order" />
+      ) : (
+        <ValidUntilPill date="April 30, 2026" className="self-start" />
+      )}
     </div>
   );
 }
@@ -183,6 +192,7 @@ function ChangeOrderRightColumn({
   invoicesOverrides,
   approved = false,
   approvedAt = null,
+  expired = false,
 }: {
   onViewInvoices?: () => void;
   onViewContract?: () => void;
@@ -216,6 +226,10 @@ function ChangeOrderRightColumn({
    *  approval layout. */
   approved?: boolean;
   approvedAt?: Date | null;
+  /** When true (Change Order Status = Expired), swap the Valid Until pill
+   *  for the ExpiredNotice and rework the pending CTA stack: drop the
+   *  Sign & Approve primary, float Contact Sales to the top of the stack. */
+  expired?: boolean;
 }) {
   const { config } = useDevConsole();
   const showFinancing = config.financingEstimation === 'included';
@@ -275,7 +289,7 @@ function ChangeOrderRightColumn({
       {approved ? (
         <ApprovedChangeOrderTitleBlock approvedAt={approvedAt} />
       ) : (
-        <ChangeOrderHeaderBlock />
+        <ChangeOrderHeaderBlock expired={expired} />
       )}
 
       {/* ── Financials ── Approved swaps the pending CO total breakdown for the
@@ -340,19 +354,28 @@ function ChangeOrderRightColumn({
             />
           ) : (
             <>
-              <button
-                type="button"
-                onClick={onRequestSign}
-                data-sticky-footer-anchor
-                className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
-              >
-                <span
-                  className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
-                  style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
+              {/* Sign & Approve — primary CTA, hidden when the change order
+                  has expired (it isn't approvable in that state). When
+                  expired we promote Contact Sales to the top of the stack
+                  so the most useful affordance leads — mirrors the Proposal
+                  Summary's expired CTA reordering. */}
+              {expired ? (
+                <ContactSalesButton />
+              ) : (
+                <button
+                  type="button"
+                  onClick={onRequestSign}
+                  data-sticky-footer-anchor
+                  className="bg-[#d41a32] flex h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer border-0"
                 >
-                  {config.signatureRequired ? <>Sign &amp; Approve</> : 'Approve'}
-                </span>
-              </button>
+                  <span
+                    className="text-[14px] font-semibold text-white text-center whitespace-nowrap"
+                    style={{ fontFamily: 'Segoe UI, sans-serif', lineHeight: '18px' }}
+                  >
+                    {config.signatureRequired ? <>Sign &amp; Approve</> : 'Approve'}
+                  </span>
+                </button>
+              )}
 
               {/* Revised Payment & Schedule — matches Summary's View Payment
                   Schedule style (icon-wrapper div, gap-[2px]). */}
@@ -361,9 +384,9 @@ function ChangeOrderRightColumn({
                 onClick={onOpenSchedule}
               />
 
-              {/* Contact Sales — reuse Summary's button so the icon, spacing,
-                  and onClick (opens ContactSalesModal) stay in sync. */}
-              <ContactSalesButton />
+              {/* Contact Sales — default mid-list position (omitted here in
+                  Expired state since it's already rendered at the top). */}
+              {!expired && <ContactSalesButton />}
 
               {/* Current Approved Contract */}
               <OutlinedButton onClick={onViewContract}>
@@ -1188,6 +1211,19 @@ export default function ChangeOrderPage() {
   const [approvedAt, setApprovedAt] = useState<Date | null>(
     startsApproved ? new Date() : null,
   );
+  // Expired change orders can never be approved. The DevConsole toggle is the
+  // only way to enter the expired state, and toggling INTO expired while the
+  // page is mid-approval (e.g., the user already signed and the Project Hub
+  // is showing) must roll the page back to the pre-approval Approval Page.
+  // This effect handles the rollback in one place so all the downstream
+  // surfaces — header block, right-column CTAs, Change History row, mobile
+  // sticky footer — re-derive `expired` correctly from `!approved && status`.
+  useEffect(() => {
+    if (config.proposalStatus !== 'expired') return;
+    setApproved(false);
+    setApprovedAt(null);
+    setShowSignatureOverlay(false);
+  }, [config.proposalStatus]);
   const [addons, setAddons] = useState<AddonItem[]>(DEFAULT_ADDONS);
   // Initialize from the shared `pageIntent` so that switching from Proposal
   // mode lands on the equivalent CO tab.
@@ -1368,6 +1404,10 @@ export default function ChangeOrderPage() {
   // it as never-intersecting and pin the footer permanently visible).
   // Mirrors how ProjectHubPageResponsive only wires `paymentBtnRef` into the
   // mobile ProjectHomeDetails instance.
+  // Change Order Status = Expired only matters in the pending state — once
+  // the change order is approved the layout swaps to the post-approval
+  // Project Hub which has no Sign & Approve to suppress.
+  const expired = !approved && config.proposalStatus === 'expired';
   const renderChangeOrderRightColumn = (withPaymentBtnRef: boolean) => (
     <ChangeOrderRightColumn
       onViewInvoices={() => setTab('invoices')}
@@ -1381,6 +1421,7 @@ export default function ChangeOrderPage() {
       invoicesOverrides={revisedInvoicesOverrides}
       approved={approved}
       approvedAt={approvedAt}
+      expired={expired}
     />
   );
   const mobileChangeOrderRightColumn = renderChangeOrderRightColumn(true);
@@ -1433,7 +1474,7 @@ export default function ChangeOrderPage() {
             </div>
           ) : (
             <div className="-mt-2">
-              <ChangeOrderHeaderBlock />
+              <ChangeOrderHeaderBlock expired={expired} />
             </div>
           )
         }
@@ -1565,6 +1606,7 @@ export default function ChangeOrderPage() {
                 signatureRequired={config.signatureRequired}
                 approved={approved}
                 approvedAt={approvedAt}
+                expired={expired}
                 extraPayments={extraPayments}
                 revisedContractTotal={revisedContractTotal}
                 revisedInvoicesOverrides={revisedInvoicesOverrides}
