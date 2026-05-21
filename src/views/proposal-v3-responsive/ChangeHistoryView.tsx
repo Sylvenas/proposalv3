@@ -595,7 +595,10 @@ function HistoryRow({
     >
       {/* Top connector — row's top edge down to this dot's center. Omitted
           for the very first row so the rail doesn't overhang above the
-          first dot. */}
+          first dot. The dot's horizontal center sits at x=-16 (dot left
+          -22 + width 12 / 2); `translateX(-50%)` puts the 1px line's
+          center at the same column so the rail threads cleanly through
+          the dot. */}
       {!isFirst && (
         <span
           aria-hidden
@@ -606,6 +609,7 @@ function HistoryRow({
             height: 24,
             width: 1,
             background: '#d4d4d4',
+            transform: 'translateX(-50%)',
           }}
         />
       )}
@@ -623,6 +627,7 @@ function HistoryRow({
             bottom: -12,
             width: 1,
             background: '#d4d4d4',
+            transform: 'translateX(-50%)',
           }}
         />
       )}
@@ -934,7 +939,7 @@ function DetailCtaRow({
         // Mirrors the `check` variant of PaymentProgressAndNextPayment so
         // the snapshot row reads "✓ Contract Paid in Full on …" with the
         // same green pill + white tick.
-        <div className="flex items-center gap-2 w-full mt-4 lg:mt-3">
+        <div className="flex items-center gap-2 w-full mt-4 lg:mt-3 mb-2">
           <span
             className="flex items-center justify-center rounded-full shrink-0"
             style={{ width: 20, height: 20, background: '#04b50b' }}
@@ -1193,7 +1198,7 @@ function PaymentSnapshotSection({
           </p>
           <div className="flex flex-col gap-2 w-full">
             {panel.invoices.map((inv) => (
-              <InvoiceComparisonRow key={inv.num} row={inv} bg="#f5f5f5" />
+              <InvoiceComparisonRow key={inv.num} row={inv} bg="#fafafa" />
             ))}
           </div>
         </div>
@@ -1213,7 +1218,7 @@ function PaymentSnapshotSection({
                   rec={rec}
                   onOpen={() => {}}
                   compact
-                  bg="#f5f5f5"
+                  bg="#fafafa"
                 />
               ))}
             </div>

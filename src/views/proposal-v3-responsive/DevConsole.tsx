@@ -274,16 +274,23 @@ export default function DevConsole() {
                 onChange={(v) => setConfig((c) => ({ ...c, financingEstimation: v }))}
               />
             </Section>
-            <Section title="Number of Scheduled Payments">
-              <ToggleRow
-                value={config.scheduledPaymentsCount}
-                options={[
-                  { label: 'Common', value: 'common' as const },
-                  { label: 'Overflow', value: 'overflow' as const },
-                ]}
-                onChange={(v) => setConfig((c) => ({ ...c, scheduledPaymentsCount: v }))}
-              />
-            </Section>
+            {/* Number of Scheduled Payments — only relevant to the
+                Proposal flow's Approval-page schedule. Change Order mode
+                runs against the existing payment chronology + revised
+                invoice schedule, so this toggle has no effect there and
+                is hidden to avoid surfacing a dead control. */}
+            {config.type !== 'changeOrder' && (
+              <Section title="Number of Scheduled Payments">
+                <ToggleRow
+                  value={config.scheduledPaymentsCount}
+                  options={[
+                    { label: 'Common', value: 'common' as const },
+                    { label: 'Overflow', value: 'overflow' as const },
+                  ]}
+                  onChange={(v) => setConfig((c) => ({ ...c, scheduledPaymentsCount: v }))}
+                />
+              </Section>
+            )}
             {config.type === 'changeOrder' && (
               <Section title="Existing Payment">
                 <ToggleRow
@@ -306,6 +313,20 @@ export default function DevConsole() {
                     { label: 'Red', value: 'red' as const },
                   ]}
                   onChange={(v) => setConfig((c) => ({ ...c, overpaidIndication: v }))}
+                />
+              </Section>
+            )}
+            {config.type === 'changeOrder' && (
+              <Section title="Invoice Status in Comparison Table">
+                <ToggleRow
+                  value={config.invoiceStatusInComparison}
+                  options={[
+                    { label: 'Omitted', value: 'omitted' as const },
+                    { label: 'Shown', value: 'shown' as const },
+                  ]}
+                  onChange={(v) =>
+                    setConfig((c) => ({ ...c, invoiceStatusInComparison: v }))
+                  }
                 />
               </Section>
             )}

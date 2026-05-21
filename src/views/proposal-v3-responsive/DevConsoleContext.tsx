@@ -39,6 +39,13 @@ export type ExistingPayment = 'underPaid' | 'fullyPaid' | 'overPaid';
  *  row accent bar, "Need Refund" / "Overpaid" text). 'red' (default) is
  *  the alert palette; 'yellow' uses the softer amber/orange tones. */
 export type OverpaidIndication = 'red' | 'yellow';
+/** Controls whether per-invoice status rows are visible inside the
+ *  "Before / After Change Order" comparison panels on the Change Order
+ *  Approval Page's Invoices & Payments tab. 'omitted' (default) keeps
+ *  the current state (panels show only progress + totals, not invoice
+ *  status). 'shown' surfaces the per-invoice status list inside each
+ *  comparison panel — exact rendering is TBD. */
+export type InvoiceStatusInComparison = 'omitted' | 'shown';
 /** Top-level document type rendered by the prototype. 'proposal' (default)
  *  runs the regular Proposal flow (Cover → Options → Summary → Project Hub).
  *  'changeOrder' switches to a placeholder Change Order page so that variant
@@ -165,6 +172,12 @@ export type DevConfig = {
   /** Palette used by the Over Paid status indications. Only meaningful
    *  when `existingPayment === 'overPaid'`. */
   overpaidIndication: OverpaidIndication;
+  /** Whether per-invoice status rows render inside the Change Order
+   *  Approval Page's Before / After comparison panels. Only meaningful
+   *  when `type === 'changeOrder'`. Defaults to 'omitted' (panels show
+   *  progress + totals only). 'shown' enables a richer per-invoice
+   *  status view — exact layout TBD. */
+  invoiceStatusInComparison: InvoiceStatusInComparison;
 };
 
 type DevConsoleContextValue = {
@@ -211,6 +224,7 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     type: 'proposal',
     existingPayment: 'underPaid',
     overpaidIndication: 'yellow',
+    invoiceStatusInComparison: 'omitted',
   });
   const [isOpen, setIsOpen] = useState(false);
   const [restartTick, setRestartTick] = useState(0);
