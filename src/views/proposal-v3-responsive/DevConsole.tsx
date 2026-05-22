@@ -37,6 +37,11 @@ const PRESETS: Record<Preset, Partial<DevConfig>> = {
     addonsSection: 'exclude',
     financingService: 'disable',
     companySlogan: 'disable',
+    // MVP intentionally pins Pricing Breakdown OFF — the minimum demo
+    // surfaces only Contract Total. Future Scope leaves the toggle alone
+    // so its current value (default 'disable') is preserved on swap, and
+    // the user can still bump it to 'enable' independently.
+    pricingBreakdown: 'disable',
   },
 };
 
@@ -252,6 +257,16 @@ export default function DevConsole() {
                   { label: 'Excluded', value: 'exclude' as const },
                 ]}
                 onChange={(v) => setConfig((c) => ({ ...c, addonsSection: v }))}
+              />
+            </Section>
+            <Section title="Pricing Breakdown">
+              <ToggleRow
+                value={config.pricingBreakdown}
+                options={[
+                  { label: 'Disabled', value: 'disable' as const },
+                  { label: 'Enabled', value: 'enable' as const },
+                ]}
+                onChange={(v) => setConfig((c) => ({ ...c, pricingBreakdown: v }))}
               />
             </Section>
             <Section title="Signature">

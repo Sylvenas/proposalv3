@@ -82,6 +82,11 @@ export type DevConfig = {
   recommendedOption: number;
   /** Whether the cover page exposes an "Inspection Report" CTA. */
   inspectionReport: boolean;
+  /** Whether the right-column Pricing Breakdown (Materials & Installation
+   *  / Discount / Sales Tax stack) is shown on the Summary Page and the
+   *  Change Order Approval Page. Default 'disable' — the block is hidden
+   *  and the contract sub-total above it carries the price summary alone. */
+  pricingBreakdown: 'enable' | 'disable';
   /** Whether approval requires a hand-drawn signature. When false, the
    *  "Sign & Approve" CTA becomes a simple "Approve" with a short
    *  confirmation delay. */
@@ -205,6 +210,7 @@ export function DevConsoleProvider({ children }: { children: React.ReactNode }) 
     optionCount: 3,
     recommendedOption: 1,
     inspectionReport: false,
+    pricingBreakdown: 'disable',
     signatureRequired: false,
     paymentResult: 'success',
     paymentCompletionIndication: 'seal',

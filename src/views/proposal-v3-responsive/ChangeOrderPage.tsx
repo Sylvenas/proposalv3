@@ -316,12 +316,15 @@ function ChangeOrderRightColumn({
               )}
             </div>
 
-            {/* Breakdowns */}
-            <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
-              <Row label="Materials & Installation" value="$13,420" />
-              <Row label="Discount -5%" value="$500" />
-              <Row label="Sales Tax" value="$500" />
-            </div>
+            {/* Breakdowns — gated by the DevConsole "Pricing Breakdown" toggle
+                (default off, matches the Summary Page treatment). */}
+            {config.pricingBreakdown === 'enable' && (
+              <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
+                <Row label="Materials & Installation" value="$13,420" />
+                <Row label="Discount -5%" value="$500" />
+                <Row label="Sales Tax" value="$500" />
+              </div>
+            )}
           </>
         )}
 

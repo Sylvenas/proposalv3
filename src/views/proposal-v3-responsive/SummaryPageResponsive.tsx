@@ -1098,6 +1098,11 @@ function SummaryContent({
    *  isn't actionable and the most useful affordance is a sales rep. */
   expired?: boolean;
 }) {
+  // DevConsole flag — when set to 'disable' (default), the Pricing
+  // Breakdown stack (Materials & Installation / Discount / Sales Tax)
+  // below Contract Total is hidden. The Contract Total itself stays.
+  const { config: devConfig } = useDevConsole();
+  const showPricingBreakdown = devConfig.pricingBreakdown === 'enable';
   return (
     <div className="bg-white flex flex-col items-start w-full" style={{ fontFamily: 'Segoe UI, sans-serif' }}>
 
@@ -1136,7 +1141,9 @@ function SummaryContent({
         )}
       </div>
 
-      {/* Breakdowns — same spacing/font logic as Contract Amount */}
+      {/* Breakdowns — same spacing/font logic as Contract Amount.
+          Gated by the DevConsole "Pricing Breakdown" toggle. */}
+      {showPricingBreakdown && (
       <div className="border-t-[0.5px] border-[rgba(0,0,0,0.2)] flex flex-col gap-1 lg:gap-2 items-start py-2 lg:py-3 w-full">
         {/* Materials & Installation */}
         <div className="flex flex-col items-start w-full">
@@ -1175,6 +1182,7 @@ function SummaryContent({
           </p>
         </div>
       </div>
+      )}
 
       {/* Actions — same Gutter logic: Low density py-2/gap-2, Med density lg:py-3/lg:gap-3 (uniform) */}
       <div className="flex flex-col gap-2 lg:gap-3 items-start py-2 lg:py-3 w-full">
