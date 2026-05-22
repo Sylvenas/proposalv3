@@ -326,7 +326,9 @@ export function InvoiceComparisonRow({
                           : '#737373',
                 }}
               >
-                {ROW_STATUS_LABEL[row.status]}
+                {row.voided && row.status === 'overPaid'
+                  ? 'VOIDED (OVERPAID)'
+                  : ROW_STATUS_LABEL[row.status]}
               </p>
             </>
           ) : (

@@ -134,6 +134,16 @@ const STATUS_LABEL: Record<InvoiceStatus, string> = {
   overPaid:   'OVERPAID',
 };
 
+// Voided invoices have an effective amount of $0. When they also carry a
+// `received > 0` they surface as `overPaid` (a voided invoice that already
+// had money collected). Tag those with the trailing "(OVERPAID)" so the
+// row reads as "VOIDED (OVERPAID)" — distinguishing them from non-voided
+// overpaid rows where the customer just paid more than the invoice asked.
+export function invoiceStatusLabel(inv: { status: InvoiceStatus; voided?: boolean }): string {
+  if (inv.voided && inv.status === 'overPaid') return 'VOIDED (OVERPAID)';
+  return STATUS_LABEL[inv.status];
+}
+
 const STATUS_LABEL_COLOR: Record<InvoiceStatus, string> = {
   paid:       '#04b50b',
   processing: '#04b50b',
@@ -1167,7 +1177,7 @@ export function MobileInvoiceCard({ inv, onOpen }: { inv: Invoice; onOpen: () =>
             className="text-[10px] sm:text-[12px] font-semibold whitespace-nowrap leading-normal"
             style={{ color: labelColor }}
           >
-            {STATUS_LABEL[inv.status]}
+            {invoiceStatusLabel(inv)}
           </p>
         </div>
         {/* Row 2: Label + Amount (stacked) */}
@@ -1918,7 +1928,7 @@ function DesktopInvoiceRow({
         className="text-[14px] xl:text-[16px] whitespace-nowrap leading-normal"
         style={{ color: labelColor, width: cs(128) }}
       >
-        {STATUS_LABEL[inv.status]}
+        {invoiceStatusLabel(inv)}
       </p>
       {/* Spacer between Status and Due Date — mirrors the header row. */}
       <div className="shrink-0" style={{ width: cs(24) }} />

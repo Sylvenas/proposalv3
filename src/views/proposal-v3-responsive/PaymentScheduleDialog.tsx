@@ -297,6 +297,7 @@ export default function PaymentScheduleDialog({
   scheduledPaymentsCount = 'common',
   title = 'Payment Schedule',
   optionLabelPrefix,
+  hideProjectName = false,
   progressBlock,
   scheduleList,
   mobileScheduleList,
@@ -321,6 +322,10 @@ export default function PaymentScheduleDialog({
    *  joined with " - ". Used by ChangeOrderPage to surface the change order
    *  number inline with the option name. */
   optionLabelPrefix?: string;
+  /** When true, hide the project address line under the option label.
+   *  Used by ChangeOrderPage's Revised Payment Schedule modal where the
+   *  address is redundant with the surrounding Change Order context. */
+  hideProjectName?: boolean;
   /** Optional override for the desktop progress section. When provided,
    *  this replaces the default 1-2-3 PaymentProgressBar — used by
    *  ChangeOrderPage to swap in the Revised Progress PaymentProgressBlock. */
@@ -726,9 +731,11 @@ export default function PaymentScheduleDialog({
                   <p className="text-[16px] xl:text-[20px] text-[#262626] leading-normal whitespace-nowrap mt-1">
                     {optionLabelDisplayDesktop}
                   </p>
-                  <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal whitespace-nowrap -mt-1">
-                    {last.projectName}
-                  </p>
+                  {!hideProjectName && (
+                    <p className="text-[12px] xl:text-[14px] text-[#737373] leading-normal whitespace-nowrap -mt-1">
+                      {last.projectName}
+                    </p>
+                  )}
                 </div>
                 {/* Close X — only shown in this column when the right column
                     (which normally owns the X) is suppressed. */}

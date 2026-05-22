@@ -313,17 +313,33 @@ function InvoiceContent({
               : STATUS_COLOR[invoice.status],
           }}
         >
-          {STATUS_LABEL[invoice.status]}
+          {invoice.voided && invoice.status === 'overPaid'
+            ? 'VOIDED (OVERPAID)'
+            : STATUS_LABEL[invoice.status]}
         </span>
       </FieldRow>
 
       <FieldRow label="Invoice Amount">
-        <p
-          className="text-[20px] sm:text-[24px] font-semibold text-[#262626]"
-          style={invoice.voided ? { textDecoration: 'line-through' } : undefined}
-        >
-          {fmtDollars(invoice.amount)}
-        </p>
+        {invoice.voided ? (
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p
+              className="text-[20px] sm:text-[24px] font-semibold text-[#262626]"
+              style={{ textDecoration: 'line-through' }}
+            >
+              {fmtDollars(invoice.amount)}
+            </p>
+            <span
+              className="text-[12px] sm:text-[14px] font-semibold tracking-[0.5px] uppercase"
+              style={{ color: '#737373' }}
+            >
+              Voided
+            </span>
+          </div>
+        ) : (
+          <p className="text-[20px] sm:text-[24px] font-semibold text-[#262626]">
+            {fmtDollars(invoice.amount)}
+          </p>
+        )}
       </FieldRow>
 
       <FieldRow label="Paid Amount Total">

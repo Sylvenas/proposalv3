@@ -1628,6 +1628,7 @@ export default function ChangeOrderPage() {
         scheduledPaymentsCount={config.scheduledPaymentsCount}
         title="Pending Revised Payment Schedule"
         optionLabelPrefix="Change Order #3"
+        hideProjectName
         progressBlock={(() => {
           const parseDollars = (s: string) => Number(s.replace(/[^\d.-]/g, '')) || 0;
           const totalNum = parseDollars(afterPanel.invoiceTotal);
