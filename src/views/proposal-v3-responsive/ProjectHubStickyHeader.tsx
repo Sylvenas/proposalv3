@@ -75,14 +75,52 @@ function getActiveTopInMenu(activeIdx: number) {
   return TITLE_BLOCK_HEIGHT_PX + TITLE_TO_LIST_GAP_PX + activeIdx * ROW_HEIGHT_PX;
 }
 
+// iOS-style notification badge — small filled red circle with a white "1"
+// inside, positioned absolutely at the top-right corner of the tab label.
+// Surfaced via the `badgeIds` prop (an array of ProjectHubTab values that
+// should display the badge); ChangeOrderPage uses it to flag the Project
+// Home tab while a change order is pending approval.
+function NotificationBadge({ offsetX = -16, offsetY = -2 }: { offsetX?: number; offsetY?: number }) {
+  return (
+    <span
+      aria-label="Pending"
+      className="absolute inline-flex items-center justify-center pointer-events-none"
+      style={{
+        top: offsetY,
+        // Badge sits fully OUTSIDE the label's right edge so it never
+        // overlaps the text. With width=12 and right=-16 the badge's left
+        // edge clears the text by ~4px.
+        right: offsetX,
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        background: '#d41a32',
+        color: '#ffffff',
+        fontSize: 9,
+        fontWeight: 700,
+        // Pull the "!" up by a hair so the dot under the glyph sits
+        // visually centered inside the small circle.
+        lineHeight: '10px',
+        // Subtle white ring so the badge stays legible if it ever sits
+        // over the active-tab underline or other dark chrome.
+        boxShadow: '0 0 0 1.5px #ffffff',
+      }}
+    >
+      !
+    </span>
+  );
+}
+
 function MobileHeader({
   active,
   onChange,
   tabs,
+  badgeIds,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
   tabs: TabDef[];
+  badgeIds?: ProjectHubTab[];
 }) {
   // Animation state machine:
   //   mounted : panel rendered in DOM (kept true during exit animation)
@@ -197,8 +235,15 @@ function MobileHeader({
           boxShadow: '0px 4px 3px 0px rgba(123,123,123,0.1)',
         }}
       >
-        <span className="flex-1 min-w-0 text-left text-[14px] font-semibold text-[#262626] overflow-hidden text-ellipsis whitespace-nowrap">
-          {TAB_LABEL(tabs, active)}
+        <span className="relative inline-flex items-center text-left text-[14px] font-semibold text-[#262626] whitespace-nowrap min-w-0">
+          <span className="overflow-hidden text-ellipsis">
+            {TAB_LABEL(tabs, active)}
+          </span>
+          {/* Surface the badge on the collapsed row when the active tab is
+              the flagged one — same convention as desktop (badge belongs to
+              its tab). Other flagged tabs become visible when the menu
+              expands, where each tab row renders its own badge. */}
+          {badgeIds?.includes(active) && <NotificationBadge offsetX={-18} offsetY={0} />}
         </span>
         <ChevronDown rotated={expanded} />
       </button>
@@ -318,13 +363,14 @@ function MobileHeader({
                     }}
                   >
                     <span
-                      className="text-[16px] leading-normal"
+                      className="relative inline-flex items-center text-[16px] leading-normal"
                       style={{
                         color: isActive ? '#262626' : 'rgba(0,0,0,0.85)',
                         fontWeight: isActive ? 600 : 400,
                       }}
                     >
                       {t.mobileMenuLabel ?? t.label}
+                      {badgeIds?.includes(t.id) && <NotificationBadge offsetX={-18} offsetY={0} />}
                     </span>
                   </button>
                 );
@@ -345,10 +391,12 @@ function DesktopHeader({
   active,
   onChange,
   tabs,
+  badgeIds,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
   tabs: TabDef[];
+  badgeIds?: ProjectHubTab[];
 }) {
   // Refs for the container + each tab button, so we can measure the active
   // tab's position and slide the underline between tabs on change.
@@ -406,6 +454,7 @@ function DesktopHeader({
     >
       {tabs.map((t, i) => {
         const isActive = t.id === active;
+        const hasBadge = badgeIds?.includes(t.id) ?? false;
         return (
           <button
             key={t.id}
@@ -415,7 +464,10 @@ function DesktopHeader({
             className="flex items-center justify-center bg-transparent border-0 cursor-pointer"
             style={{
               paddingLeft: 12,
-              paddingRight: 12,
+              // Right padding grows when the badge is shown so the badge,
+              // which overhangs the label by ~16px, never spills into the
+              // gap between this tab and the next.
+              paddingRight: hasBadge ? 24 : 12,
               paddingTop: 12,
               // Reserve the underline's 2px of space under every tab so
               // heights stay consistent (the actual underline is a single
@@ -447,6 +499,7 @@ function DesktopHeader({
               >
                 {t.label}
               </span>
+              {hasBadge && <NotificationBadge />}
             </span>
           </button>
         );
@@ -529,6 +582,7 @@ export default function ProjectHubStickyHeader({
   active,
   onChange,
   tabs = PROJECT_HUB_TABS,
+  badgeIds,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
@@ -536,11 +590,15 @@ export default function ProjectHubStickyHeader({
    *  (Change Order variant). Project Hub passes PROPOSAL_HUB_TABS to use
    *  the regular-proposal labels and hide Change History. */
   tabs?: TabDef[];
+  /** Tabs that should display an iOS-style red notification badge on
+   *  their label. Used by ChangeOrderPage to surface a pending change
+   *  order on the Project Home tab before approval. */
+  badgeIds?: ProjectHubTab[];
 }) {
   return (
     <>
-      <MobileHeader active={active} onChange={onChange} tabs={tabs} />
-      <DesktopHeader active={active} onChange={onChange} tabs={tabs} />
+      <MobileHeader active={active} onChange={onChange} tabs={tabs} badgeIds={badgeIds} />
+      <DesktopHeader active={active} onChange={onChange} tabs={tabs} badgeIds={badgeIds} />
     </>
   );
 }

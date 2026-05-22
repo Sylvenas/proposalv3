@@ -1252,8 +1252,17 @@ export default function ChangeOrderPage() {
   // opens at the top instead of inheriting the previous tab's scroll offset.
   // `behavior: 'instant'` overrides the global `scroll-behavior: smooth` so
   // the reset is a hard jump, not an animated scroll-up.
+  //
+  // Cap the reset at the PageHeader's height (h-12 = 48px) so the sticky
+  // tab bar lands at the top of the viewport with the PageHeader scrolled
+  // just off above — switching tabs shouldn't pop the home/logo/user banner
+  // back into view, only the tab's content needs to be at the top. If the
+  // user is already above that threshold (PageHeader still visible), leave
+  // their position alone (`Math.min` returns the smaller current scroll).
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const PAGE_HEADER_PX = 48;
+    const top = Math.min(window.scrollY, PAGE_HEADER_PX);
+    window.scrollTo({ top, left: 0, behavior: 'instant' });
   }, [tab]);
   // Sticky footer — reuses ProjectHubStickyFooter from the Proposal Project
   // Hub. On the Home tab, only show it once the inline Make A Payment button
@@ -1442,7 +1451,18 @@ export default function ChangeOrderPage() {
         // Project Hub variant, depending on `approved` state).
         onShowCover={() => setTab('home')}
         onRequestSign={() => setShowSignatureOverlay(true)}
-        stickyHeader={<ProjectHubStickyHeader active={tab} onChange={setTab} tabs={hubTabs} />}
+        stickyHeader={
+          <ProjectHubStickyHeader
+            active={tab}
+            onChange={setTab}
+            tabs={hubTabs}
+            // Flag the Project Home tab with an iOS-style "1" notification
+            // badge while the change order is still pending approval, so
+            // the user can see at a glance that the home tab has something
+            // that needs their attention even when they're on another tab.
+            badgeIds={approved ? undefined : ['home']}
+          />
+        }
         bodyTransitionKey={tab}
         bodyTransitionDirection={slideDirection}
         rightColumnTopPx={80}

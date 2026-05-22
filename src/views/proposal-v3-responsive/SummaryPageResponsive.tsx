@@ -1602,7 +1602,13 @@ export default function SummaryPageResponsive({
   }, [rightColumn, hideMobileRightColumn, bodyOverride]);
 
   return (
-    <div className="bg-white min-h-screen">
+    // `min-h-[calc(100vh+48px)]` guarantees the page is always tall enough
+    // for the PageHeader (h-12 = 48px) to scroll fully out of view. Without
+    // this, a short tab body lets the browser clamp scrollY back to 0 and
+    // pops the PageHeader back into view when switching tabs — defeating
+    // ChangeOrderPage's tab-switch scroll cap below. The extra 48px sits
+    // as invisible white space below the content (bg is white).
+    <div className="bg-white min-h-[calc(100vh+48px)]">
       <PageHeader onShowCover={onShowCover} />
 
       {/* Optional sticky subheader (Change Order injects the Project Hub

@@ -1460,6 +1460,20 @@ export default function ProjectHubPageResponsive({
     setPageIntent(`hub.${activeTab}` as 'hub.home' | 'hub.contract' | 'hub.invoices');
   }, [activeTab, setPageIntent]);
 
+  // Cap the scroll position to the PageHeader's height (h-12 = 48px) when
+  // switching tabs. The Project Hub doesn't actively scroll on tab change,
+  // but a tab whose content is shorter than the previous tab's scroll
+  // offset lets the browser clamp scrollY downward — which can pop the
+  // PageHeader back into view even though the user had already scrolled
+  // past it. Snapping to `min(currentScroll, 48)` keeps the sticky tab bar
+  // pinned at the viewport top whenever the user was already past the
+  // PageHeader, and leaves the position alone otherwise.
+  useEffect(() => {
+    const PAGE_HEADER_PX = 48;
+    if (window.scrollY <= PAGE_HEADER_PX) return;
+    window.scrollTo({ top: PAGE_HEADER_PX, left: 0, behavior: 'instant' });
+  }, [activeTab]);
+
   // ── Selected addons (read-only on Project Hub) ─────────────────────────────
   const selectedAddons = addons.filter((a) => a.selected);
 
@@ -1694,7 +1708,13 @@ export default function ProjectHubPageResponsive({
   void bottomTitleRef;
 
   return (
-    <div className="bg-white min-h-screen">
+    // `min-h-[calc(100vh+48px)]` guarantees the page is always tall enough
+    // for the PageHeader (h-12 = 48px) to scroll fully out of view. Without
+    // this, a tab whose content fits inside the viewport leaves no scroll
+    // room — the browser clamps scrollY back to 0 and the PageHeader pops
+    // into view, which defeats the tab-switch scroll-cap below. The extra
+    // 48px sits as invisible white space below the content (bg is white).
+    <div className="bg-white min-h-[calc(100vh+48px)]">
       {/* Home button on Project Hub does NOT return to the cover (the user
           has already approved and that page is gone). Instead it switches
           to the Project Home tab and scrolls to the top. The `onShowCover`
