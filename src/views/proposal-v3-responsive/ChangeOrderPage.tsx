@@ -312,7 +312,11 @@ function ChangeOrderRightColumn({
               <Row label={<>New Contact Total <sup className="text-[7.74px]">1</sup></>} value="$12,000.00" valueLarge />
               <Row label="Change Order Net Change" value="-$999.00" valueRegular />
               {showFinancing && (
-                <Row label={<>Estimated Monthly Payment <sup className="text-[7.74px]">2</sup></>} value="$469.06 / mo" />
+                // Pre-approval Change Order surfaces the revised monthly
+                // estimate — the label calls that out explicitly so it's
+                // clear the figure reflects the proposed new contract
+                // total, not the existing approved one.
+                <Row label={<>Revised Estimated Monthly Payment <sup className="text-[7.74px]">2</sup></>} value="$469.06 / mo" />
               )}
             </div>
 
@@ -397,11 +401,25 @@ function ChangeOrderRightColumn({
                 Current Approved Contract
               </OutlinedButton>
 
+              {/* Change History — borderless link variant that mirrors the
+                  outlined "Change History" CTA on the Contract Tab right
+                  column. Uses the same clock-with-rewind glyph and routes
+                  through `onViewChangeHistory` so both surfaces feel like
+                  the same action in two styles. */}
+              <BorderlessLinkButton
+                icon={<BackArrowGlyph />}
+                label="View Change History"
+                onClick={onViewChangeHistory}
+              />
               {/* Download — shares the borderless link button component with
-                  Project Hub's "View Invoice & Payment Record". */}
+                  Project Hub's "View Invoice & Payment Record". `tight`
+                  removes the default top margin so it sits flush against
+                  the Change History borderless link above; their own `py-1`
+                  already provides the gap. */}
               <BorderlessLinkButton
                 icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
                 label="Download Change Order Doc [PDF]"
+                tight
               />
             </>
           )}

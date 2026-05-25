@@ -80,34 +80,23 @@ function getActiveTopInMenu(activeIdx: number) {
 // Surfaced via the `badgeIds` prop (an array of ProjectHubTab values that
 // should display the badge); ChangeOrderPage uses it to flag the Project
 // Home tab while a change order is pending approval.
-function NotificationBadge({ offsetX = -16, offsetY = -2 }: { offsetX?: number; offsetY?: number }) {
+function NotificationBadge({ offsetX = -14, offsetY = 0 }: { offsetX?: number; offsetY?: number }) {
   return (
     <span
       aria-label="Pending"
-      className="absolute inline-flex items-center justify-center pointer-events-none"
+      className="absolute inline-block pointer-events-none"
       style={{
         top: offsetY,
         // Badge sits fully OUTSIDE the label's right edge so it never
-        // overlaps the text. With width=12 and right=-16 the badge's left
-        // edge clears the text by ~4px.
+        // overlaps the text. With width=8 and right=-14 the badge's left
+        // edge clears the text by ~6px.
         right: offsetX,
-        width: 12,
-        height: 12,
+        width: 8,
+        height: 8,
         borderRadius: '50%',
         background: '#d41a32',
-        color: '#ffffff',
-        fontSize: 9,
-        fontWeight: 700,
-        // Pull the "!" up by a hair so the dot under the glyph sits
-        // visually centered inside the small circle.
-        lineHeight: '10px',
-        // Subtle white ring so the badge stays legible if it ever sits
-        // over the active-tab underline or other dark chrome.
-        boxShadow: '0 0 0 1.5px #ffffff',
       }}
-    >
-      !
-    </span>
+    />
   );
 }
 
@@ -243,7 +232,7 @@ function MobileHeader({
               the flagged one — same convention as desktop (badge belongs to
               its tab). Other flagged tabs become visible when the menu
               expands, where each tab row renders its own badge. */}
-          {badgeIds?.includes(active) && <NotificationBadge offsetX={-18} offsetY={0} />}
+          {badgeIds?.includes(active) && <NotificationBadge offsetX={-16} offsetY={2} />}
         </span>
         <ChevronDown rotated={expanded} />
       </button>
@@ -370,7 +359,7 @@ function MobileHeader({
                       }}
                     >
                       {t.mobileMenuLabel ?? t.label}
-                      {badgeIds?.includes(t.id) && <NotificationBadge offsetX={-18} offsetY={0} />}
+                      {badgeIds?.includes(t.id) && <NotificationBadge offsetX={-16} offsetY={2} />}
                     </span>
                   </button>
                 );

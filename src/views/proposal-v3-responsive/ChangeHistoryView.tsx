@@ -764,7 +764,7 @@ function StatusLine({ item }: { item: HistoryItem }) {
 function DetailHeader({ item }: { item: HistoryItem }) {
   return (
     <div className="flex flex-col items-start w-full leading-normal text-[#262626]">
-      <p className="text-[12px] sm:text-[13px] xl:text-[14px] font-semibold text-[#737373] uppercase tracking-[0.06em] w-full">
+      <p className="text-[14px] sm:text-[16px] xl:text-[18px] font-semibold text-[#737373] uppercase w-full">
         {item.label}
       </p>
       <p className="text-[20px] sm:text-[24px] xl:text-[32px] font-semibold w-full leading-[1.2]">

@@ -302,7 +302,15 @@ export function OptionSummaryTitleBlock({
       style={{ fontFamily: 'Segoe UI, sans-serif' }}
     >
       {eyebrow && (
-        <p className="text-[12px] sm:text-[13px] xl:text-[14px] font-semibold text-[#737373] uppercase tracking-[0.06em] w-full">
+        // Eyebrow inherits the SUMMARY label's responsive scale + weight
+        // (14 / 16 / 20 / 24, font-semibold) so the "Pending Change Order
+        // #N" title above the option name reads at the same visual weight
+        // as the Summary page's "SUMMARY" header. The SUMMARY label has no
+        // letter-spacing — the eyebrow used to carry `tracking-[0.06em]`
+        // from its old small-uppercase style, which made it visibly
+        // wider-spaced than SUMMARY at the new larger sizes; drop it so
+        // the two headers spread identically.
+        <p className="text-[14px] sm:text-[16px] md:text-[20px] xl:text-[24px] font-semibold uppercase w-full">
           {eyebrow}
         </p>
       )}
