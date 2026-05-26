@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { ComponentType } from 'react';
 import BackToTopButton from './BackToTopButton';
+import { DownloadStroke, Fullscreen, IconProps, ZoomIn, ZoomOut } from './icons';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 // Same PDF pages shown in the signature flyout — this tab displays the
@@ -11,10 +13,6 @@ const IMG_CONTRACT_P1 = `${BASE}/contract-page-1.png`;
 const IMG_CONTRACT_P2 = `${BASE}/contract-page-2.png`;
 const IMG_CONTRACT_P3 = `${BASE}/contract-page-3.png`;
 const IMG_CONTRACT_P4 = `${BASE}/contract-page-4.png`;
-const IMG_DOWNLOAD    = `${BASE}/download.svg`;
-const IMG_ZOOM_IN     = `${BASE}/zoom-in.svg`;
-const IMG_ZOOM_OUT    = `${BASE}/zoom-out.svg`;
-const IMG_ZOOM_FIT    = `${BASE}/zoom-fit.svg`;
 
 const PDF_PAGES: { src: string; ratio: string }[] = [
   { src: IMG_CONTRACT_P1, ratio: '2448/3168' },
@@ -31,9 +29,10 @@ function formatDate(date: Date): string {
 // ── Zoom Button ──────────────────────────────────────────────────────────────
 // Mirrors the Signature overlay's view-control button: 48×48 dark pill with a
 // 24×24 white icon. Prototype — no onClick behavior yet.
-function ZoomButton({ icon, alt }: { icon: string; alt: string }) {
+function ZoomButton({ Icon, label }: { Icon: ComponentType<IconProps>; label: string }) {
   return (
     <button
+      aria-label={label}
       className="flex items-center justify-center rounded-[4px] shrink-0 cursor-pointer border-0"
       style={{
         width: 48,
@@ -43,7 +42,7 @@ function ZoomButton({ icon, alt }: { icon: string; alt: string }) {
         boxShadow: '0px 0px 2px 0px rgba(0,0,0,0.25)',
       }}
     >
-      <img src={icon} alt={alt} style={{ width: 24, height: 24 }} />
+      <Icon size={24} color="#ffffff" />
     </button>
   );
 }
@@ -61,9 +60,9 @@ function ViewControls({ mobileBottomOffset }: { mobileBottomOffset: number }) {
       style={{ height: 0, alignItems: 'flex-end', bottom: mobileBottomOffset }}
     >
       <div className="flex gap-3 pointer-events-auto">
-        <ZoomButton icon={IMG_ZOOM_IN} alt="Zoom in" />
-        <ZoomButton icon={IMG_ZOOM_OUT} alt="Zoom out" />
-        <ZoomButton icon={IMG_ZOOM_FIT} alt="Fit" />
+        <ZoomButton Icon={ZoomIn} label="Zoom in" />
+        <ZoomButton Icon={ZoomOut} label="Zoom out" />
+        <ZoomButton Icon={Fullscreen} label="Fit" />
       </div>
     </div>
   );
@@ -74,11 +73,9 @@ function DownloadContractButton({ onClick }: { onClick?: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex gap-[2px] h-10 items-center justify-center px-4 py-1.5 relative rounded-[4px] shrink-0 w-full cursor-pointer bg-white border border-solid border-[#262626]"
+      className="flex gap-[6px] h-10 items-center justify-center px-4 py-1.5 relative rounded-[4px] shrink-0 w-full cursor-pointer bg-white border border-solid border-[#262626]"
     >
-      <div className="flex items-center justify-center relative shrink-0 size-6">
-        <img src={IMG_DOWNLOAD} alt="" style={{ width: 17, height: 18, display: 'block', flexShrink: 0 }} />
-      </div>
+      <DownloadStroke size={16} color="#000000" />
       <span
         className="text-[14px] text-center whitespace-nowrap"
         style={{ fontFamily: 'Segoe UI, sans-serif', color: 'rgba(0,0,0,0.85)', lineHeight: '18px' }}

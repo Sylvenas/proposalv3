@@ -77,81 +77,58 @@ function fmtMoney(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// ─── Inline icons ────────────────────────────────────────────────────────────
+// ─── Icons (DL-backed; signatures preserved for callsite compatibility) ─────
+import {
+  BankMethod,
+  Card,
+  CardMethod,
+  CheckCircleFill,
+  CheckMarkFill,
+  ChevronThin,
+  PaymentFailed,
+  PaymentPending,
+  PaymentSuccess,
+  SecuredShield,
+  XmarkLarge,
+} from './icons';
+
 function CloseIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M3 3L13 13M13 3L3 13" stroke="#737373" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
+  return <XmarkLarge size={size >= 20 ? 24 : 16} color="#737373" />;
 }
 
 function CardMethodIcon({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3" y="6" width="18" height="13" rx="2" stroke="#262626" strokeWidth="1.5" />
-      <line x1="3" y1="10.5" x2="21" y2="10.5" stroke="#262626" strokeWidth="1.5" />
-      <rect x="6" y="14" width="5" height="2.5" rx="0.5" stroke="#262626" strokeWidth="1" />
-    </svg>
-  );
+  return <CardMethod size={size >= 20 ? 24 : 16} color="#262626" />;
 }
 
 function BankMethodIcon({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M3 9.5L12 4L21 9.5" stroke="#262626" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M5 10V18M9 10V18M15 10V18M19 10V18" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M3 20H21" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
+  return <BankMethod size={size >= 20 ? 24 : 16} color="#262626" />;
 }
 
-function CheckCircleIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="7" fill="#262626" />
-      <path d="M5 8.2L7 10.2L11 6.2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function CheckCircleIcon(_props: { size?: number } = {}) {
+  // DL ships this glyph at 24×24 (16×16 inner glyph + 4px padding on each
+  // side) — the original inline 16×16 filled circle felt cramped against the
+  // method-tile title. Always render at the natural 24 here so the tile's
+  // active-state badge breathes.
+  return <CheckCircleFill size={24} color="#262626" />;
 }
 
-function CardInputIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <rect x="2" y="4" width="14" height="10" rx="1.5" stroke="#bfbfbf" strokeWidth="1.2" />
-      <line x1="2" y1="7.5" x2="16" y2="7.5" stroke="#bfbfbf" strokeWidth="1.2" />
-    </svg>
-  );
+function CardInputIcon(_props: { size?: number } = {}) {
+  // Was an 18×18 inline outline in a 4px-padded slot; now uses the DL `card`
+  // icon at 16×16 (per design constraint of only 16/24 sizes). The leading
+  // input padding (px-3) already absorbs the 2px size delta.
+  return <Card size={16} color="#bfbfbf" />;
 }
 
 function ChevronDownIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path d="M4 6L8 10L12 6" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <ChevronThin size={size >= 20 ? 24 : 16} color="#262626" />;
 }
 
-function ShieldLockIcon({ width = 12, height = 13 }: { width?: number; height?: number }) {
-  return (
-    <svg width={width} height={height} viewBox="0 0 12 13" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <path
-        d="M6 1L11 2.5V6.5C11 9.26 8.76 11.34 6 12C3.24 11.34 1 9.26 1 6.5V2.5L6 1Z"
-        stroke="#737373"
-        strokeWidth="0.8"
-        strokeLinejoin="round"
-      />
-      <rect x="4.4" y="5.6" width="3.2" height="2.6" rx="0.4" stroke="#737373" strokeWidth="0.8" />
-      <path d="M5 5.6V4.6a1 1 0 1 1 2 0v1" stroke="#737373" strokeWidth="0.8" />
-    </svg>
-  );
+function ShieldLockIcon(_props: { width?: number; height?: number } = {}) {
+  // Was a 12×13 stroked shield with a keyhole; now uses the DL filled
+  // `Secured-Shield` icon at 16×16. The "Secured by ArcSite Payment" row
+  // gains a few px of vertical breathing room which the surrounding `gap-2`
+  // and `gap-1.5` paddings absorb without visible reflow.
+  return <SecuredShield size={16} color="#737373" />;
 }
 
 // ─── Reusable form pieces ────────────────────────────────────────────────────
@@ -198,7 +175,7 @@ function TextInput({
     : undefined;
   return (
     <div
-      className={`flex items-center h-10 w-full rounded-[4px] border border-solid gap-1 ${
+      className={`flex items-center h-10 w-full rounded-[4px] border border-solid gap-2 ${
         mobile ? 'px-2' : 'px-3'
       }`}
       style={{
@@ -343,17 +320,7 @@ function Select({
                 <span className="flex-1 min-w-0 leading-normal whitespace-nowrap overflow-hidden text-ellipsis">
                   {opt}
                 </span>
-                {isSelected && (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path
-                      d="M3 8.5L6.5 12L13 5"
-                      stroke="#262626"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
+                {isSelected && <CheckMarkFill size={16} color="#262626" />}
               </button>
             );
           })}
@@ -398,10 +365,10 @@ function MethodTile({
           : 'inset 0 0 0 1.5px #bfbfbf',
       }}
     >
-      <div className="flex items-start justify-between w-full">
+      <div className="flex items-center justify-between w-full">
         {icon}
         <div style={{ opacity: selected ? 1 : 0 }}>
-          <CheckCircleIcon size={16} />
+          <CheckCircleIcon />
         </div>
       </div>
       <div className="flex flex-col gap-1 items-start w-full">
@@ -1210,20 +1177,17 @@ function PaymentFailedPanel({
               animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 240ms both',
             }}
           >
-            <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-              <path
-                d="M7 7L21 21M21 7L7 21"
-                stroke="#d41a32"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                style={{
-                  // Stroke-draw effect: the X strokes draw themselves in
-                  // right after the circle is in place.
-                  strokeDasharray: 24,
-                  animation: 'pfIconStroke 360ms ease-out 480ms both',
-                }}
-              />
-            </svg>
+            <PaymentFailed
+              size={24}
+              color="#d41a32"
+              style={{
+                // Stroke-draw entrance effect preserved by animating the
+                // outer wrapper (the DL icon ships as a filled glyph, so we
+                // crossfade with the surrounding circle instead of dash-array
+                // stroking).
+                animation: 'pfIconStroke 360ms ease-out 480ms both',
+              }}
+            />
           </div>
 
           <p
@@ -1288,18 +1252,11 @@ function PaymentFailedPanel({
             animation: 'pfIconPop 540ms cubic-bezier(0.34, 1.56, 0.64, 1) 220ms both',
           }}
         >
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <path
-              d="M7 7L21 21M21 7L7 21"
-              stroke="#d41a32"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              style={{
-                strokeDasharray: 24,
-                animation: 'pfIconStroke 360ms ease-out 460ms both',
-              }}
-            />
-          </svg>
+          <PaymentFailed
+            size={24}
+            color="#d41a32"
+            style={{ animation: 'pfIconStroke 360ms ease-out 460ms both' }}
+          />
         </div>
 
         <p
@@ -1380,38 +1337,19 @@ function PaymentSuccessPanel({
     : { color: '#04b50b', tint: 'rgba(4, 181, 11, 0.1)' };
   const headerLabel = kind === 'pending' ? 'PAYMENT PROCESSING' : 'PAYMENT SUCCESSFUL';
   const titleText   = kind === 'pending' ? 'Payment info received' : 'Payment received';
-  const renderIcon = (size: number) =>
+  const renderIcon = (_size: number) =>
     kind === 'pending' ? (
-      // Clock face: outline circle + hour/minute hands. Hands stroke-draw
-      // via pfIconStroke so the beat matches the success check.
-      <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
-        <circle cx="14" cy="14" r="9" stroke={palette.color} strokeWidth="2.5" />
-        <path
-          d="M14 9V14L17.5 16"
-          stroke={palette.color}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{
-            strokeDasharray: 24,
-            animation: 'pfIconStroke 360ms ease-out 480ms both',
-          }}
-        />
-      </svg>
+      <PaymentPending
+        size={24}
+        color={palette.color}
+        style={{ animation: 'pfIconStroke 360ms ease-out 480ms both' }}
+      />
     ) : (
-      <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
-        <path
-          d="M7 14L12 19L21 9"
-          stroke={palette.color}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{
-            strokeDasharray: 24,
-            animation: 'pfIconStroke 360ms ease-out 480ms both',
-          }}
-        />
-      </svg>
+      <PaymentSuccess
+        size={24}
+        color={palette.color}
+        style={{ animation: 'pfIconStroke 360ms ease-out 480ms both' }}
+      />
     );
   if (variant === 'desktop') {
     return (

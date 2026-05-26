@@ -99,7 +99,7 @@ export default function DevConsole() {
             {/* Icon inherits the button's current text color via
                 `currentColor` so it flips to white on :active alongside
                 the label. */}
-            <RestartIcon size={20} fill="currentColor" />
+            <RestartIcon size={16} fill="currentColor" />
             Restart Userflow
           </button>
 

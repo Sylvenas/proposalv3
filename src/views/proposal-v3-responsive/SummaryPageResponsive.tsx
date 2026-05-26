@@ -5,6 +5,24 @@ import PageHeader from './PageHeader';
 import BackToTopButton from './BackToTopButton';
 import { ContactSalesModal } from './SalesContactCard';
 import { CalendarIcon, PhoneIcon } from './SvgIcons';
+import {
+  ArrowLeft,
+  Calculator,
+  Card,
+  CheckMark,
+  ChevronThin,
+  DownloadStroke,
+  Fullscreen,
+  IconProps,
+  InfoDuotone,
+  Mail as MailIcon,
+  Minus,
+  Phone as PhoneStroke,
+  ProductInfo,
+  ZoomIn,
+  ZoomOut,
+} from './icons';
+import { ComponentType } from 'react';
 import ProductDetailSheet, {
   NoImageThumb,
   type ProductDetailContent,
@@ -217,7 +235,7 @@ function ActionHeader({ onBack }: { onBack: () => void }) {
           onClick={onBack}
           className="flex items-center gap-[2px] p-1 rounded-[4px] cursor-pointer bg-transparent border-0"
         >
-          <img src={IMG_LEFT_ARROW} alt="" style={{ width: 16, height: 16, display: 'block', flexShrink: 0 }} />
+          <ArrowLeft size={16} color="#262626" />
           <span
             className="text-[12px] text-[#262626] leading-[16px] whitespace-nowrap"
             style={{ fontFamily: 'Roboto, sans-serif' }}
@@ -237,13 +255,7 @@ function ActionHeader({ onBack }: { onBack: () => void }) {
           className="flex items-center gap-1 rounded-[4px] cursor-pointer bg-transparent border-0"
           style={{ height: 32, paddingLeft: 4, paddingRight: 4, paddingTop: 6, paddingBottom: 6 }}
         >
-          <div className="flex items-center justify-end shrink-0" style={{ width: 20 }}>
-            <div className="relative shrink-0 overflow-clip" style={{ width: 24, height: 24 }}>
-              <div className="absolute" style={{ width: 13.969, height: 12.008, left: 'calc(50% - 0.02px)', top: 'calc(50% + 0.02px)', transform: 'translate(-50%, -50%)' }}>
-                <img src={IMG_LEFT_ARROW_24} alt="" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
-              </div>
-            </div>
-          </div>
+          <ArrowLeft size={16} color="#262626" />
           <span
             className="text-[14px] text-[#262626] leading-[18px] whitespace-nowrap"
             style={{ fontFamily: 'Roboto, sans-serif' }}
@@ -362,7 +374,7 @@ export function SectionCard({
         >
           {label}
         </p>
-        <img src={IMG_MINUS_ICON} alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
+        <Minus size={16} color="#262626" />
       </div>
       {/* Content */}
       {children}
@@ -385,7 +397,13 @@ function DrawingSection() {
         </div>
         {/* Zoom controls — dark glass morphism buttons */}
         <div className="flex gap-3 items-end justify-center w-full">
-          {([IMG_ZOOM_IN, IMG_ZOOM_OUT, IMG_ZOOM_FIT] as const).map((icon, i) => (
+          {(
+            [
+              [ZoomIn, 'Zoom in'],
+              [ZoomOut, 'Zoom out'],
+              [Fullscreen, 'Fit to view'],
+            ] as const
+          ).map(([Icon, label], i) => (
             <button
               key={i}
               className="flex items-center justify-center rounded-[4px] cursor-pointer shrink-0"
@@ -398,9 +416,9 @@ function DrawingSection() {
                 border: 'none',
                 paddingLeft: i < 2 ? 2 : 0,
               }}
-              aria-label={['Zoom in', 'Zoom out', 'Fit to view'][i]}
+              aria-label={label}
             >
-              <img src={icon} alt="" style={{ width: 24, height: 24 }} />
+              <Icon size={24} color="#ffffff" />
             </button>
           ))}
         </div>
@@ -475,7 +493,7 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
             {item.name}
           </p>
           <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
-            <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+            <ProductInfo size={16} color="#262626" />
           </div>
         </div>
         {/* Row 2: qty */}
@@ -496,7 +514,7 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
               Change
             </span>
             <div className="flex items-center justify-center" style={{ width: 24, height: 24 }}>
-              <img src={IMG_CHEVRON_RIGHT} alt="" style={{ width: 16, height: 16 }} />
+              <ChevronThin size={16} rotate={270} color="#000000" />
             </div>
           </div>
         )}
@@ -521,7 +539,7 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
         </div>
         {/* Info — w-48px h-24px */}
         <div className="flex items-center justify-center shrink-0" style={{ width: 48, height: 24 }}>
-          <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+          <ProductInfo size={16} color="#262626" />
         </div>
         {/* Upgrade control — w-80px */}
         <div className="flex items-center justify-end shrink-0" style={{ width: 80 }}>
@@ -534,7 +552,7 @@ function ProductLineItem({ item, onClick }: { item: ProductItem; onClick?: () =>
                 Change
               </span>
               <div className="flex items-center justify-center" style={{ width: 24, height: 24 }}>
-                <img src={IMG_CHEVRON_RIGHT} alt="" style={{ width: 16, height: 16 }} />
+                <ChevronThin size={16} rotate={270} color="#000000" />
               </div>
             </div>
           )}
@@ -706,20 +724,7 @@ function Checkbox({ checked }: { checked: boolean }) {
           the path on both axes (asymmetric % insets rendered slightly
           off-center on iOS Safari). */}
       {checked && (
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 16 16"
-          className="absolute inset-0 w-full h-full"
-        >
-          <path
-            d="M3 8.5l3 3 7-7"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <CheckMark size={16} color="#ffffff" style={{ position: 'absolute', inset: 2 }} />
       )}
     </div>
   );
@@ -768,7 +773,7 @@ function AddonLineItem({
             {item.name}
           </p>
           <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
-            <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+            <ProductInfo size={16} color="#262626" />
           </div>
         </div>
         {/* Row 2: qty + price */}
@@ -831,7 +836,7 @@ function AddonLineItem({
         </div>
         {/* Info — w-48px h-24px */}
         <div className="flex items-center justify-center shrink-0" style={{ width: 48, height: 24 }}>
-          <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+          <ProductInfo size={16} color="#262626" />
         </div>
         {/* Checkbox in w-64px upgrade-control slot */}
         <div className="flex items-center justify-center shrink-0" style={{ width: 64 }}>
@@ -907,7 +912,7 @@ function StickyHeader({
       </p>
       {/* Chevron rotated 90° → points down */}
       <div className="shrink-0 flex items-center justify-center" style={{ width: 16, height: 16, transform: 'rotate(90deg)' }}>
-        <img src={IMG_DROPDOWN_BTN} alt="" style={{ width: 16, height: 16, display: 'block' }} />
+        <ChevronThin size={16} rotate={270} color="#000000" />
       </div>
     </div>
   );
@@ -923,11 +928,11 @@ function InfoDuotoneIcon() {
     <div className="relative shrink-0 overflow-clip" style={{ width: 16, height: 16 }}>
       {/* bg circle */}
       <div className="absolute" style={{ width: 12, height: 12, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-        <img src={IMG_INFO_DUOTONE_BG} alt="" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
+        <InfoDuotone size={16} color="#000000" style={{ position: 'absolute', inset: 0, opacity: 0.25 }} />
       </div>
       {/* i glyph */}
       <div className="absolute" style={{ width: 3, height: 6, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-        <img src={IMG_INFO_DUOTONE_FG} alt="" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
+        {/* fg "i" already drawn by InfoDuotone (bg) above */}
       </div>
     </div>
   );
@@ -946,9 +951,9 @@ export function ContactSalesButton() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
+        className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
       >
-        <PhoneIcon size={22} />
+        <PhoneStroke size={16} color="#262626" />
         <span
           className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
           style={{ lineHeight: '18px' }}
@@ -1216,15 +1221,9 @@ function SummaryContent({
           {/* View Payment Schedule */}
           <button
             onClick={onViewSchedule}
-            className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
+            className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
           >
-            <div className="flex h-full items-center px-[5px] shrink-0">
-              <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ flexShrink: 0 }}>
-                <rect x="1" y="1" width="18" height="14" rx="2" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-                <line x1="1" y1="5.5" x2="19" y2="5.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-                <rect x="3" y="9" width="4" height="3" rx="0.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1" />
-              </svg>
-            </div>
+            <Card size={16} color="rgba(0,0,0,0.85)" />
             <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
               style={{ lineHeight: '18px' }}>
               View Payment Schedule
@@ -1234,10 +1233,8 @@ function SummaryContent({
               state since it's already rendered at the top). */}
           {!expired && <ContactSalesButton />}
           {/* Download Config PDF */}
-          <button className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
-            <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
-              <img src={IMG_DOWNLOAD} alt="" style={{ width: 17, height: 18 }} />
-            </div>
+          <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer">
+            <DownloadStroke size={16} color="#000000" />
             <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
               style={{ lineHeight: '18px' }}>
               Download Config [PDF]

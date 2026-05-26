@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { XmarkLarge } from './icons';
 
 // ── Animation constants ──────────────────────────────────────────────────────
 const ANIM_MS = 300;
@@ -625,9 +626,7 @@ export default function SignatureOverlay({
             aria-label="Close"
             className="absolute top-3 right-3 z-[3] w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-[#f5f5f5] cursor-pointer border-0"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 3L13 13M13 3L3 13" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <XmarkLarge size={16} color="#262626" />
           </button>
 
           {/* Inner: padding = Overlay-Inner (L=32, XL/XXL=48); gap = 32 (XL token) */}

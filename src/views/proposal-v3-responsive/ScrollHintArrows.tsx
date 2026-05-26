@@ -1,6 +1,7 @@
 'use client';
 
 import { RefObject, useEffect, useState } from 'react';
+import { ChevronThin } from './icons';
 
 // ── Shared Scroll Hint Arrows ────────────────────────────────────────────────
 // Bouncing chevron arrows shown at the top/bottom edge of a scroll container
@@ -91,30 +92,14 @@ export default function ScrollHintArrows({
         className={`scroll-hint-arrow scroll-hint-arrow-up${canUp ? ' is-visible' : ''}`}
         style={{ top: topInset }}
       >
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-          <path
-            d="M3 8.5L7 4.5L11 8.5"
-            stroke="#262626"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <ChevronThin size={16} rotate={180} color="#262626" />
       </div>
       <div
         aria-hidden="true"
         className={`scroll-hint-arrow scroll-hint-arrow-down${canDown ? ' is-visible' : ''}`}
         style={{ bottom: bottomInset }}
       >
-        <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-          <path
-            d="M3 5.5L7 9.5L11 5.5"
-            stroke="#262626"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <ChevronThin size={16} color="#262626" />
       </div>
     </>
   );

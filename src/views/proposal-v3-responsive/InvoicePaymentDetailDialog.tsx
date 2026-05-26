@@ -104,90 +104,43 @@ const EASE_IN  = 'cubic-bezier(0.4, 0, 1, 1)';
 const SWAP_MS = 460;
 const SWAP_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
-// ─── Inline icons (no external SVG asset for credit card / arrow-right) ──────
+// ─── Icons (DL-backed; signatures preserved for callsite compatibility) ─────
+import { ArrowLeft as ArrowLeftGlyph, ArrowRight, Card, ChevronThin, Lock as LockGlyph, XmarkLarge } from './icons';
+
 function CreditCardIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={(size * 16) / 20}
-      viewBox="0 0 20 16"
-      fill="none"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <rect x="1" y="1" width="18" height="14" rx="2" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-      <line x1="1" y1="5.5" x2="19" y2="5.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-      <rect x="3" y="9" width="4" height="3" rx="0.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1" />
-    </svg>
-  );
+  // Originally rendered 16×12.8 (20×16 viewBox squeezed by `height=size*16/20`).
+  // Now uses the DL `card-16x16` glyph at its natural 16×16. Color tracks the
+  // original rgba(0,0,0,0.85).
+  return <Card size={size >= 20 ? 24 : 16} color="rgba(0,0,0,0.85)" />;
 }
 
 function ArrowRightIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path
-        d="M3.5 8H12.5M12.5 8L8.5 4M12.5 8L8.5 12"
-        stroke="#262626"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <ArrowRight size={size >= 20 ? 24 : 16} color="#262626" />;
 }
 
 function ChevronDownIcon({ size = 16, rotated = false }: { size?: number; rotated?: boolean }) {
+  // The `rotated` prop flipped the chevron to point UP. ChevronThin defaults
+  // to pointing DOWN; rotate 180° to mirror the prior behavior.
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      style={{
-        flexShrink: 0,
-        transform: rotated ? 'rotate(180deg)' : 'rotate(0deg)',
-        transition: 'transform 200ms ease',
-      }}
-    >
-      <path
-        d="M4 6L8 10L12 6"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <ChevronThin
+      size={size >= 20 ? 24 : 16}
+      rotate={rotated ? 180 : 0}
+      color="rgba(0,0,0,0.85)"
+      style={{ transition: 'transform 200ms ease' }}
+    />
   );
 }
 
 function CloseIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M3 3L13 13M13 3L3 13"
-        stroke="#262626"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+  return <XmarkLarge size={size >= 20 ? 24 : 16} color="#262626" />;
 }
 
 function LockIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
+  // Original used `stroke="currentColor"`. The DL `lock-16x16` is filled
+  // black; we route the parent's CSS color through via the `color` prop
+  // (which becomes the SVG fill). Callers passing `style={{ color: ... }}`
+  // on the wrapper continue to see the correct inherited color.
+  return <LockGlyph size={size >= 20 ? 24 : 16} color="currentColor" />;
 }
 
 
@@ -1138,12 +1091,7 @@ export default function InvoicePaymentDetailDialog({
                         setSalesView(false);
                       },
                       icon: (
-                        <img
-                          src="/images/proposal-v3-responsive/left-arrow.svg"
-                          alt=""
-                          aria-hidden="true"
-                          style={{ width: 16, height: 16, flexShrink: 0 }}
-                        />
+                        <ArrowLeftGlyph size={16} color="#262626" />
                       ),
                     }}
                     secondaryCta={{ label: 'Close', onClick: onClose }}
@@ -1207,12 +1155,7 @@ export default function InvoicePaymentDetailDialog({
                         label: 'Payment Record',
                         onClick: () => {},
                         icon: (
-                          <img
-                            src="/images/proposal-v3-responsive/left-arrow.svg"
-                            alt=""
-                            aria-hidden="true"
-                            style={{ width: 16, height: 16, flexShrink: 0 }}
-                          />
+                          <ArrowLeftGlyph size={16} color="#262626" />
                         ),
                       }}
                       secondaryCta={{ label: 'Close', onClick: () => {} }}
@@ -1338,12 +1281,7 @@ export default function InvoicePaymentDetailDialog({
                           setSalesView(false);
                         },
                         icon: (
-                          <img
-                            src="/images/proposal-v3-responsive/left-arrow.svg"
-                            alt=""
-                            aria-hidden="true"
-                            style={{ width: 16, height: 16, flexShrink: 0 }}
-                          />
+                          <ArrowLeftGlyph size={16} color="#262626" />
                         ),
                       }}
                       secondaryCta={{ label: 'Close', onClick: onClose }}
@@ -1418,12 +1356,7 @@ export default function InvoicePaymentDetailDialog({
                           label: 'Payment Record',
                           onClick: () => {},
                           icon: (
-                            <img
-                              src="/images/proposal-v3-responsive/left-arrow.svg"
-                              alt=""
-                              aria-hidden="true"
-                              style={{ width: 16, height: 16, flexShrink: 0 }}
-                            />
+                            <ArrowLeftGlyph size={16} color="#262626" />
                           ),
                         }}
                         secondaryCta={{ label: 'Close', onClick: () => {} }}

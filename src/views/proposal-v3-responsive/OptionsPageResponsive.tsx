@@ -29,6 +29,7 @@ import PaymentScheduleDialog, {
 } from './PaymentScheduleDialog';
 import { ContactSalesModal } from './SalesContactCard';
 import { CalendarIcon, DocumentIcon, NoSymbolIcon, PhoneIcon } from './SvgIcons';
+import { ArrowUp, ChevronThin, ProductInfo, Recommended, XmarkLarge } from './icons';
 
 // ── Equal-height hook ─────────────────────────────────────────────────────────
 // For each [data-card-container], finds all [data-card-section="X"] elements,
@@ -310,28 +311,15 @@ const ALL_OPTIONS: FenceOption[] = [
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 function ArrowUpIcon() {
   return (
-    <img src={IMG_ARROW_UP} alt="" style={{ width: 16, height: 16, display: 'block', flexShrink: 0 }} />
+    <ArrowUp size={16} color="#262626" />
   );
 }
 
-function ChevronDownIcon({ size = 10 }: { size?: number }) {
+function ChevronDownIcon(_props: { size?: number } = {}) {
+  // Was 10×10 inline; standardized to 16×16 via the DL `chevron-thin` glyph.
   return (
     <span className="animate-bounce inline-flex">
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 10 10"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M1.5 3.5L5 7L8.5 3.5"
-          stroke="#262626"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <ChevronThin size={16} color="#262626" />
     </span>
   );
 }
@@ -354,21 +342,16 @@ function OverflowNavChevron({
   direction: 'prev' | 'next';
   disabled?: boolean;
 }) {
-  // 10×10 SVG chevron. Prev = <  ; Next = >
-  const d = direction === 'prev' ? 'M6.25 2.5 L3.75 5 L6.25 7.5' : 'M3.75 2.5 L6.25 5 L3.75 7.5';
+  // DL chevron rotated to face left (prev) or right (next). Only the icon
+  // dims when the button is disabled — the pill background (#f0f0f0) stays
+  // at full opacity.
   return (
-    <svg
-      width={10}
-      height={10}
-      viewBox="0 0 10 10"
-      fill="none"
-      aria-hidden
-      // Only the icon dims when the button is disabled — the pill background
-      // (#f0f0f0) stays at full opacity.
+    <ChevronThin
+      size={16}
+      color="#262626"
+      rotate={direction === 'prev' ? 90 : 270}
       style={{ opacity: disabled ? 0.4 : 1 }}
-    >
-      <path d={d} stroke="#262626" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    />
   );
 }
 
@@ -783,18 +766,9 @@ function RecommendedLabel({ color = 'white' }: { color?: string }) {
       className="flex items-center gap-[4px]"
       style={{ fontFamily: 'var(--font-barlow-semi-condensed), sans-serif', color }}
     >
-      <svg
-        viewBox="0 0 10 10"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-        className="block w-[12px] h-[12px] md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]"
-      >
-        <path
-          d="M0.833333 3.75H2.08333V8.75H0.833333C0.722827 8.75 0.616846 8.7061 0.538706 8.62796C0.460565 8.54982 0.416667 8.44384 0.416667 8.33333V4.16667C0.416667 4.05616 0.460565 3.95018 0.538706 3.87204C0.616846 3.7939 0.722827 3.75 0.833333 3.75ZM3.03875 3.21125L5.70542 0.544584C5.74086 0.509039 5.78794 0.487486 5.83801 0.483888C5.88807 0.48029 5.93776 0.494889 5.97792 0.525L6.33333 0.791667C6.43204 0.865769 6.5066 0.967439 6.54761 1.08386C6.58861 1.20027 6.59423 1.32623 6.56375 1.44583L6.08333 3.33333H8.75C8.97101 3.33333 9.18298 3.42113 9.33926 3.57741C9.49554 3.73369 9.58333 3.94565 9.58333 4.16667V5.04333C9.58345 5.15223 9.56221 5.2601 9.52083 5.36083L8.23125 8.49208C8.19979 8.56842 8.14636 8.6337 8.07774 8.67962C8.00912 8.72554 7.9284 8.75003 7.84583 8.75H3.33333C3.22283 8.75 3.11685 8.7061 3.03871 8.62796C2.96057 8.54982 2.91667 8.44384 2.91667 8.33333V3.50583C2.91669 3.39534 2.9606 3.28937 3.03875 3.21125Z"
-          fill="currentColor"
-        />
-      </svg>
+      {/* DL recommended-16x16 — inherits the surrounding `color` via the
+          `color` prop (e.g. white on the red pill). */}
+      <Recommended size={16} color={color} />
       <p className="text-[12px] leading-[14px] md:text-[13px] md:leading-[15px] lg:text-[14px] lg:leading-[16px] font-semibold whitespace-nowrap">
         RECOMMENDED
       </p>
@@ -928,7 +902,7 @@ function ProductLineItem({
             </div>
           ) : (
             <div className="flex items-center justify-center shrink-0 w-6 h-6">
-              <img src={IMG_INFO_ICON} alt="" className="w-[16.3px] h-[16.3px]" />
+              <ProductInfo size={16} color="#262626" />
             </div>
           )}
         </div>
@@ -1152,9 +1126,7 @@ function CoverPageContent({
             aria-expanded={contactSalesOpen}
             className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
           >
-            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-              <PhoneIcon size={18} />
-            </div>
+            <PhoneIcon size={16} />
             <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
               Contact Sales
             </span>
@@ -1222,9 +1194,7 @@ function CoverPageContent({
               aria-expanded={contactSalesOpen}
               className="flex-1 h-11 max-w-[492px] bg-white border border-solid border-[#262626] flex gap-[6px] items-center justify-center px-4 rounded-[4px] cursor-pointer"
             >
-              <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-                <PhoneIcon size={18} />
-              </div>
+              <PhoneIcon size={16} />
               <span className="text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
                 Contact Sales
               </span>
@@ -1254,9 +1224,8 @@ function CoverPageContent({
                 <span className="relative text-[16px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
                   <span
                     className="absolute right-full top-1/2 -translate-y-1/2 mr-[6px] flex items-center justify-center shrink-0"
-                    style={{ width: 20, height: 20 }}
                   >
-                    <PhoneIcon size={18} />
+                    <PhoneIcon size={16} />
                   </span>
                   Contact Sales
                 </span>
@@ -1609,16 +1578,11 @@ function StickyComparisonHeader({
               >
                 {opt.label}
               </p>
-              <img
-                src={IMG_DROPDOWN_ICON}
-                alt=""
-                className="rotate-90 shrink-0"
-                style={{
-                  width: 16,
-                  height: 16,
-                  transform: isOpen ? 'rotate(-90deg)' : undefined,
-                  transition: 'transform 150ms ease-out',
-                }}
+              <ChevronThin
+                size={16}
+                color="#000000"
+                rotate={isOpen ? 0 : 270}
+                style={{ transition: 'transform 150ms ease-out' }}
               />
             </button>
             {isOpen && (
@@ -2983,20 +2947,7 @@ function OptionsPageContent() {
                           className="shrink-0 flex items-center justify-center bg-transparent border-0 cursor-pointer"
                           style={{ width: 20, height: 20 }}
                         >
-                          <svg
-                            width={12}
-                            height={12}
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M3 3L13 13M13 3L3 13"
-                              stroke="#262626"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                            />
-                          </svg>
+                          <XmarkLarge size={16} color="#262626" />
                         </button>
                       </div>
                     );
@@ -3051,28 +3002,12 @@ function OptionsPageContent() {
                     >
                       {stagedSelection.length}/{slotCount} options
                     </span>
-                    <svg
-                      width={12}
-                      height={12}
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      aria-hidden="true"
-                      style={{
-                        transform: mobilePillsExpanded
-                          ? 'rotate(180deg)'
-                          : 'none',
-                        transition: 'transform 150ms ease-out',
-                      }}
-                    >
-                      <path
-                        d="M3 8 L6 4 L9 8"
-                        stroke="#262626"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        fill="none"
-                      />
-                    </svg>
+                    <ChevronThin
+                      size={16}
+                      color="#262626"
+                      rotate={mobilePillsExpanded ? 0 : 180}
+                      style={{ transition: 'transform 150ms ease-out' }}
+                    />
                   </button>
                 </div>
                 {/* lg+: original horizontal pills row, locked to the
@@ -3128,20 +3063,7 @@ function OptionsPageContent() {
                     className="hidden lg:flex shrink-0 items-center justify-center border border-solid border-[#d9d9d9] rounded-[4px] bg-white cursor-pointer"
                     style={{ width: 40, height: 40 }}
                   >
-                    <svg
-                      width={16}
-                      height={16}
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M3 3L13 13M13 3L3 13"
-                        stroke="#262626"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
+                    <XmarkLarge size={16} color="#262626" />
                   </button>
                 </div>
               </div>

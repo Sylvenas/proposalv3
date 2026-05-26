@@ -65,9 +65,9 @@ import {
   type InvoiceRowData,
 } from './ChangeOrderInvoiceRow';
 
+// Hero-image assets still live under /public/images. SVG icons migrated to
+// inline `./icons` components — see imports above.
 const BASE = '/images/proposal-v3-responsive';
-const IMG_DOWNLOAD = `${BASE}/download.svg`;
-const IMG_CHEVRON_RIGHT = `${BASE}/chevron-right.svg`;
 
 // Minimal stub option — mirrors ALL_OPTIONS[0] in OptionsPageResponsive so
 // SummaryPageResponsive renders the Drawing / Included Products / Add-ons
@@ -354,7 +354,7 @@ function ChangeOrderRightColumn({
               }
               belowMainCtas={
                 <BorderlessLinkButton
-                  icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
+                  icon={<DownloadStroke size={16} color="#000000" />}
                   label="Download Contract [PDF]"
                 />
               }
@@ -417,7 +417,7 @@ function ChangeOrderRightColumn({
                   the Change History borderless link above; their own `py-1`
                   already provides the gap. */}
               <BorderlessLinkButton
-                icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
+                icon={<DownloadStroke size={16} color="#000000" />}
                 label="Download Change Order Doc [PDF]"
                 tight
               />
@@ -503,11 +503,9 @@ function CardOutlinedButton({
     <button
       type="button"
       onClick={onClick}
-      className="bg-white border border-solid border-[#262626] flex gap-[2px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
+      className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 py-[6px] rounded-[4px] w-full cursor-pointer"
     >
-      <div className="flex h-full items-center px-[5px] shrink-0">
-        <CardGlyph />
-      </div>
+      <CardGlyph />
       <span
         className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap"
         style={{ lineHeight: '18px' }}
@@ -518,121 +516,37 @@ function CardOutlinedButton({
   );
 }
 
+// Icons backed by the DL / audition icon set. Signatures preserved for
+// callsite compatibility; per design, all glyphs are now 16×16.
+import { Card, DownloadStroke, History, JumpArrow, Lock as LockIcon16 } from './icons';
+
 function CardGlyph() {
-  return (
-    <svg width="20" height="16" viewBox="0 0 20 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <rect x="1" y="1" width="18" height="14" rx="2" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-      <line x1="1" y1="5.5" x2="19" y2="5.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-      <rect x="3" y="9" width="4" height="3" rx="0.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1" />
-    </svg>
-  );
+  return <Card size={16} color="rgba(0,0,0,0.85)" />;
 }
 
-// Small padlock glyph — used next to the Approved date in the Current
-// Approved Contract right column to signal that the contract is locked
-// while a change order is pending.
+/**
+ * Small padlock — used next to the Approved date in the Current Approved
+ * Contract right column.
+ */
 function LockGlyph() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <rect
-        x="3"
-        y="7"
-        width="10"
-        height="7"
-        rx="1.2"
-        stroke="#262626"
-        strokeWidth="1.2"
-      />
-      <path
-        d="M5 7V5a3 3 0 1 1 6 0v2"
-        stroke="#262626"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
+  return <LockIcon16 size={16} color="#262626" />;
 }
 
-// Curved right-arrow with a tail — "jump to" affordance used by the
-// View Pending Change Order CTA. Distinct from the history clock glyph
-// (BackArrowGlyph) which signals navigation to an earlier record.
+/**
+ * "Jump to" curl arrow — View Pending Change Order CTA. Was rendered at
+ * 18×18; now standardized to 16×16.
+ */
 function JumpArrowGlyph() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path
-        d="M3 11C3 7.68629 5.68629 5 9 5H14M14 5L10.5 2M14 5L10.5 8"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <JumpArrow size={16} color="rgba(0,0,0,0.85)" />;
 }
 
-// "History / recent" clock glyph with a counter-clockwise arrow — used next
-// to navigation CTAs that jump to prior or related records (View Pending
-// Change Order, Current Approved Contract, Change History). Drawn with
-// strokes (stroke-width 1.4) to match the line weight of the Phone, Card,
-// Document, etc. glyphs used elsewhere on the page.
+/**
+ * History / recent clock glyph (View Change History CTA). Was rendered at
+ * 18×18 in a 24×24 viewBox; now uses the DL `history-16x16` glyph.
+ */
 function BackArrowGlyph() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      {/* Clock body (open at top-left where the rewind arrow points back in). */}
-      <path
-        d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-6.74 2.74L3 8"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Counter-clockwise arrow tail at the top-left, suggesting "back". */}
-      <path
-        d="M3 3v5h5"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Clock hands. */}
-      <path
-        d="M12 7v5l4 2"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <History size={16} color="rgba(0,0,0,0.85)" />;
 }
-
-// Suppress unused-import warning while keeping the asset path available for
-// future iterations of the right column.
-void IMG_CHEVRON_RIGHT;
 
 // Shared Contract-tab header — CHANGE ORDER #2 eyebrow + title + address +
 // "Approved on …" + the lock notice. Rendered both inside ContractTabRightColumn
@@ -759,7 +673,7 @@ function ContractTabRightColumn({
 
           {/* Download — shared borderless link button. */}
           <BorderlessLinkButton
-            icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
+            icon={<DownloadStroke size={16} color="#000000" />}
             label="Download Signed Contract [PDF]"
           />
         </div>

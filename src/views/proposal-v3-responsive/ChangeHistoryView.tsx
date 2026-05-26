@@ -33,9 +33,8 @@ import {
 } from './ChangeOrderInvoiceRow';
 import ScrollHintArrows from './ScrollHintArrows';
 
-const BASE = '/images/proposal-v3-responsive';
-const IMG_DOWNLOAD = `${BASE}/download.svg`;
-const IMG_PHONE = `${BASE}/phone.svg`;
+// Asset URLs migrated to inline `./icons` components — see import below.
+import { ChevronThin, DownloadStroke, JumpArrow, Phone, Search } from './icons';
 
 // ── Data model ────────────────────────────────────────────────────────────────
 type HistoryStatus = 'pending' | 'expired' | 'approved' | 'outOfDate' | 'original';
@@ -1038,7 +1037,7 @@ function DetailCtaRow({
         />
       )}
       <BorderlessLinkButton
-        icon={<img src={IMG_DOWNLOAD} alt="" style={{ width: 14, height: 16 }} />}
+        icon={<DownloadStroke size={16} color="#000000" />}
         label="Download Contract Document [PDF]"
       />
       <BorderlessLinkButton
@@ -1052,17 +1051,7 @@ function DetailCtaRow({
 }
 
 function PhoneGlyph() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <path
-        d="M3 5.5C3 4.119 4.119 3 5.5 3h2.379a1.5 1.5 0 0 1 1.426 1.026l1.06 3.18a1.5 1.5 0 0 1-.39 1.547l-1.293 1.293a16 16 0 0 0 5.772 5.772l1.293-1.293a1.5 1.5 0 0 1 1.547-.39l3.18 1.06A1.5 1.5 0 0 1 21 16.621V19a2 2 0 0 1-2 2h-1C9.611 21 3 14.389 3 6V5.5Z"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <Phone size={16} color="rgba(0,0,0,0.85)" />;
 }
 
 // ── Live panel builder ───────────────────────────────────────────────────────
@@ -1291,60 +1280,16 @@ function PaymentSnapshotSection({
   );
 }
 
-// ── Glyphs ────────────────────────────────────────────────────────────────────
+// ── Glyphs (DL-backed) ───────────────────────────────────────────────────────
 function SearchGlyph() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <circle cx="7" cy="7" r="5" stroke="#737373" strokeWidth="1.4" />
-      <line x1="11" y1="11" x2="14" y2="14" stroke="#737373" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
+  return <Search size={16} color="#737373" />;
 }
 
 function BackArrowGlyph() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path
-        d="M10 3L5 8L10 13"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  // "Back" chevron — DL ChevronThin rotated 90° clockwise to point LEFT.
+  return <ChevronThin size={16} rotate={90} color="rgba(0,0,0,0.85)" />;
 }
 
 function JumpArrowGlyph() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path
-        d="M3 11C3 7.68629 5.68629 5 9 5H14M14 5L10.5 2M14 5L10.5 8"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <JumpArrow size={16} color="rgba(0,0,0,0.85)" />;
 }
-
-// Suppress unused-import warning for IMG_PHONE while ContactSalesButton owns
-// its own icon — kept here for future iterations of the CTA row.
-void IMG_PHONE;

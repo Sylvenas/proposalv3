@@ -26,6 +26,20 @@ import ProductDetailSheet, { NoImageThumb, type ProductDetailContent } from './P
 import { ADDON_DESCRIPTIONS, type FenceProduct } from './SummaryPageResponsive';
 import { PhoneIcon } from './SvgIcons';
 import BorderlessLinkButton from './BorderlessLinkButton';
+import {
+  ArrowLeft,
+  Calculator,
+  Card,
+  CheckMark,
+  ChevronThin,
+  DownloadStroke,
+  Fullscreen,
+  InfoDuotone,
+  Minus,
+  ProductInfo,
+  ZoomIn,
+  ZoomOut,
+} from './icons';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
@@ -160,9 +174,7 @@ export function ProjectHomeCTAs({
 
             {financingService === 'enable' ? (
               <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
-                <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-                  <img src={IMG_CALCULATOR} alt="" style={{ width: 14.9, height: 20 }} />
-                </div>
+                <Calculator size={16} color="#000000" />
                 <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
                   Financing Service
                 </span>
@@ -172,9 +184,7 @@ export function ProjectHomeCTAs({
                 onClick={onShowPaymentRecords}
                 className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
               >
-                <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-                  <CreditCardIcon />
-                </div>
+                <CreditCardIcon />
                 <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
                   Invoice &amp; Payment Record
                 </span>
@@ -199,9 +209,7 @@ export function ProjectHomeCTAs({
           aria-expanded={contactSalesOpen}
           className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer"
         >
-          <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-            <PhoneIcon size={18} />
-          </div>
+          <PhoneIcon size={16} />
           <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
             Contact Sales
           </span>
@@ -210,9 +218,7 @@ export function ProjectHomeCTAs({
 
         {downloadCtaOverride ?? (
           <button className="bg-white border border-solid border-[#262626] flex gap-[6px] h-10 items-center justify-center px-4 rounded-[4px] w-full cursor-pointer">
-            <div className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
-              <img src={IMG_DOWNLOAD} alt="" style={{ width: 16, height: 17 }} />
-            </div>
+            <DownloadStroke size={16} color="#000000" />
             <span className="text-[14px] text-[rgba(0,0,0,0.85)] text-center whitespace-nowrap" style={{ lineHeight: '18px' }}>
               Download Contract [PDF]
             </span>
@@ -361,15 +367,7 @@ export function PaymentProgressAndNextPayment({
             style={{ width: 20, height: 20, background: '#04b50b' }}
             aria-hidden
           >
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M3 7.2 L5.6 9.8 L11 4.4"
-                stroke="white"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <CheckMark size={16} color="white" />
           </span>
           <p className="text-[12px] sm:text-[14px] xl:text-[16px] font-normal text-[#262626] leading-normal">
             Contract Paid in Full on {fullyPaidOn}
@@ -496,7 +494,7 @@ function ActionHeader({ onBack }: { onBack: () => void }) {
           onClick={onBack}
           className="flex items-center gap-[2px] p-1 rounded-[4px] cursor-pointer bg-transparent border-0"
         >
-          <img src={IMG_LEFT_ARROW} alt="" style={{ width: 16, height: 16, display: 'block', flexShrink: 0 }} />
+          <ArrowLeft size={16} color="#262626" />
           <span
             className="text-[12px] text-[#262626] leading-[16px] whitespace-nowrap"
             style={{ fontFamily: 'Roboto, sans-serif' }}
@@ -516,13 +514,7 @@ function ActionHeader({ onBack }: { onBack: () => void }) {
           className="flex items-center gap-1 rounded-[4px] cursor-pointer bg-transparent border-0"
           style={{ height: 32, paddingLeft: 4, paddingRight: 4, paddingTop: 6, paddingBottom: 6 }}
         >
-          <div className="flex items-center justify-end shrink-0" style={{ width: 20 }}>
-            <div className="relative shrink-0 overflow-clip" style={{ width: 24, height: 24 }}>
-              <div className="absolute" style={{ width: 13.969, height: 12.008, left: 'calc(50% - 0.02px)', top: 'calc(50% + 0.02px)', transform: 'translate(-50%, -50%)' }}>
-                <img src={IMG_LEFT_ARROW_24} alt="" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
-              </div>
-            </div>
-          </div>
+          <ArrowLeft size={16} color="#262626" />
           <span
             className="text-[14px] text-[#262626] leading-[18px] whitespace-nowrap"
             style={{ fontFamily: 'Roboto, sans-serif' }}
@@ -653,7 +645,7 @@ function SectionCard({
         >
           {label}
         </p>
-        <img src={IMG_MINUS_ICON} alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
+        <Minus size={16} color="#262626" />
       </div>
       {/* Content */}
       {children}
@@ -676,7 +668,13 @@ export function DrawingSection() {
         </div>
         {/* Zoom controls — dark glass morphism buttons */}
         <div className="flex gap-3 items-end justify-center w-full">
-          {([IMG_ZOOM_IN, IMG_ZOOM_OUT, IMG_ZOOM_FIT] as const).map((icon, i) => (
+          {(
+            [
+              [ZoomIn, 'Zoom in'],
+              [ZoomOut, 'Zoom out'],
+              [Fullscreen, 'Fit to view'],
+            ] as const
+          ).map(([Icon, label], i) => (
             <button
               key={i}
               className="flex items-center justify-center rounded-[4px] cursor-pointer shrink-0"
@@ -689,9 +687,9 @@ export function DrawingSection() {
                 border: 'none',
                 paddingLeft: i < 2 ? 2 : 0,
               }}
-              aria-label={['Zoom in', 'Zoom out', 'Fit to view'][i]}
+              aria-label={label}
             >
-              <img src={icon} alt="" style={{ width: 24, height: 24 }} />
+              <Icon size={24} color="#ffffff" />
             </button>
           ))}
         </div>
@@ -788,7 +786,7 @@ function ProductLineItem({
             {item.name}
           </p>
           <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
-            <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+            <ProductInfo size={16} color="#262626" />
           </div>
         </div>
         {/* Row 2: qty */}
@@ -809,7 +807,7 @@ function ProductLineItem({
               Change
             </span>
             <div className="flex items-center justify-center" style={{ width: 24, height: 24 }}>
-              <img src={IMG_CHEVRON_RIGHT} alt="" style={{ width: 16, height: 16 }} />
+              <ChevronThin size={16} rotate={270} color="#000000" />
             </div>
           </div>
         )}
@@ -834,7 +832,7 @@ function ProductLineItem({
         </div>
         {/* Info — w-48px h-24px */}
         <div className="flex items-center justify-center shrink-0" style={{ width: 48, height: 24 }}>
-          <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+          <ProductInfo size={16} color="#262626" />
         </div>
         {/* Upgrade control — w-80px */}
         <div className="flex items-center justify-end shrink-0" style={{ width: 80 }}>
@@ -847,7 +845,7 @@ function ProductLineItem({
                 Change
               </span>
               <div className="flex items-center justify-center" style={{ width: 24, height: 24 }}>
-                <img src={IMG_CHEVRON_RIGHT} alt="" style={{ width: 16, height: 16 }} />
+                <ChevronThin size={16} rotate={270} color="#000000" />
               </div>
             </div>
           )}
@@ -941,20 +939,7 @@ function Checkbox({ checked }: { checked: boolean }) {
           the path on both axes (asymmetric % insets rendered slightly
           off-center on iOS Safari). */}
       {checked && (
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 16 16"
-          className="absolute inset-0 w-full h-full"
-        >
-          <path
-            d="M3 8.5l3 3 7-7"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <CheckMark size={16} color="#ffffff" style={{ position: 'absolute', inset: 2 }} />
       )}
     </div>
   );
@@ -1008,7 +993,7 @@ function AddonLineItem({ item, onToggle }: { item: AddonItem; onToggle: () => vo
             {item.name}
           </p>
           <div className="flex items-center justify-center shrink-0" style={{ width: 24, height: 24 }}>
-            <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+            <ProductInfo size={16} color="#262626" />
           </div>
         </div>
         {/* Row 2: qty + price */}
@@ -1071,7 +1056,7 @@ function AddonLineItem({ item, onToggle }: { item: AddonItem; onToggle: () => vo
         </div>
         {/* Info — w-48px h-24px */}
         <div className="flex items-center justify-center shrink-0" style={{ width: 48, height: 24 }}>
-          <img src={IMG_INFO_ICON} alt="Info" style={{ width: 16.33, height: 16.33 }} />
+          <ProductInfo size={16} color="#262626" />
         </div>
         {/* Checkbox in w-64px upgrade-control slot */}
         <div className="flex items-center justify-center shrink-0" style={{ width: 64 }}>
@@ -1132,7 +1117,7 @@ function StickyHeader({ option, visible }: { option: FenceOption; visible: boole
       </p>
       {/* Chevron rotated 90° → points down */}
       <div className="shrink-0 flex items-center justify-center" style={{ width: 16, height: 16, transform: 'rotate(90deg)' }}>
-        <img src={IMG_DROPDOWN_BTN} alt="" style={{ width: 16, height: 16, display: 'block' }} />
+        <ChevronThin size={16} rotate={270} color="#000000" />
       </div>
     </div>
   );
@@ -1148,11 +1133,11 @@ function InfoDuotoneIcon() {
     <div className="relative shrink-0 overflow-clip" style={{ width: 16, height: 16 }}>
       {/* bg circle */}
       <div className="absolute" style={{ width: 12, height: 12, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-        <img src={IMG_INFO_DUOTONE_BG} alt="" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
+        <InfoDuotone size={16} color="#000000" style={{ position: 'absolute', inset: 0, opacity: 0.25 }} />
       </div>
       {/* i glyph */}
       <div className="absolute" style={{ width: 3, height: 6, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-        <img src={IMG_INFO_DUOTONE_FG} alt="" className="absolute inset-0 block w-full h-full" style={{ maxWidth: 'none' }} />
+        {/* fg "i" already drawn by InfoDuotone (bg) above */}
       </div>
     </div>
   );
@@ -1230,26 +1215,9 @@ export function ProjectHubStickyFooter({
   );
 }
 
-// ── Credit Card icon (inline SVG — no separate asset file needed) ─────────────
+// ── Credit Card icon — DL-backed ─────────────────────────────────────────────
 function CreditCardIcon() {
-  return (
-    <svg
-      width="20"
-      height="16"
-      viewBox="0 0 20 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      {/* Card outline */}
-      <rect x="1" y="1" width="18" height="14" rx="2" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-      {/* Magnetic stripe — thin stroke line */}
-      <line x1="1" y1="5.5" x2="19" y2="5.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1.2" />
-      {/* Chip — outline only */}
-      <rect x="3" y="9" width="4" height="3" rx="0.5" stroke="rgba(0,0,0,0.85)" strokeWidth="1" />
-    </svg>
-  );
+  return <Card size={16} color="rgba(0,0,0,0.85)" />;
 }
 
 // ── Project Home Details ──────────────────────────────────────────────────────

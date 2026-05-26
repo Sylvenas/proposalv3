@@ -64,13 +64,11 @@ function fmtMoney2(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// ─── Inline icons ────────────────────────────────────────────────────────────
+// ─── Icons (DL-backed) ──────────────────────────────────────────────────────
+import { XmarkLarge } from './icons';
+
 function CloseIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M3 3L13 13M13 3L3 13" stroke="#262626" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
+  return <XmarkLarge size={size >= 20 ? 24 : 16} color="#262626" />;
 }
 
 // ─── Schedule line-item card ─────────────────────────────────────────────────

@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBodyScrollLock } from './useBodyScrollLock';
 import ScrollHintArrows from './ScrollHintArrows';
+import { CheckMark, XmarkLarge } from './icons';
 
 // --- Assets -----------------------------------------------------------------
-const BASE = '/images/proposal-v3-responsive';
-const IMG_CHECKMARK = `${BASE}/checkmark.svg`;
-const IMG_NO_PRODUCT_LOGO = `${BASE}/no-image-logo.png`;
+const IMG_NO_PRODUCT_LOGO = '/images/proposal-v3-responsive/no-image-logo.png';
 
 // --- Animation tokens (match other dialogs in this folder) ------------------
 const ANIM_MS = 240;
@@ -89,14 +88,7 @@ export function CloseButton({ onClick }: { onClick: () => void }) {
       className="flex items-center justify-center border-0 cursor-pointer rounded-[4px] bg-[#f0f0f0] hover:bg-[#e6e6e6]"
       style={{ width: 32, height: 32 }}
     >
-      <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path
-          d="M3 3L13 13M13 3L3 13"
-          stroke="#262626"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
+      <XmarkLarge size={16} color="#262626" />
     </button>
   );
 }
@@ -110,28 +102,11 @@ export function Checkbox({ checked }: { checked: boolean }) {
         }`}
       />
       {checked && (
-        // Inline SVG — using an <img src="..."> here introduces a perceptible
-        // delay on first toggle because the browser fetches the file the
-        // moment the user clicks. The vector is tiny, so inlining it keeps
-        // the checkmark render instant.
-        // The SVG fills the 20×20 box; the path is drawn centered in its
-        // 16×16 viewBox and the default xMidYMid preserveAspectRatio
-        // centers it in both axes — important on iOS Safari, which renders
-        // asymmetric `inset` percentages slightly off-pixel.
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 16 16"
-          className="absolute inset-0 w-full h-full"
-        >
-          <path
-            d="M3 8.5l3 3 7-7"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <CheckMark
+          size={16}
+          color="#ffffff"
+          style={{ position: 'absolute', inset: 2 }}
+        />
       )}
     </div>
   );
