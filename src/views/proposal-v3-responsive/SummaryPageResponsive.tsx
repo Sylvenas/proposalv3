@@ -1245,6 +1245,7 @@ export default function SummaryPageResponsive({
   hideMobileStickyFooter = false,
   hideMobileRightColumn = false,
   mobileStickyFooterOverride,
+  onViewScheduleOverride,
 }: {
   option: FenceOption;
   onBack: () => void;
@@ -1325,6 +1326,11 @@ export default function SummaryPageResponsive({
    *  in place of the default StickyFooter on mobile. Used by ChangeOrderPage's
    *  Contract / Invoices tabs to swap in the ContractDocStickyFooter. */
   mobileStickyFooterOverride?: React.ReactNode;
+  /** When provided, every "View Payment Schedule" affordance (right-column
+   *  button + mobile sticky footer) calls this instead of opening
+   *  SummaryPageResponsive's own generic schedule dialog. Used by
+   *  ChangeOrderPage (pending) to open its revised Change Order schedule. */
+  onViewScheduleOverride?: () => void;
 }) {
   const approveCtaLabel = signatureRequired ? 'Sign & Approve' : 'Approve';
   // Body slide-in animation. Plays via Web Animations API on a ref so the
@@ -1462,6 +1468,10 @@ export default function SummaryPageResponsive({
     });
   };
   const closeSchedule = () => setScheduleData(null);
+  // ChangeOrderPage (pending) supplies its own revised-schedule opener; when
+  // present it replaces the generic dialog for every View Payment Schedule
+  // affordance on this page.
+  const handleViewSchedule = onViewScheduleOverride ?? openSchedule;
 
   // ── Sticky header: show when top title scrolls out; hide when bottom title fully visible ──
   const topTitleRef    = useRef<HTMLDivElement>(null);
@@ -1748,7 +1758,7 @@ export default function SummaryPageResponsive({
                     financials={financials}
                     onSignApprove={onRequestSign}
                     approveLabel={approveCtaLabel}
-                    onViewSchedule={openSchedule}
+                    onViewSchedule={handleViewSchedule}
                     financingExcluded={financingExcluded}
                     expired={expired}
                   />
@@ -1776,7 +1786,7 @@ export default function SummaryPageResponsive({
                     financials={financials}
                     onSignApprove={onRequestSign}
                     approveLabel={approveCtaLabel}
-                    onViewSchedule={openSchedule}
+                    onViewSchedule={handleViewSchedule}
                     financingExcluded={financingExcluded}
                     expired={expired}
                   />
@@ -1827,7 +1837,7 @@ export default function SummaryPageResponsive({
             }}
             onSignApprove={onRequestSign}
             approveLabel={approveCtaLabel}
-            onViewSchedule={openSchedule}
+            onViewSchedule={handleViewSchedule}
             expired={expired}
           />
         )

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 // Available tabs on the Project Hub. Start with a string-literal union so
 // TypeScript keeps each call site honest.
@@ -68,11 +68,11 @@ const EXIT_RETRACT_EASE    = 'cubic-bezier(0.5, 0, 0.75, 0)';
 // the inline styles / Tailwind classes below. Kept as constants so the
 // math stays self-documenting.
 const ROW_HEIGHT_PX        = 44;
-const TITLE_BLOCK_HEIGHT_PX = 64; // pt-2 (8) + title (~24) + address (~21) + pb-2 (8)
+const TITLE_BLOCK_HEIGHT_PX = 72; // pt-4 (16) + address (~21) + name (~24) + pb-2 (8)
 const TITLE_TO_LIST_GAP_PX  = 12; // gap-3 on the menu panel
 
-function getActiveTopInMenu(activeIdx: number) {
-  return TITLE_BLOCK_HEIGHT_PX + TITLE_TO_LIST_GAP_PX + activeIdx * ROW_HEIGHT_PX;
+function getActiveTopInMenu(activeIdx: number, titleBlockHeight: number) {
+  return titleBlockHeight + TITLE_TO_LIST_GAP_PX + activeIdx * ROW_HEIGHT_PX;
 }
 
 // iOS-style notification badge — small filled red circle with a white "1"
@@ -105,11 +105,15 @@ function MobileHeader({
   onChange,
   tabs,
   badgeIds,
+  titleContent,
+  titleBlockHeight = TITLE_BLOCK_HEIGHT_PX,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
   tabs: TabDef[];
   badgeIds?: ProjectHubTab[];
+  titleContent?: ReactNode;
+  titleBlockHeight?: number;
 }) {
   // Animation state machine:
   //   mounted : panel rendered in DOM (kept true during exit animation)
@@ -144,7 +148,7 @@ function MobileHeader({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const activeIdx = tabs.findIndex((t) => t.id === active);
-  const activeTopInMenu = getActiveTopInMenu(activeIdx < 0 ? 0 : activeIdx);
+  const activeTopInMenu = getActiveTopInMenu(activeIdx < 0 ? 0 : activeIdx, titleBlockHeight);
 
   useEffect(() => {
     if (expanded) {
@@ -292,9 +296,9 @@ function MobileHeader({
             {/* Title block — fades in after the panel has mostly settled so
                 the "Proposal Name + Project Name" appear at the top. */}
             <div
-              className="flex flex-col px-4 sm:px-6 pt-2 pb-2 w-full"
+              className="relative flex flex-col px-4 sm:px-6 pt-4 pb-2 w-full"
               style={{
-                height: TITLE_BLOCK_HEIGHT_PX,
+                height: titleBlockHeight,
                 // During the overshoot (phase 1) the title stays fully
                 // visible; it only fades while the panel is retracting
                 // upward (phase 2), so the copy rolls up with the curtain.
@@ -304,24 +308,25 @@ function MobileHeader({
                   : `opacity ${EXIT_RETRACT_MS}ms ease-in`,
               }}
             >
-              <div className="flex items-center justify-between w-full">
-                <p className="flex-1 text-[16px] font-semibold text-[#262626] leading-normal">
+              <button
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setExpanded(false)}
+                className="absolute top-4 right-4 sm:right-6 size-4 flex items-center justify-center bg-transparent border-0 cursor-pointer"
+              >
+                <CloseX />
+              </button>
+              {/* Project address — same on every page. */}
+              <p className="text-[14px] text-[#262626] leading-normal pr-8">
+                1722 Willis Ave NW, Grand Rapids, MI 49504
+              </p>
+              {/* Name block — proposal name by default; ChangeOrderPage swaps
+                  in its Change Order number + name (two lines). */}
+              {titleContent ?? (
+                <p className="text-[16px] font-semibold text-[#262626] leading-normal">
                   FENCE REPLACEMENT PROPOSAL
                 </p>
-                <button
-                  type="button"
-                  aria-label="Close menu"
-                  onClick={() => setExpanded(false)}
-                  className="shrink-0 size-4 flex items-center justify-center bg-transparent border-0 cursor-pointer"
-                >
-                  <CloseX />
-                </button>
-              </div>
-              <div className="flex items-center pr-8 w-full">
-                <p className="flex-1 text-[14px] text-[#262626] leading-normal">
-                  1722 Willis Ave NW, Grand Rapids, MI 49504
-                </p>
-              </div>
+              )}
             </div>
 
             {/* Tab list — rendered with a gap above to match
@@ -543,6 +548,8 @@ export default function ProjectHubStickyHeader({
   onChange,
   tabs = PROJECT_HUB_TABS,
   badgeIds,
+  titleContent,
+  titleBlockHeight,
 }: {
   active: ProjectHubTab;
   onChange: (tab: ProjectHubTab) => void;
@@ -554,10 +561,19 @@ export default function ProjectHubStickyHeader({
    *  their label. Used by ChangeOrderPage to surface a pending change
    *  order on the Project Home tab before approval. */
   badgeIds?: ProjectHubTab[];
+  /** Replace the name portion of the expanded mobile menu's title block
+   *  (the address line above is unchanged). ChangeOrderPage passes its
+   *  Change Order number + name (two lines) instead of the proposal name. */
+  titleContent?: ReactNode;
+  /** Height of the expanded-menu title block. Defaults to the proposal's
+   *  two-line height; ChangeOrderPage passes a taller value for its
+   *  three-line (address + CO number + CO name) header so the tab list
+   *  below still aligns during the open/close animation. */
+  titleBlockHeight?: number;
 }) {
   return (
     <>
-      <MobileHeader active={active} onChange={onChange} tabs={tabs} badgeIds={badgeIds} />
+      <MobileHeader active={active} onChange={onChange} tabs={tabs} badgeIds={badgeIds} titleContent={titleContent} titleBlockHeight={titleBlockHeight} />
       <DesktopHeader active={active} onChange={onChange} tabs={tabs} badgeIds={badgeIds} />
     </>
   );

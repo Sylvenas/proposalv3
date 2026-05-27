@@ -1386,6 +1386,10 @@ export default function ChangeOrderPage() {
         // Project Hub variant, depending on `approved` state).
         onShowCover={() => setTab('home')}
         onRequestSign={() => setShowSignatureOverlay(true)}
+        // Pending change order: every "View Payment Schedule" affordance
+        // (incl. SummaryPageResponsive's own mobile sticky footer) opens the
+        // revised Change Order schedule, not the generic proposal schedule.
+        onViewScheduleOverride={approved ? undefined : openSchedule}
         stickyHeader={
           <ProjectHubStickyHeader
             active={tab}
@@ -1396,6 +1400,21 @@ export default function ChangeOrderPage() {
             // the user can see at a glance that the home tab has something
             // that needs their attention even when they're on another tab.
             badgeIds={approved ? undefined : ['home']}
+            // Type=Change Order: the expanded mobile menu keeps the project
+            // address on top but swaps the proposal name for the change
+            // order number + name (two lines). The taller title block keeps
+            // the tab list aligned during the open/close animation.
+            titleContent={
+              <>
+                <p className="text-[16px] font-semibold uppercase text-[#262626] leading-normal">
+                  {approved ? 'Change Order #3' : 'Pending Change Order #3'}
+                </p>
+                <p className="text-[16px] font-semibold text-[#262626] leading-normal">
+                  Remove East-Side Run
+                </p>
+              </>
+            }
+            titleBlockHeight={92}
           />
         }
         bodyTransitionKey={tab}

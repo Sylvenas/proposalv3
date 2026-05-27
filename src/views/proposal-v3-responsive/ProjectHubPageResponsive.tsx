@@ -1672,7 +1672,7 @@ export default function ProjectHubPageResponsive({
         Mobile: collapsible single-row dropdown; Desktop: horizontal tabs.
         Both stick to the top beneath the PageHeader.
       */}
-      <div className="sticky top-0 z-40 bg-white">
+      <div className="sticky top-0 z-[51] bg-white">
         <div className="mx-auto w-full" style={{ minWidth: 360, maxWidth: 2160 }}>
           <ProjectHubStickyHeader
             active={activeTab}
