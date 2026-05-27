@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { XmarkLarge } from './icons';
+import ZoomControlsPill from './ZoomControlsPill';
 
 // ── Animation constants ──────────────────────────────────────────────────────
 const ANIM_MS = 300;
@@ -21,9 +22,6 @@ const APPROVE_SUBMIT_MS = 1000;
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 const BASE = '/images/proposal-v3-responsive';
-const IMG_ZOOM_IN      = `${BASE}/zoom-in.svg`;
-const IMG_ZOOM_OUT     = `${BASE}/zoom-out.svg`;
-const IMG_ZOOM_FIT     = `${BASE}/zoom-fit.svg`;
 const IMG_CONTRACT_P1  = `${BASE}/contract-page-1.png`;
 const IMG_CONTRACT_P2  = `${BASE}/contract-page-2.png`;
 const IMG_CONTRACT_P3  = `${BASE}/contract-page-3.png`;
@@ -46,26 +44,6 @@ const PDF_PAGES: { src: string; ratio: string }[] = [
 //   L   (1024+): Overlay-Outer=24, Overlay-Inner=32, Gap(XL)=32, L=24, Gutter=12,  Font-L=20, Font-S=14
 //   XL  (1280+): Overlay-Outer=24, Overlay-Inner=48, Gap(XL)=32, L=24, Gutter=12,  Font-L=24, Font-S=16
 //   XXL (1536+): Overlay-Outer=32, Overlay-Inner=48, Gap(XL)=32, L=24, Gutter=12,  Font-L=24, Font-S=16
-
-// ── Zoom Button ───────────────────────────────────────────────────────────────
-function ZoomButton({ icon, alt }: { icon: string; alt: string }) {
-  return (
-    <button
-      className="flex items-center justify-center rounded-[4px] shrink-0 cursor-pointer border-0"
-      style={{
-        width: 48,
-        height: 48,
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(2px)',
-        boxShadow: '0px 0px 2px 0px rgba(0,0,0,0.25)',
-      }}
-    >
-      {/* SVGs default their `fill="var(--fill-0, white)"` to white,
-          so no color filter is needed. */}
-      <img src={icon} alt={alt} style={{ width: 24, height: 24 }} />
-    </button>
-  );
-}
 
 // ── Skeleton page ────────────────────────────────────────────────────────────
 // Generic "contract document" placeholder: centered title + date, then a
@@ -215,13 +193,7 @@ function PdfViewer({
     </div>
   );
 
-  const controls = (
-    <div className="flex gap-3 pointer-events-auto">
-      <ZoomButton icon={IMG_ZOOM_IN} alt="Zoom in" />
-      <ZoomButton icon={IMG_ZOOM_OUT} alt="Zoom out" />
-      <ZoomButton icon={IMG_ZOOM_FIT} alt="Fit" />
-    </div>
-  );
+  const controls = <ZoomControlsPill className="pointer-events-auto" />;
 
   // Auto-hiding scrollbar: add a `.scrolling` class while the user is actively
   // scrolling and remove it after a short pause. The thin rail + thumb live in

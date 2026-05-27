@@ -12,17 +12,15 @@ import {
   CheckMark,
   ChevronThin,
   DownloadStroke,
-  Fullscreen,
   IconProps,
   InfoDuotone,
   Mail as MailIcon,
   Minus,
   Phone as PhoneStroke,
   ProductInfo,
-  ZoomIn,
-  ZoomOut,
 } from './icons';
 import { ComponentType } from 'react';
+import ZoomControlsPill from './ZoomControlsPill';
 import ProductDetailSheet, {
   NoImageThumb,
   type ProductDetailContent,
@@ -44,9 +42,6 @@ const IMG_INFO_DUOTONE_BG   = `${BASE}/info-duotone-bg.svg`;
 const IMG_INFO_DUOTONE_FG   = `${BASE}/info-duotone-fg.svg`;
 const IMG_CHEVRON_RIGHT     = `${BASE}/chevron-right.svg`;
 const IMG_DROPDOWN_BTN      = `${BASE}/dropdown-btn.svg`;
-const IMG_ZOOM_IN           = `${BASE}/zoom-in.svg`;
-const IMG_ZOOM_OUT          = `${BASE}/zoom-out.svg`;
-const IMG_ZOOM_FIT          = `${BASE}/zoom-fit.svg`;
 const IMG_CALCULATOR        = `${BASE}/calculator.svg`;
 const IMG_PHONE             = `${BASE}/phone.svg`;
 const IMG_EMAIL             = `${BASE}/email.svg`;
@@ -394,33 +389,11 @@ function DrawingSection() {
             alt="Site drawing"
             className="absolute inset-0 w-full h-full object-cover"
           />
-        </div>
-        {/* Zoom controls — dark glass morphism buttons */}
-        <div className="flex gap-3 items-end justify-center w-full">
-          {(
-            [
-              [ZoomIn, 'Zoom in'],
-              [ZoomOut, 'Zoom out'],
-              [Fullscreen, 'Fit to view'],
-            ] as const
-          ).map(([Icon, label], i) => (
-            <button
-              key={i}
-              className="flex items-center justify-center rounded-[4px] cursor-pointer shrink-0"
-              style={{
-                width: 40,
-                height: 40,
-                background: 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(2px)',
-                boxShadow: '0px 0px 2px 0px rgba(0,0,0,0.25)',
-                border: 'none',
-                paddingLeft: i < 2 ? 2 : 0,
-              }}
-              aria-label={label}
-            >
-              <Icon size={24} color="#ffffff" />
-            </button>
-          ))}
+          {/* Zoom controls — light glass pill, floating over the drawing */}
+          <ZoomControlsPill
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{ bottom: 24 }}
+          />
         </div>
       </div>
     </SectionCard>

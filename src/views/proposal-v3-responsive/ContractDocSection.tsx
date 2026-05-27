@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ComponentType } from 'react';
 import BackToTopButton from './BackToTopButton';
-import { DownloadStroke, Fullscreen, IconProps, ZoomIn, ZoomOut } from './icons';
+import { DownloadStroke } from './icons';
+import ZoomControlsPill from './ZoomControlsPill';
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 // Same PDF pages shown in the signature flyout — this tab displays the
@@ -26,27 +26,6 @@ function formatDate(date: Date): string {
   return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 }
 
-// ── Zoom Button ──────────────────────────────────────────────────────────────
-// Mirrors the Signature overlay's view-control button: 48×48 dark pill with a
-// 24×24 white icon. Prototype — no onClick behavior yet.
-function ZoomButton({ Icon, label }: { Icon: ComponentType<IconProps>; label: string }) {
-  return (
-    <button
-      aria-label={label}
-      className="flex items-center justify-center rounded-[4px] shrink-0 cursor-pointer border-0"
-      style={{
-        width: 48,
-        height: 48,
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(2px)',
-        boxShadow: '0px 0px 2px 0px rgba(0,0,0,0.25)',
-      }}
-    >
-      <Icon size={24} color="#ffffff" />
-    </button>
-  );
-}
-
 // ── Floating View Controls (anchored to the PDF column) ──────────────────────
 // Sticky within the PDF column, pinned to the PDF viewer's bottom-left edge
 // across every breakpoint. 0-height wrapper + `alignItems: flex-end` lets the
@@ -56,14 +35,10 @@ function ZoomButton({ Icon, label }: { Icon: ComponentType<IconProps>; label: st
 function ViewControls({ mobileBottomOffset }: { mobileBottomOffset: number }) {
   return (
     <div
-      className="flex sticky z-20 pointer-events-none justify-start lg:!bottom-6"
+      className="flex sticky z-20 pointer-events-none justify-start pl-4 lg:!bottom-6"
       style={{ height: 0, alignItems: 'flex-end', bottom: mobileBottomOffset }}
     >
-      <div className="flex gap-3 pointer-events-auto">
-        <ZoomButton Icon={ZoomIn} label="Zoom in" />
-        <ZoomButton Icon={ZoomOut} label="Zoom out" />
-        <ZoomButton Icon={Fullscreen} label="Fit" />
-      </div>
+      <ZoomControlsPill className="pointer-events-auto" />
     </div>
   );
 }
