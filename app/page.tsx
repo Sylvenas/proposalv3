@@ -1,6 +1,13 @@
 import Link from 'next/link';
+import RestoreScroll from './RestoreScroll';
 
 const pages = [
+  {
+    href: '/configurator-prototype',
+    title: 'Configurator Prototype',
+    description:
+      'A prototype for configuring proposal options and parameters.',
+  },
   {
     href: '/proposal-v3-responsive',
     title: 'Proposal V3 (Responsive)',
@@ -78,6 +85,7 @@ const pages = [
 export default function HomePage() {
   return (
     <main className="min-h-screen px-6 py-8 text-[color:var(--arc-ink)] sm:px-8 lg:px-10">
+      <RestoreScroll />
       <div className="mx-auto max-w-6xl">
         <header className="border-b border-[color:var(--arc-border)] pb-5">
           <p className="m-0 text-[12px] tracking-[0.16em] text-[color:var(--arc-muted)]">
