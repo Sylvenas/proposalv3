@@ -89,6 +89,17 @@ const PRODUCT_LIBRARY: { category: string; items: LibraryItem[] }[] = [
   },
 ];
 
+/* One-time charges that don't exist on the CAD drawing and aren't tied to any
+   material quantity (flat fees billed per job). They surface only in the Report
+   Summary, each as its own line item with a fixed quantity and price. */
+const OTHER_ITEMS_CATEGORY = 'Services & Fees';
+type OtherItem = { id: string; name: string; qty: number; unitPrice: number };
+const OTHER_ITEMS: OtherItem[] = [
+  { id: 'fee-inspection', name: 'On-Site Inspection Fee', qty: 1, unitPrice: 250 },
+  { id: 'fee-permit', name: 'Permit Filing & Processing', qty: 1, unitPrice: 180 },
+  { id: 'fee-prep', name: 'Furniture Moving & Floor Prep', qty: 2, unitPrice: 175 },
+];
+
 const findLibraryItem = (id: string): LibraryItem | undefined =>
   PRODUCT_LIBRARY.flatMap((g) => g.items).find((it) => it.id === id);
 
@@ -110,9 +121,214 @@ function fillForProduct(product: string): string {
   return STAGGERED_FILL; // Staggered → flat tint, no hatch
 }
 
+/* ------------------------------------------------------------------ */
+/* Drawing-wide product configuration, shared between the canvas        */
+/* (per-instance editing) and the Report sheet (whole-drawing summary). */
+/* ------------------------------------------------------------------ */
+type DrawingConfig = {
+  selected: string | null;
+  setSelected: React.Dispatch<React.SetStateAction<string | null>>;
+  productModalOpen: boolean;
+  setProductModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  upgrades: Record<string, string[]>;
+  setUpgrades: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
+  added: Record<string, string[]>;
+  setAdded: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
+  addon: Record<string, string[]>;
+  setAddon: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
+  baseRemoved: Record<string, boolean>;
+  setBaseRemoved: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+};
+
+type SummaryUpgrade = { id: string; name: string; area: number; delta: number; thumb: string };
+type SummaryRow = {
+  name: string;
+  area: number;
+  price: number;
+  thumb: string;
+  upgrades: SummaryUpgrade[];
+  baseId: string; // this line item's library id (drives picker tags + actions)
+  isBase: boolean; // true = a room's base product; false = an added product
+  isAddon: boolean; // true = lives in the Optional Add-ons section
+  instanceIds: string[]; // every instance folded into this line item
+  feeId?: string; // set for a one-time fee (not a CAD product)
+  measureText?: string; // overrides the sq-ft column (e.g. "Qty 1" for fees)
+};
+type SummaryCategory = { category: string; rows: SummaryRow[] };
+
+/**
+ * Roll every flooring instance on the drawing up into category → product rows,
+ * summing area and price. This is the *aggregate* view: unlike the Product Setup
+ * modal (which edits a single selected instance), the Summary collapses all
+ * instances that share a product into one line item. Mirrors the modal's
+ * first-level group set (base product unless removed, plus added products).
+ *
+ * Upgrade options are part of the grouping key: instances that carry an upgrade
+ * option are kept as a *separate* line item from instances of the same base
+ * product that don't — so their quantities never bleed together. The upgrade
+ * itself is shown as an indented sub-row (matching the modal), with its area
+ * and price delta summed across the instances that share it.
+ */
+function aggregateDrawing(
+  added: Record<string, string[]>,
+  baseRemoved: Record<string, boolean>,
+  upgrades: Record<string, string[]>,
+  addon: Record<string, string[]>,
+  feeAddon: Record<string, boolean>,
+  feeRemoved: Record<string, boolean>,
+): SummaryCategory[] {
+  type Flat = {
+    category: string;
+    name: string;
+    area: number;
+    price: number;
+    thumb: string;
+    upgradeSig: string;
+    upgrades: SummaryUpgrade[];
+    baseId: string;
+    isBase: boolean;
+    isAddon: boolean;
+    instanceId: string;
+  };
+  const flat: Flat[] = [];
+  FLOOR_INSTANCES.forEach((inst) => {
+    const ratio = inst.area / REF_BASE_AREA;
+    if (!(baseRemoved[inst.id] ?? false)) {
+      // Upgrade options attach to the base flooring product. Their delta is
+      // relative to the base product's reference price (same as the modal).
+      const basePrice = findLibraryItem(inst.baseId)?.refPrice ?? 0;
+      const ups = (upgrades[inst.id] ?? [])
+        .map((id) => findLibraryItem(id))
+        .filter((it): it is LibraryItem => !!it)
+        .map((it) => ({
+          id: it.id,
+          name: it.name,
+          area: (it.refArea ?? REF_BASE_AREA) * ratio,
+          delta: ((it.refPrice ?? 0) - basePrice) * ratio,
+          thumb: it.color ?? thumbBackground(it.name),
+        }));
+      flat.push({
+        category: inst.category,
+        name: inst.product,
+        area: inst.area,
+        price: inst.price,
+        thumb: thumbBackground(inst.product),
+        upgradeSig: ups.map((u) => u.id).sort().join(','),
+        upgrades: ups,
+        baseId: inst.baseId,
+        isBase: true,
+        isAddon: (addon[inst.id] ?? []).includes(inst.baseId),
+        instanceId: inst.id,
+      });
+    }
+    (added[inst.id] ?? []).forEach((id) => {
+      const e = findLibraryEntry(id);
+      if (!e) return;
+      flat.push({
+        category: e.category,
+        name: e.item.name,
+        area: (e.item.refArea ?? REF_BASE_AREA) * ratio,
+        price: (e.item.refPrice ?? 0) * ratio,
+        thumb: e.item.color ?? thumbBackground(e.item.name),
+        upgradeSig: '',
+        upgrades: [],
+        baseId: e.item.id,
+        isBase: false,
+        isAddon: (addon[inst.id] ?? []).includes(e.item.id),
+        instanceId: inst.id,
+      });
+    });
+  });
+
+  const cats: SummaryCategory[] = [];
+  const keyFor = (g: Flat) => `${g.name}||${g.upgradeSig}||${g.isAddon}`;
+  flat.forEach((g) => {
+    let cat = cats.find((c) => c.category === g.category);
+    if (!cat) {
+      cat = { category: g.category, rows: [] };
+      cats.push(cat);
+    }
+    const k = keyFor(g);
+    let row = cat.rows.find(
+      (r) => `${r.name}||${r.upgrades.map((u) => u.id).sort().join(',')}||${r.isAddon}` === k,
+    );
+    if (!row) {
+      row = { name: g.name, area: 0, price: 0, thumb: g.thumb, upgrades: [], baseId: g.baseId, isBase: g.isBase, isAddon: g.isAddon, instanceIds: [] };
+      cat.rows.push(row);
+    }
+    row.area += g.area;
+    row.price += g.price;
+    if (!row.instanceIds.includes(g.instanceId)) row.instanceIds.push(g.instanceId);
+    // Merge the per-instance upgrade sub-rows by id (sum area + delta).
+    g.upgrades.forEach((u) => {
+      const ex = row!.upgrades.find((x) => x.id === u.id);
+      if (ex) {
+        ex.area += u.area;
+        ex.delta += u.delta;
+      } else {
+        row!.upgrades.push({ ...u });
+      }
+    });
+  });
+
+  // One-time fees — each a standalone line item, billed by quantity (not area).
+  OTHER_ITEMS.forEach((f) => {
+    if (feeRemoved[f.id]) return;
+    let cat = cats.find((c) => c.category === OTHER_ITEMS_CATEGORY);
+    if (!cat) {
+      cat = { category: OTHER_ITEMS_CATEGORY, rows: [] };
+      cats.push(cat);
+    }
+    cat.rows.push({
+      name: f.name,
+      area: 0,
+      price: f.qty * f.unitPrice,
+      thumb: 'none', // no CAD legend → render the crossed-out empty swatch
+      upgrades: [],
+      baseId: f.id,
+      isBase: true,
+      isAddon: !!feeAddon[f.id],
+      instanceIds: [],
+      feeId: f.id,
+      measureText: `${f.qty} service${f.qty === 1 ? '' : 's'}`,
+    });
+  });
+
+  const order = PRODUCT_LIBRARY.map((p) => p.category);
+  const rank = (c: string) => {
+    const i = order.indexOf(c);
+    return i === -1 ? order.length : i; // unknown categories (fees) sort last
+  };
+  cats.sort((a, b) => rank(a.category) - rank(b.category));
+  return cats;
+}
+
 export default function ConfiguratorPrototypePage() {
   const [scale, setScale] = useState(1);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Drawing-wide product configuration. Lifted here (rather than living inside
+  // CanvasArea) because the Report sheet overlays the whole frame — toolbar
+  // included — and needs to aggregate every instance's products.
+  const [selected, setSelected] = useState<string | null>(null);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [upgrades, setUpgrades] = useState<Record<string, string[]>>({});
+  const [added, setAdded] = useState<Record<string, string[]>>({});
+  const [addon, setAddon] = useState<Record<string, string[]>>({});
+  const [baseRemoved, setBaseRemoved] = useState<Record<string, boolean>>({});
+  // One-time fee line items (not on the CAD): which are flagged add-on / removed.
+  const [feeAddon, setFeeAddon] = useState<Record<string, boolean>>({});
+  const [feeRemoved, setFeeRemoved] = useState<Record<string, boolean>>({});
+  const [reportOpen, setReportOpen] = useState(false);
+
+  const cfg: DrawingConfig = {
+    selected, setSelected,
+    productModalOpen, setProductModalOpen,
+    upgrades, setUpgrades,
+    added, setAdded,
+    addon, setAddon,
+    baseRemoved, setBaseRemoved,
+  };
 
   useEffect(() => {
     const fit = () => {
@@ -180,9 +396,87 @@ export default function ConfiguratorPrototypePage() {
             }}
           >
             <StatusBar />
-            <TopToolbar />
+            <TopToolbar onOpenReports={() => setReportOpen(true)} />
             <RulerCorner />
-            <CanvasArea />
+            <CanvasArea {...cfg} />
+            {reportOpen && (
+              <ReportSheet
+                categories={aggregateDrawing(added, baseRemoved, upgrades, addon, feeAddon, feeRemoved)}
+                onAddUpgrade={(instanceIds, libId) =>
+                  setUpgrades((prev) => {
+                    const next = { ...prev };
+                    instanceIds.forEach((id) => {
+                      const cur = next[id] ?? [];
+                      if (!cur.includes(libId)) next[id] = [...cur, libId];
+                    });
+                    return next;
+                  })
+                }
+                onSwapUpgrade={(instanceIds, oldId, newId) =>
+                  setUpgrades((prev) => {
+                    const next = { ...prev };
+                    instanceIds.forEach((id) => {
+                      next[id] = (next[id] ?? []).map((x) => (x === oldId ? newId : x));
+                    });
+                    return next;
+                  })
+                }
+                onRemoveUpgrade={(instanceIds, libId) =>
+                  setUpgrades((prev) => {
+                    const next = { ...prev };
+                    instanceIds.forEach((id) => {
+                      next[id] = (next[id] ?? []).filter((x) => x !== libId);
+                    });
+                    return next;
+                  })
+                }
+                onToggleAddon={(instanceIds, key, makeAddon) =>
+                  setAddon((prev) => {
+                    const next = { ...prev };
+                    instanceIds.forEach((id) => {
+                      const cur = next[id] ?? [];
+                      next[id] = makeAddon
+                        ? cur.includes(key) ? cur : [...cur, key]
+                        : cur.filter((x) => x !== key);
+                    });
+                    return next;
+                  })
+                }
+                onRemoveProduct={(instanceIds, key, isBase) => {
+                  if (isBase) {
+                    setBaseRemoved((prev) => {
+                      const next = { ...prev };
+                      instanceIds.forEach((id) => {
+                        next[id] = true;
+                      });
+                      return next;
+                    });
+                  } else {
+                    setAdded((prev) => {
+                      const next = { ...prev };
+                      instanceIds.forEach((id) => {
+                        next[id] = (next[id] ?? []).filter((x) => x !== key);
+                      });
+                      return next;
+                    });
+                    setAddon((prev) => {
+                      const next = { ...prev };
+                      instanceIds.forEach((id) => {
+                        next[id] = (next[id] ?? []).filter((x) => x !== key);
+                      });
+                      return next;
+                    });
+                  }
+                }}
+                onToggleFeeAddon={(feeId, makeAddon) =>
+                  setFeeAddon((prev) => ({ ...prev, [feeId]: makeAddon }))
+                }
+                onRemoveFee={(feeId) =>
+                  setFeeRemoved((prev) => ({ ...prev, [feeId]: true }))
+                }
+                onClose={() => setReportOpen(false)}
+              />
+            )}
           </div>
         </div>
 
@@ -260,7 +554,7 @@ function StatusBar() {
 /* ================================================================== */
 const BLUE = '#0a84ff';
 
-function TopToolbar() {
+function TopToolbar({ onOpenReports }: { onOpenReports: () => void }) {
   return (
     <div
       style={{
@@ -298,24 +592,28 @@ function TopToolbar() {
 
       {/* right cluster */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div
+        <button
+          type="button"
+          onClick={onOpenReports}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 5,
             background: '#e1efff',
             color: BLUE,
+            border: 'none',
             borderRadius: 9,
             padding: '6px 11px',
             fontSize: 15,
             fontWeight: 500,
+            cursor: 'pointer',
           }}
         >
           Reports
           <svg width="11" height="7" viewBox="0 0 11 7" fill="none" stroke={BLUE} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M1 1l4.5 4.5L10 1" />
           </svg>
-        </div>
+        </button>
         <Icn title="annotate-edit"><path d="M4 14l9-9 4 4-9 9H4v-4z" /><path d="M12 5l3 3" /></Icn>
         <Icn title="image"><rect x="3" y="4" width="16" height="14" rx="2" /><circle cx="8" cy="9" r="1.6" /><path d="M5 16l4-4 3 3 3-4 3 4" /></Icn>
         <Icn title="upload"><path d="M11 15V5M11 5L7 9M11 5l4 4" /><path d="M4 16v2a1 1 0 001 1h12a1 1 0 001-1v-2" /></Icn>
@@ -359,17 +657,14 @@ function RulerCorner() {
   return null;
 }
 
-function CanvasArea() {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [productModalOpen, setProductModalOpen] = useState(false);
-  // Upgrade-option library ids added per instance.
-  const [upgrades, setUpgrades] = useState<Record<string, string[]>>({});
-  // Standalone product library ids added per instance (via "+ Add Product").
-  const [added, setAdded] = useState<Record<string, string[]>>({});
-  // First-level product ids flagged as Optional Add-ons, per instance.
-  const [addon, setAddon] = useState<Record<string, string[]>>({});
-  // Instances whose base (included) product has been removed.
-  const [baseRemoved, setBaseRemoved] = useState<Record<string, boolean>>({});
+function CanvasArea({
+  selected, setSelected,
+  productModalOpen, setProductModalOpen,
+  upgrades, setUpgrades,
+  added, setAdded,
+  addon, setAddon,
+  baseRemoved, setBaseRemoved,
+}: DrawingConfig) {
   const selInst = FLOOR_INSTANCES.find((i) => i.id === selected) ?? null;
 
   // Product indicator shown beside "Product Setup". When the selected instance
@@ -562,6 +857,18 @@ function CanvasArea() {
               if (cur.includes(libId)) return prev;
               return { ...prev, [selInst.id]: [...cur, libId] };
             })
+          }
+          onSwapUpgrade={(oldId, newId) =>
+            setUpgrades((prev) => ({
+              ...prev,
+              [selInst.id]: (prev[selInst.id] ?? []).map((x) => (x === oldId ? newId : x)),
+            }))
+          }
+          onRemoveUpgrade={(libId) =>
+            setUpgrades((prev) => ({
+              ...prev,
+              [selInst.id]: (prev[selInst.id] ?? []).filter((x) => x !== libId),
+            }))
           }
           onAddProduct={(libId) =>
             setAdded((prev) => {
@@ -1070,6 +1377,325 @@ type ProductGroup = {
   isBase: boolean;
 };
 
+/** Place a library picker anchored to its ••• trigger so it grows to fit its
+ *  content but never past the available area: it opens on whichever side
+ *  (below / above) has more room inside the nearest scroll container, and its
+ *  maxHeight is capped to that room. Everything is converted back to design px
+ *  (the whole iPad is CSS-scaled) via the button's rendered/layout width ratio. */
+function pickerPlacement(btnEl: HTMLElement | null): React.CSSProperties {
+  if (typeof window === 'undefined' || !btnEl) return { top: 28, right: 0, maxHeight: 520 };
+  const rect = btnEl.getBoundingClientRect();
+  const scale = btnEl.offsetWidth ? rect.width / btnEl.offsetWidth : 1;
+  // Bound by the nearest scrollable ancestor (modal body / summary body),
+  // falling back to the viewport.
+  let top = 0;
+  let bottom = window.innerHeight;
+  for (let p = btnEl.parentElement; p; p = p.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY)) {
+      const r = p.getBoundingClientRect();
+      top = Math.max(top, r.top);
+      bottom = Math.min(bottom, r.bottom);
+      break;
+    }
+  }
+  const margin = 12;
+  const below = (bottom - rect.bottom - margin) / scale;
+  const above = (rect.top - top - margin) / scale;
+  const openBelow = below >= above;
+  const maxHeight = Math.max(200, Math.min(560, (openBelow ? below : above) - 6));
+  return openBelow ? { top: 28, right: 0, maxHeight } : { bottom: 28, right: 0, maxHeight };
+}
+
+/** Place a fixed-height action menu so the WHOLE menu always stays inside the
+ *  visible bounds of its clipping container (so it is never cut off and never
+ *  needs to scroll): prefer just below the ••• button, flip above when there
+ *  isn't room, then clamp within [containerTop, containerBottom]. Returns a
+ *  `top` offset in design px relative to the button. */
+function menuPlacement(btnEl: HTMLElement | null, menuHeight: number): React.CSSProperties {
+  if (typeof window === 'undefined' || !btnEl) return { top: 28, right: 0 };
+  const rect = btnEl.getBoundingClientRect();
+  const scale = (btnEl.offsetWidth ? rect.width / btnEl.offsetWidth : 1) || 1;
+  // Visible bounds of the nearest clipping ancestor (modal/summary body),
+  // falling back to the whole viewport. Everything below is in viewport px.
+  let top = 0;
+  let bottom = window.innerHeight;
+  for (let p = btnEl.parentElement; p; p = p.parentElement) {
+    if (/(auto|scroll|hidden)/.test(getComputedStyle(p).overflowY)) {
+      const r = p.getBoundingClientRect();
+      top = Math.max(top, r.top);
+      bottom = Math.min(bottom, r.bottom);
+      break;
+    }
+  }
+  const margin = 12;
+  const menuH = menuHeight * scale;
+  const gap = 6 * scale;
+  const below = rect.bottom + gap;
+  // Prefer below the button; flip above if the menu wouldn't fit below.
+  let topVp = below + menuH <= bottom - margin ? below : rect.top - gap - menuH;
+  // Clamp so the whole menu stays within the container.
+  topVp = Math.min(Math.max(topVp, top + margin), bottom - margin - menuH);
+  return { top: (topVp - rect.top) / scale, right: 0 };
+}
+
+/** A single nested upgrade-option row with its own More-Action menu.
+ *  Shared by the Product Setup modal and the Report Summary so both surfaces
+ *  behave identically: View Product Detail / Swap Upgrade Option (opens the
+ *  library picker) / Remove Upgrade Option. `disableIds` are the library ids
+ *  not pickable in the swap picker (the basic product + all current upgrades);
+ *  `baseId` / `currentId` only drive the picker tags. */
+function UpgradeActionRow({
+  u,
+  baseId,
+  disableIds,
+  onSwap,
+  onRemove,
+}: {
+  u: { id: string; name: string; area: number; delta: number; thumb: string };
+  baseId: string | null;
+  disableIds: string[];
+  onSwap: (newId: string) => void;
+  onRemove: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [place, setPlace] = useState<React.CSSProperties>({ top: 28, right: 0, maxHeight: 520 });
+  const [menuPlace, setMenuPlace] = useState<React.CSSProperties>({ top: 28, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const close = () => {
+    setMenuOpen(false);
+    setSwapOpen(false);
+  };
+  const ACTIONS = ['View Product Detail', 'Swap Upgrade Option', 'Remove Upgrade Option'];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 18, background: '#fff', borderRadius: 10 }}>
+      <div style={{ width: 48, height: 48, flex: '0 0 auto', borderRadius: 6, border: '1px solid #e0cdda', background: u.thumb }} />
+      <span style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 600, color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {u.name}
+      </span>
+      <span style={{ fontSize: 16, color: '#6b6b70', minWidth: 110, textAlign: 'right' }}>{fmtSqFt(u.area)}</span>
+      <span style={{ fontSize: 17, fontWeight: 600, color: '#1c1c1e', minWidth: 120, textAlign: 'right' }}>
+        {u.delta < 0 ? '− ' : '+ '}
+        {fmtUsd(Math.abs(u.delta))}
+      </span>
+      <div style={{ position: 'relative', flex: '0 0 auto' }}>
+        <button
+          ref={btnRef}
+          type="button"
+          onClick={() => {
+            setSwapOpen(false);
+            if (!menuOpen) setMenuPlace(menuPlacement(btnRef.current, ACTIONS.length * 54));
+            setMenuOpen((o) => !o);
+          }}
+          style={{ background: 'transparent', border: 'none', color: BLUE, fontSize: 22, letterSpacing: '2px', cursor: 'pointer', padding: '0 4px' }}
+        >
+          •••
+        </button>
+
+        {menuOpen && (
+          <>
+            <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 29 }} />
+            {!swapOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  width: 300,
+                  background: '#fff',
+                  borderRadius: 12,
+                  boxShadow: '0 12px 36px rgba(0,0,0,0.22)',
+                  border: '1px solid #ececec',
+                  overflow: 'hidden',
+                  zIndex: 30,
+                  ...menuPlace,
+                }}
+              >
+                {ACTIONS.map((action, idx) => (
+                  <button
+                    key={action}
+                    type="button"
+                    onClick={() => {
+                      if (action === 'Swap Upgrade Option') {
+                        setPlace(pickerPlacement(btnRef.current));
+                        setSwapOpen(true);
+                      } else if (action === 'Remove Upgrade Option') {
+                        onRemove();
+                        close();
+                      } else setMenuOpen(false);
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'transparent',
+                      border: 'none',
+                      borderTop: idx === 0 ? 'none' : '1px solid #f0f0f0',
+                      padding: '16px 22px',
+                      fontSize: 17,
+                      color: action === 'Remove Upgrade Option' ? '#e0352b' : '#1c1c1e',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {action}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {swapOpen && (
+              <ProductPickerPopover
+                title="Swap Upgrade Option"
+                isDisabled={(id) => disableIds.includes(id)}
+                tagFor={(id) =>
+                  id === baseId
+                    ? '(Basic Product)'
+                    : id === u.id
+                      ? '(Current)'
+                      : disableIds.includes(id)
+                        ? '(Selected)'
+                        : ''
+                }
+                onPick={(newId) => {
+                  onSwap(newId);
+                  close();
+                }}
+                placement={place}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The product line-item More-Action menu (the same PRODUCT_ROW_ACTIONS shown in
+ *  the Product Setup modal), so the Report Summary line items behave identically.
+ *  `canUpgrade` gates whether "Add Upgrade Option" opens the library picker (only
+ *  the base flooring product owns upgrades, matching the modal). */
+function ProductActionMenu({
+  isAddon,
+  canUpgrade,
+  baseId,
+  upgradeDisableIds,
+  onAddUpgrade,
+  onToggleAddon,
+  onRemove,
+}: {
+  isAddon: boolean;
+  canUpgrade: boolean;
+  baseId: string;
+  upgradeDisableIds: string[];
+  onAddUpgrade: (libId: string) => void;
+  onToggleAddon: () => void;
+  onRemove: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [place, setPlace] = useState<React.CSSProperties>({ top: 28, right: 0, maxHeight: 520 });
+  const [menuPlace, setMenuPlace] = useState<React.CSSProperties>({ top: 28, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const close = () => {
+    setOpen(false);
+    setUpgradeOpen(false);
+  };
+  return (
+    <div style={{ position: 'relative', flex: '0 0 auto' }}>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => {
+          setUpgradeOpen(false);
+          if (!open) setMenuPlace(menuPlacement(btnRef.current, PRODUCT_ROW_ACTIONS.length * 54));
+          setOpen((o) => !o);
+        }}
+        style={{ background: 'transparent', border: 'none', color: BLUE, fontSize: 22, letterSpacing: '2px', cursor: 'pointer', padding: '0 4px' }}
+      >
+        •••
+      </button>
+
+      {open && (
+        <>
+          <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 29 }} />
+          {!upgradeOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                width: 320,
+                background: '#fff',
+                borderRadius: 12,
+                boxShadow: '0 12px 36px rgba(0,0,0,0.22)',
+                border: '1px solid #ececec',
+                overflow: 'hidden',
+                zIndex: 30,
+                ...menuPlace,
+              }}
+            >
+              {PRODUCT_ROW_ACTIONS.map((action, idx) => {
+                const isUpgradeAction = action === 'Add Upgrade Option';
+                const isAddonAction = action === 'Set as Add-on';
+                const isRemoveAction = action === 'Remove Product';
+                const label = isAddonAction
+                  ? isAddon
+                    ? 'Move to Included Product'
+                    : 'Set as Add-on'
+                  : action;
+                const active = isUpgradeAction && upgradeOpen;
+                return (
+                  <button
+                    key={action}
+                    type="button"
+                    onClick={() => {
+                      if (isUpgradeAction && canUpgrade) {
+                        setPlace(pickerPlacement(btnRef.current));
+                        setUpgradeOpen(true);
+                      } else if (isAddonAction) {
+                        onToggleAddon();
+                        close();
+                      } else if (isRemoveAction) {
+                        onRemove();
+                        close();
+                      } else setOpen(false);
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: active ? '#f2f7ff' : 'transparent',
+                      border: 'none',
+                      borderTop: idx === 0 ? 'none' : '1px solid #f0f0f0',
+                      padding: '16px 22px',
+                      fontSize: 17,
+                      color: isRemoveAction ? '#e0352b' : '#1c1c1e',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {upgradeOpen && (
+            <ProductPickerPopover
+              title="Add Upgrade Option"
+              isDisabled={(id) => upgradeDisableIds.includes(id)}
+              tagFor={(id) =>
+                id === baseId ? '(Basic Product)' : upgradeDisableIds.includes(id) ? '(Upgrade Option)' : ''
+              }
+              onPick={(libId) => {
+                onAddUpgrade(libId);
+                close();
+              }}
+              placement={place}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function ProductItemModal({
   inst,
   upgradeIds,
@@ -1077,6 +1703,8 @@ function ProductItemModal({
   addonIds,
   baseRemoved,
   onAddUpgrade,
+  onSwapUpgrade,
+  onRemoveUpgrade,
   onAddProduct,
   onToggleAddon,
   onRemove,
@@ -1088,6 +1716,8 @@ function ProductItemModal({
   addonIds: string[];
   baseRemoved: boolean;
   onAddUpgrade: (libId: string) => void;
+  onSwapUpgrade: (oldId: string, newId: string) => void;
+  onRemoveUpgrade: (libId: string) => void;
   onAddProduct: (libId: string) => void;
   onToggleAddon: (libId: string) => void;
   onRemove: (libId: string, isBase: boolean) => void;
@@ -1204,7 +1834,7 @@ function ProductItemModal({
   };
 
   // ---- shared renderers ----------------------------------------------------
-  const sectionBand = (label: string, marginTop = 0) => (
+  const sectionBand = (label: string, count: number, marginTop = 0) => (
     <div
       style={{
         background: '#d9d9dc',
@@ -1216,17 +1846,19 @@ function ProductItemModal({
         color: '#3a3a3c',
       }}
     >
-      {label}
+      {label} ({count})
     </div>
   );
 
+  // Upgrade block — nested inside the same card as its base product, matching
+  // the Report Summary's merged-card form (label column + connector + bare rows).
   const renderUpgrades = () => (
-    <div style={{ display: 'flex', alignItems: 'stretch', marginTop: 2 }}>
+    <div style={{ display: 'flex', alignItems: 'stretch', marginTop: 12 }}>
       <div
         style={{
-          width: 152,
+          width: 96,
           flex: '0 0 auto',
-          paddingTop: 11,
+          paddingTop: 15,
           paddingRight: 18,
           textAlign: 'right',
           fontSize: 14,
@@ -1241,41 +1873,33 @@ function ProductItemModal({
           minWidth: 0,
           position: 'relative',
           paddingLeft: 16,
-          paddingTop: 12,
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
+          gap: 10,
         }}
       >
-        <div style={{ position: 'absolute', left: 0, top: 12, bottom: 0, width: 2, background: '#e1e1e4' }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: '#e1e1e4' }} />
         {upgradeRows.map((u) => (
-          <div
+          <UpgradeActionRow
             key={u.id}
-            style={{ display: 'flex', alignItems: 'center', gap: 18, background: '#fff', borderRadius: 10, padding: '14px 20px' }}
-          >
-            <div style={{ width: 48, height: 48, flex: '0 0 auto', borderRadius: 6, border: '1px solid #e0cdda', background: u.thumb }} />
-            <span style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 600, color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {u.name}
-            </span>
-            <span style={{ fontSize: 16, color: '#6b6b70', minWidth: 110, textAlign: 'right' }}>{fmtSqFt(u.area)}</span>
-            <span style={{ fontSize: 17, fontWeight: 600, color: '#1c1c1e', minWidth: 120, textAlign: 'right' }}>
-              {u.delta < 0 ? '− ' : '+ '}
-              {fmtUsd(Math.abs(u.delta))}
-            </span>
-            <span style={{ color: BLUE, fontSize: 22, letterSpacing: '2px', padding: '0 4px' }}>•••</span>
-          </div>
+            u={u}
+            baseId={primaryFlooringKey}
+            disableIds={[primaryFlooringKey, ...upgradeIds].filter((id): id is string => !!id)}
+            onSwap={(newId) => onSwapUpgrade(u.id, newId)}
+            onRemove={() => onRemoveUpgrade(u.id)}
+          />
         ))}
       </div>
     </div>
   );
 
-  const renderRow = (g: ProductGroup, marginBottom: number) => {
+  // The base product row, without its own card chrome (so it can sit inside a
+  // standalone card or a merged base+upgrades card).
+  const renderRowInner = (g: ProductGroup) => {
     const isAddon = addonIds.includes(g.key);
     const ownsUpgrades = g.key === primaryFlooringKey;
     return (
-      <div
-        style={{ display: 'flex', alignItems: 'center', gap: 18, background: '#fff', borderRadius: 10, padding: '14px 20px', marginBottom }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
         <div style={{ width: 48, height: 48, flex: '0 0 auto', borderRadius: 6, border: '1px solid #e0cdda', background: g.thumb }} />
         <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: 17, fontWeight: 600, color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {g.name}
@@ -1378,17 +2002,27 @@ function ProductItemModal({
     );
   };
 
+  // A standalone product card (no upgrades).
+  const renderRow = (g: ProductGroup, marginBottom: number) => (
+    <div style={{ background: '#fff', borderRadius: 10, padding: '14px 20px', marginBottom }}>
+      {renderRowInner(g)}
+    </div>
+  );
+
   const renderGroups = (gs: ProductGroup[]) =>
     byCategory(gs).map(([category, catGroups]) => (
       <div key={category}>
         <div style={{ fontSize: 13, color: '#8a8a8e', margin: '18px 4px 8px' }}>{category}</div>
         {catGroups.map((g) => {
           const ownsUpgrades = g.key === primaryFlooringKey && upgradeRows.length > 0;
-          return (
-            <Fragment key={g.key}>
-              {renderRow(g, ownsUpgrades ? 0 : 10)}
-              {ownsUpgrades && renderUpgrades()}
-            </Fragment>
+          // Base option + its upgrade(s) share one card, matching the Summary.
+          return ownsUpgrades ? (
+            <div key={g.key} style={{ background: '#fff', borderRadius: 10, padding: '14px 20px', marginBottom: 10 }}>
+              {renderRowInner(g)}
+              {renderUpgrades()}
+            </div>
+          ) : (
+            <Fragment key={g.key}>{renderRow(g, 10)}</Fragment>
           );
         })}
       </div>
@@ -1460,11 +2094,11 @@ function ProductItemModal({
         {/* body — scrolls internally when content is long; the floating row
             popovers are clamped to this region so they stay fully visible */}
         <div ref={bodyRef} style={{ flex: '1 1 auto', overflowY: 'auto', padding: '18px 22px' }}>
-          {sectionBand('Included Product')}
+          {sectionBand('Included Product', includedGroups.length)}
           {renderGroups(includedGroups)}
           {addonGroups.length > 0 && (
             <>
-              {sectionBand('Optional Add-ons', 26)}
+              {sectionBand('Optional Add-ons', addonGroups.length, 52)}
               {renderGroups(addonGroups)}
             </>
           )}
@@ -1827,9 +2461,9 @@ function FloorPlanSvg({
 
       {/* ============ ROOM LABELS ============ */}
       <g fontFamily="Inter, system-ui, sans-serif" textAnchor="middle">
-        <RoomLabel x={215} y={342} name="BEDROOM 3" dim={'12\'-0" X 10\'-7"'} area="130.2 sq ft" />
-        <RoomLabel x={215} y={628} name="BEDROOM 2" dim={'12\'-0" X 10\'-7"'} area="122.3 sq ft" />
-        <RoomLabel x={816} y={352} name="MASTER SUITE" dim={'13\'-10" X 12\'-2"'} area="162.9 sq ft" />
+        <RoomLabel x={215} y={320} name="BEDROOM 3" dim={'12\'-0" X 10\'-7"'} area="130.2 sq ft" />
+        <RoomLabel x={215} y={606} name="BEDROOM 2" dim={'12\'-0" X 10\'-7"'} area="122.3 sq ft" />
+        <RoomLabel x={816} y={306} name="MASTER SUITE" dim={'13\'-10" X 12\'-2"'} area="162.9 sq ft" />
 
         <SmallLabel x={385} y={356} name="KITCHEN" dim={'11\'-0" X 14\'-5"'} />
         <SmallLabel x={540} y={356} name="NOOK" dim={'9\'-5" X 14\'-5"'} />
@@ -1917,7 +2551,7 @@ function RoomLabel({ x, y, name, dim, area }: { x: number; y: number; name: stri
     <>
       <text x={x} y={y} fontSize="13" fill="#9a9a9a" letterSpacing="0.04em">{name}</text>
       <text x={x} y={y + 14} fontSize="10.5" fill="#a8a8a8">{dim}</text>
-      <text x={x} y={y + 42} fontSize="20" fill="#5a5a5a">{area}</text>
+      <text x={x} y={y + 56} fontSize="20" fill="#5a5a5a">{area}</text>
     </>
   );
 }
@@ -1928,5 +2562,316 @@ function SmallLabel({ x, y, name, dim }: { x: number; y: number; name: string; d
       <text x={x} y={y} fontSize="12" fill="#9a9a9a" letterSpacing="0.03em">{name}</text>
       <text x={x} y={y + 13} fontSize="9.5" fill="#aaa">{dim}</text>
     </>
+  );
+}
+
+/* ================================================================== */
+/* Report Setup — iOS page sheet presented over the drawing.           */
+/* Shows the Summary step: a drawing-wide roll-up of every product.    */
+/* ================================================================== */
+const APPLE_FONT =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Helvetica, Arial, sans-serif';
+
+/** Product legend swatch. A `thumb` of 'none' means the item has no CAD legend
+ *  (e.g. a one-time fee) and is drawn as an empty box with a diagonal slash. */
+function ProductSwatch({ thumb, size = 48 }: { thumb: string; size?: number }) {
+  if (thumb === 'none') {
+    return (
+      <svg width={size} height={size} style={{ flex: '0 0 auto' }} aria-label="No legend">
+        <rect x={0.75} y={0.75} width={size - 1.5} height={size - 1.5} rx={6} fill="none" stroke="#cfcfd6" strokeWidth={1.5} />
+        <line x1={size * 0.12} y1={size * 0.88} x2={size * 0.88} y2={size * 0.12} stroke="#cfcfd6" strokeWidth={1.5} />
+      </svg>
+    );
+  }
+  return <div style={{ width: size, height: size, flex: '0 0 auto', borderRadius: 6, border: '1px solid #e0cdda', background: thumb }} />;
+}
+
+function ReportSheet({
+  categories,
+  onAddUpgrade,
+  onSwapUpgrade,
+  onRemoveUpgrade,
+  onToggleAddon,
+  onRemoveProduct,
+  onToggleFeeAddon,
+  onRemoveFee,
+  onClose,
+}: {
+  categories: SummaryCategory[];
+  onAddUpgrade: (instanceIds: string[], libId: string) => void;
+  onSwapUpgrade: (instanceIds: string[], oldId: string, newId: string) => void;
+  onRemoveUpgrade: (instanceIds: string[], libId: string) => void;
+  onToggleAddon: (instanceIds: string[], key: string, makeAddon: boolean) => void;
+  onRemoveProduct: (instanceIds: string[], key: string, isBase: boolean) => void;
+  onToggleFeeAddon: (feeId: string, makeAddon: boolean) => void;
+  onRemoveFee: (feeId: string) => void;
+  onClose: () => void;
+}) {
+  const total = categories.reduce(
+    (sum, c) => sum + c.rows.reduce((s, r) => s + r.price, 0),
+    0,
+  );
+
+  // Split the aggregated rows into the Included / Optional Add-ons sections,
+  // mirroring the Product Setup modal. Each section keeps its category labels.
+  const sectionCats = (keep: (r: SummaryRow) => boolean) =>
+    categories
+      .map((c) => ({ category: c.category, rows: c.rows.filter(keep) }))
+      .filter((c) => c.rows.length > 0);
+  const includedCats = sectionCats((r) => !r.isAddon);
+  const addonCats = sectionCats((r) => r.isAddon);
+  const countRows = (cats: { rows: SummaryRow[] }[]) => cats.reduce((s, c) => s + c.rows.length, 0);
+  const includedCount = countRows(includedCats);
+  const addonCount = countRows(addonCats);
+
+  const sectionBand = (label: string, count: number, marginTop = 0) => (
+    <div style={{ background: '#d9d9dc', borderRadius: 8, padding: '12px 18px', marginTop, fontSize: 16, fontWeight: 600, color: '#3a3a3c' }}>
+      {label} ({count})
+    </div>
+  );
+
+  const renderLineItem = (categoryName: string, row: SummaryRow) => {
+    const hasUpgrades = row.upgrades.length > 0;
+    const isFee = !!row.feeId;
+    const canUpgrade = categoryName === 'Flooring' && row.isBase;
+    return (
+      // line item — base option + its upgrade(s) share one card/padding
+      <div
+        key={`${row.feeId ?? row.name}|${row.upgrades.map((u) => u.id).join(',')}|${row.isAddon}`}
+        style={{ background: '#fff', borderRadius: 10, padding: '14px 20px', marginBottom: 10 }}
+      >
+        {/* base (basic) option */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <ProductSwatch thumb={row.thumb} />
+          <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: 17, fontWeight: 600, color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {row.name}
+          </span>
+          <span style={{ fontSize: 16, color: '#6b6b70', minWidth: 110, textAlign: 'right' }}>{row.measureText ?? fmtSqFt(row.area)}</span>
+          <span style={{ fontSize: 17, fontWeight: 600, color: '#1c1c1e', minWidth: 120, textAlign: 'right' }}>{fmtUsd(row.price)}</span>
+          <ProductActionMenu
+            isAddon={row.isAddon}
+            canUpgrade={canUpgrade}
+            baseId={row.baseId}
+            upgradeDisableIds={[row.baseId, ...row.upgrades.map((u) => u.id)]}
+            onAddUpgrade={isFee ? () => {} : (libId) => onAddUpgrade(row.instanceIds, libId)}
+            onToggleAddon={
+              isFee
+                ? () => onToggleFeeAddon(row.feeId!, !row.isAddon)
+                : () => onToggleAddon(row.instanceIds, row.baseId, !row.isAddon)
+            }
+            onRemove={isFee ? () => onRemoveFee(row.feeId!) : () => onRemoveProduct(row.instanceIds, row.baseId, row.isBase)}
+          />
+        </div>
+
+        {/* upgrade option(s), nested inside the same card */}
+        {hasUpgrades && (
+          <div style={{ display: 'flex', alignItems: 'stretch', marginTop: 12 }}>
+            <div style={{ width: 96, flex: '0 0 auto', paddingTop: 15, paddingRight: 18, textAlign: 'right', fontSize: 14, color: '#8a8a8e' }}>
+              Upgrades
+            </div>
+            <div style={{ flex: 1, minWidth: 0, position: 'relative', paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: '#e1e1e4' }} />
+              {row.upgrades.map((u) => (
+                <UpgradeActionRow
+                  key={u.id}
+                  u={u}
+                  baseId={row.baseId}
+                  disableIds={[row.baseId, ...row.upgrades.map((x) => x.id)]}
+                  onSwap={(newId) => onSwapUpgrade(row.instanceIds, u.id, newId)}
+                  onRemove={() => onRemoveUpgrade(row.instanceIds, u.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderSectionCats = (cats: { category: string; rows: SummaryRow[] }[]) =>
+    cats.map((cat) => (
+      <div key={cat.category}>
+        <div style={{ fontSize: 13, color: '#8a8a8e', margin: '18px 4px 8px' }}>{cat.category}</div>
+        {cat.rows.map((row) => renderLineItem(cat.category, row))}
+      </div>
+    ));
+
+  return (
+    <>
+      {/* dim scrim — covers the toolbar + canvas, leaves the status bar bright */}
+      <div
+        onClick={onClose}
+        style={{ position: 'absolute', top: 30, left: 0, right: 0, bottom: 0, background: 'rgba(20,22,26,0.28)', zIndex: 50 }}
+      />
+
+      {/* sheet card */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 40,
+          left: 16,
+          right: 16,
+          bottom: 0,
+          background: '#efeff4',
+          borderRadius: '14px 14px 0 0',
+          boxShadow: '0 -4px 50px rgba(0,0,0,0.28)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          zIndex: 51,
+          fontFamily: APPLE_FONT,
+          color: '#1c1c1e',
+        }}
+      >
+        {/* header */}
+        <div
+          style={{
+            position: 'relative',
+            height: 58,
+            flex: '0 0 auto',
+            background: '#fff',
+            borderBottom: '1px solid #e4e4e7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span style={{ fontSize: 19, fontWeight: 600 }}>Report Setup</span>
+          <div style={{ position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#e1efff',
+                color: BLUE,
+                borderRadius: 9,
+                padding: '7px 13px',
+                fontSize: 15,
+                fontWeight: 500,
+              }}
+            >
+              Create Reports
+              <svg width="11" height="7" viewBox="0 0 11 7" fill="none" stroke={BLUE} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 1l4.5 4.5L10 1" />
+              </svg>
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: BLUE,
+                color: '#fff',
+                border: 'none',
+                borderRadius: 9,
+                padding: '7px 18px',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+
+        {/* body: left step rail + content column */}
+        <div style={{ flex: '1 1 auto', display: 'flex', minHeight: 0 }}>
+          {/* step rail */}
+          <div style={{ width: 216, flex: '0 0 auto', padding: '20px 20px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <ReportStep label="1. Summary" active starred />
+            <ReportStep label="2. Field Data" />
+            <ReportStep label="3. Payment" />
+          </div>
+
+          {/* content */}
+          <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {/* total / add-items bar */}
+            <div
+              style={{
+                flex: '0 0 auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 28px',
+                borderBottom: '1px solid #dcdce0',
+              }}
+            >
+              <button
+                type="button"
+                style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', color: BLUE, fontSize: 17, cursor: 'pointer', padding: 0 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round">
+                  <path d="M9 3v12M3 9h12" />
+                </svg>
+                Add Other Items
+              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 15, color: '#8a8a8e' }}>Total</span>
+                  <span style={{ fontSize: 22, fontWeight: 700 }}>{fmtUsd(total)}</span>
+                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="#8a8a8e" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 1.5l5 5 5-5" />
+                  </svg>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="15" height="15" viewBox="0 0 15 15">
+                    <circle cx="7.5" cy="7.5" r="7" fill="#e0352b" />
+                    <rect x="6.8" y="3.6" width="1.4" height="4.6" rx="0.7" fill="#fff" />
+                    <circle cx="7.5" cy="10.7" r="0.95" fill="#fff" />
+                  </svg>
+                  <span style={{ fontSize: 14, color: '#e0352b', fontWeight: 500 }}>0%</span>
+                  <svg width="16" height="15" viewBox="0 0 16 15" fill="none" stroke="#9a9a9e" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 1.5L14.5 5H1.5L8 1.5z" />
+                    <path d="M2.5 5v6M6 5v6M10 5v6M13.5 5v6" />
+                    <path d="M1.5 13.5h13" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* scrolling summary */}
+            <div style={{ flex: '1 1 auto', overflowY: 'auto', padding: '24px 28px 40px' }}>
+              <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.01em' }}>Summary</div>
+              <div style={{ marginTop: 6, fontSize: 16, color: '#8a8a8e' }}>
+                Preview and edit your report/proposal data.
+              </div>
+
+              {sectionBand('Included Product', includedCount, 22)}
+              {renderSectionCats(includedCats)}
+
+              {addonCats.length > 0 && (
+                <>
+                  {sectionBand('Optional Add-ons', addonCount, 52)}
+                  {renderSectionCats(addonCats)}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ReportStep({ label, active = false, starred = false }: { label: string; active?: boolean; starred?: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '15px 18px',
+        borderRadius: 12,
+        fontSize: 18,
+        fontWeight: active ? 600 : 500,
+        color: active ? BLUE : '#3a3a3c',
+        background: active ? '#eaf3ff' : 'transparent',
+        border: active ? `1.5px solid ${BLUE}` : '1.5px solid transparent',
+      }}
+    >
+      {/* required marker — own column so the step numbers stay left-aligned */}
+      <span style={{ width: 14, flex: '0 0 auto', color: '#e0352b', fontWeight: 600 }}>{starred ? '*' : ''}</span>
+      <span>{label}</span>
+    </div>
   );
 }
