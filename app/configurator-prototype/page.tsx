@@ -95,6 +95,7 @@ type LibraryItem = {
   refArea?: number;
   refDelta?: number; // upgrade premium over base (for "Add Upgrade Option")
   refPrice?: number; // standalone price (for "Add Product")
+  unit?: string; // unit of measure; when set it wins over the sq-ft/Each default
 };
 const PRODUCT_LIBRARY: { category: string; items: LibraryItem[] }[] = [
   {
@@ -118,23 +119,62 @@ const PRODUCT_LIBRARY: { category: string; items: LibraryItem[] }[] = [
    material quantity (flat fees billed per job). They surface only in the Report
    Summary, each as its own line item with a fixed quantity and price. */
 const OTHER_ITEMS_CATEGORY = 'Services & Fees';
-type OtherItem = { id: string; name: string; qty: number; unitPrice: number };
+type OtherItem = {
+  id: string;
+  name: string;
+  qty: number;
+  unitPrice: number;
+  unitLabel?: string; // measure-column unit (e.g. "Each" for user-added items)
+  thumb?: string; // swatch fill; falls back to the crossed-out empty swatch
+  libId?: string; // source library product id (for user-added items); presets use `id`
+};
 const OTHER_ITEMS: OtherItem[] = [
   { id: 'fee-inspection', name: 'On-Site Inspection Fee', qty: 1, unitPrice: 250 },
   { id: 'fee-permit', name: 'Permit Filing & Processing', qty: 1, unitPrice: 180 },
   { id: 'fee-prep', name: 'Furniture Moving & Floor Prep', qty: 2, unitPrice: 175 },
 ];
 
+/* The "Services & Fees" products offered in the Report Summary's "Add Other
+   Items" picker: the same one-time services above (billed per service) plus two
+   extended-warranty plans (billed per unit). Kept out of PRODUCT_LIBRARY so the
+   upgrade / Add Product pickers stay flooring-only. */
+const SERVICE_LIBRARY: { category: string; items: LibraryItem[] }[] = [
+  {
+    category: OTHER_ITEMS_CATEGORY,
+    items: [
+      ...OTHER_ITEMS.map((f) => ({ id: f.id, name: f.name, unit: 'service', refPrice: f.unitPrice })),
+      { id: 'warranty-3yr', name: 'Extended Warranty - 3 years', unit: 'Each', refPrice: 299 },
+      { id: 'warranty-5yr', name: 'Extended Warranty - 5 years', unit: 'Each', refPrice: 499 },
+    ],
+  },
+];
+
+/* Full candidate list for "Add Other Items": every flooring/soundproofing
+   product plus the Services & Fees group. */
+const ADD_OTHER_LIBRARY = [...PRODUCT_LIBRARY, ...SERVICE_LIBRARY];
+
 const findLibraryItem = (id: string): LibraryItem | undefined =>
-  PRODUCT_LIBRARY.flatMap((g) => g.items).find((it) => it.id === id);
+  ADD_OTHER_LIBRARY.flatMap((g) => g.items).find((it) => it.id === id);
 
 const findLibraryEntry = (id: string): { item: LibraryItem; category: string } | undefined => {
-  for (const g of PRODUCT_LIBRARY) {
+  for (const g of ADD_OTHER_LIBRARY) {
     const item = g.items.find((it) => it.id === id);
     if (item) return { item, category: g.category };
   }
   return undefined;
 };
+
+/** A product's unit of measure and the price for one of that unit. Area-based
+ *  products (everything with a reference area) are billed per square foot;
+ *  anything else falls back to a per-item ("Each") charge. Drives the quantity
+ *  step's unit label and the added line item's price. */
+function unitOf(item: LibraryItem): { label: string; perUnit: number } {
+  if (item.unit != null) return { label: item.unit, perUnit: item.refPrice ?? 0 };
+  if (item.refArea != null) {
+    return { label: 'sq ft', perUnit: item.refArea ? (item.refPrice ?? 0) / item.refArea : 0 };
+  }
+  return { label: 'Each', perUnit: item.refPrice ?? 0 };
+}
 
 const WALNUT_ORANGE = '#f6b15a';
 const STAGGERED_FILL = '#fdeef6'; // flat magenta tint (the former hatch ground)
@@ -165,7 +205,14 @@ type DrawingConfig = {
   setBaseRemoved: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 };
 
-type SummaryUpgrade = { id: string; name: string; area: number; delta: number; thumb: string };
+type SummaryUpgrade = {
+  id: string;
+  name: string;
+  area: number;
+  delta: number;
+  thumb: string;
+  measureText?: string; // overrides the sq-ft column (for fee/service upgrades)
+};
 type SummaryRow = {
   name: string;
   area: number;
@@ -177,6 +224,8 @@ type SummaryRow = {
   isAddon: boolean; // true = lives in the Optional Add-ons section
   instanceIds: string[]; // every instance folded into this line item
   feeId?: string; // set for a one-time fee (not a CAD product)
+  unit?: string; // unit of measure (fees only — gates same-unit upgrade options)
+  sourceId?: string; // library product id this row represents (excludes self from upgrades)
   measureText?: string; // overrides the sq-ft column (e.g. "Qty 1" for fees)
 };
 type SummaryCategory = { category: string; rows: SummaryRow[] };
@@ -201,6 +250,8 @@ function aggregateDrawing(
   addon: Record<string, string[]>,
   feeAddon: Record<string, boolean>,
   feeRemoved: Record<string, boolean>,
+  customItems: OtherItem[] = [],
+  feeUpgrades: Record<string, string[]> = {},
 ): SummaryCategory[] {
   type Flat = {
     category: string;
@@ -296,26 +347,47 @@ function aggregateDrawing(
     });
   });
 
-  // One-time fees — each a standalone line item, billed by quantity (not area).
-  OTHER_ITEMS.forEach((f) => {
+  // One-time fees + user-added "Other Items" — each a standalone line item,
+  // billed by quantity (not area). Custom items behave exactly like the preset
+  // fees (removable / add-on toggle share the same feeRemoved / feeAddon maps).
+  [...OTHER_ITEMS, ...customItems].forEach((f) => {
     if (feeRemoved[f.id]) return;
     let cat = cats.find((c) => c.category === OTHER_ITEMS_CATEGORY);
     if (!cat) {
       cat = { category: OTHER_ITEMS_CATEGORY, rows: [] };
       cats.push(cat);
     }
+    const unit = f.unitLabel ?? 'service';
+    const measureText = f.unitLabel
+      ? `${f.qty} ${f.unitLabel}`
+      : `${f.qty} service${f.qty === 1 ? '' : 's'}`;
+    // Upgrade options for a fee are same-unit services billed at the fee's
+    // quantity; the delta is the per-unit price difference times that quantity.
+    const ups = (feeUpgrades[f.id] ?? [])
+      .map((id) => findLibraryItem(id))
+      .filter((it): it is LibraryItem => !!it)
+      .map((it) => ({
+        id: it.id,
+        name: it.name,
+        area: 0,
+        delta: f.qty * ((it.refPrice ?? 0) - f.unitPrice),
+        thumb: 'none',
+        measureText,
+      }));
     cat.rows.push({
       name: f.name,
       area: 0,
       price: f.qty * f.unitPrice,
-      thumb: 'none', // no CAD legend → render the crossed-out empty swatch
-      upgrades: [],
+      thumb: f.thumb ?? 'none', // no fill → render the crossed-out empty swatch
+      upgrades: ups,
       baseId: f.id,
       isBase: true,
       isAddon: !!feeAddon[f.id],
       instanceIds: [],
       feeId: f.id,
-      measureText: `${f.qty} service${f.qty === 1 ? '' : 's'}`,
+      unit,
+      sourceId: f.libId ?? f.id, // presets carry the library id in `id`; customs in `libId`
+      measureText,
     });
   });
 
@@ -344,6 +416,12 @@ export default function ConfiguratorPrototypePage() {
   // One-time fee line items (not on the CAD): which are flagged add-on / removed.
   const [feeAddon, setFeeAddon] = useState<Record<string, boolean>>({});
   const [feeRemoved, setFeeRemoved] = useState<Record<string, boolean>>({});
+  // Upgrade options attached to a fee/service line item, keyed by fee id.
+  const [feeUpgrades, setFeeUpgrades] = useState<Record<string, string[]>>({});
+  // User-added "Other Items" line items (picked + given a quantity in the Report
+  // Summary). Modeled as one-time fee rows so they share the fee add-on/remove maps.
+  const [customItems, setCustomItems] = useState<OtherItem[]>([]);
+  const customIdRef = useRef(0);
   const [reportOpen, setReportOpen] = useState(false);
 
   // Homeowner hand-off: once the setup is "sent", the iPad slides off to the
@@ -453,7 +531,7 @@ export default function ConfiguratorPrototypePage() {
             <CanvasArea {...cfg} />
             {reportOpen && (
               <ReportSheet
-                categories={aggregateDrawing(added, baseRemoved, upgrades, addon, feeAddon, feeRemoved)}
+                categories={aggregateDrawing(added, baseRemoved, upgrades, addon, feeAddon, feeRemoved, customItems, feeUpgrades)}
                 onAddUpgrade={(instanceIds, libId) =>
                   setUpgrades((prev) => {
                     const next = { ...prev };
@@ -526,6 +604,44 @@ export default function ConfiguratorPrototypePage() {
                 onRemoveFee={(feeId) =>
                   setFeeRemoved((prev) => ({ ...prev, [feeId]: true }))
                 }
+                onAddFeeUpgrade={(feeId, libId) =>
+                  setFeeUpgrades((prev) => {
+                    const cur = prev[feeId] ?? [];
+                    return cur.includes(libId) ? prev : { ...prev, [feeId]: [...cur, libId] };
+                  })
+                }
+                onSwapFeeUpgrade={(feeId, oldId, newId) =>
+                  setFeeUpgrades((prev) => ({
+                    ...prev,
+                    [feeId]: (prev[feeId] ?? []).map((x) => (x === oldId ? newId : x)),
+                  }))
+                }
+                onRemoveFeeUpgrade={(feeId, libId) =>
+                  setFeeUpgrades((prev) => ({
+                    ...prev,
+                    [feeId]: (prev[feeId] ?? []).filter((x) => x !== libId),
+                  }))
+                }
+                onAddOtherItem={(libId, qty) => {
+                  const it = findLibraryItem(libId);
+                  if (!it) return;
+                  const { label, perUnit } = unitOf(it);
+                  customIdRef.current += 1;
+                  setCustomItems((prev) => [
+                    ...prev,
+                    {
+                      id: `custom-${customIdRef.current}`,
+                      libId,
+                      name: it.name,
+                      qty,
+                      unitPrice: perUnit,
+                      unitLabel: label,
+                      // No legend swatch — every Services & Fees line item uses the
+                      // crossed-out placeholder, matching the preset fee rows.
+                      thumb: 'none',
+                    },
+                  ]);
+                }}
                 onClose={() => setReportOpen(false)}
               />
             )}
@@ -571,7 +687,7 @@ export default function ConfiguratorPrototypePage() {
         >
           <BrowserWindow>
             <HomeownerProposal
-              categories={aggregateDrawing(added, baseRemoved, upgrades, addon, feeAddon, feeRemoved)}
+              categories={aggregateDrawing(added, baseRemoved, upgrades, addon, feeAddon, feeRemoved, customItems, feeUpgrades)}
             />
           </BrowserWindow>
 
@@ -1321,6 +1437,18 @@ const PRODUCT_ROW_ACTIONS = [
   'Remove Product',
 ];
 
+/** Row action items with the upgrade / add-on mutual-exclusion rules applied:
+ *  once a product carries an upgrade option it can no longer be set as an add-on,
+ *  and once a product lives in the Add-ons section it can no longer take an
+ *  upgrade option. Used by both the Report Summary and the Product Setup modal. */
+function rowActionsFor(hasUpgrade: boolean, isAddon: boolean): string[] {
+  return PRODUCT_ROW_ACTIONS.filter((action) => {
+    if (action === 'Set as Add-on' && hasUpgrade) return false;
+    if (action === 'Add Upgrade Option' && isAddon) return false;
+    return true;
+  });
+}
+
 /** Library popover for picking a product. `isDisabled` / `tagFor` control
  *  which items are pickable and how they are labelled; `placement` positions
  *  the popover (the upgrade flow anchors to the row ••• ; Add Product anchors
@@ -1331,12 +1459,14 @@ function ProductPickerPopover({
   tagFor,
   onPick,
   placement,
+  library = PRODUCT_LIBRARY,
 }: {
   title: string;
   isDisabled: (id: string) => boolean;
   tagFor: (id: string) => string;
   onPick: (libId: string) => void;
   placement: React.CSSProperties;
+  library?: { category: string; items: LibraryItem[] }[];
 }) {
   return (
     <div
@@ -1384,7 +1514,7 @@ function ProductPickerPopover({
 
       {/* grouped library */}
       <div style={{ overflowY: 'auto' }}>
-        {PRODUCT_LIBRARY.map((group) => (
+        {library.map((group) => (
           <div key={group.category}>
             <div
               style={{
@@ -1428,16 +1558,22 @@ function ProductPickerPopover({
                     opacity: disabled ? 0.45 : 1,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      flex: '0 0 auto',
-                      borderRadius: 8,
-                      border: '1px solid #e6dde3',
-                      background: item.color ?? thumbBackground(item.name),
-                    }}
-                  />
+                  {group.category === OTHER_ITEMS_CATEGORY ? (
+                    // Services & Fees products have no legend — show the same
+                    // crossed-out placeholder swatch used by their line items.
+                    <ProductSwatch thumb="none" size={44} />
+                  ) : (
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        flex: '0 0 auto',
+                        borderRadius: 8,
+                        border: '1px solid #e6dde3',
+                        background: item.color ?? thumbBackground(item.name),
+                      }}
+                    />
+                  )}
                   <span
                     style={{
                       flex: 1,
@@ -1460,6 +1596,91 @@ function ProductPickerPopover({
             })}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Second page of the "Add Other Items" flow: after a product is picked, the
+ *  user enters a quantity here, then Add appends it to the summary line items. */
+function OtherItemQuantityCard({
+  name,
+  unit,
+  qty,
+  onChangeQty,
+  onCancel,
+  onAdd,
+  placement,
+}: {
+  name: string;
+  unit: string;
+  qty: number;
+  onChangeQty: (qty: number) => void;
+  onCancel: () => void;
+  onAdd: () => void;
+  placement: React.CSSProperties;
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        width: 460,
+        background: '#fff',
+        borderRadius: 16,
+        boxShadow: '0 18px 50px rgba(0,0,0,0.28)',
+        border: '1px solid #ececec',
+        zIndex: 31,
+        overflow: 'hidden',
+        ...placement,
+      }}
+    >
+      {/* header */}
+      <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 600, color: '#1c1c1e', padding: '18px 0 22px' }}>
+        Select a Product
+      </div>
+
+      <div style={{ padding: '0 28px' }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#1c1c1e' }}>{name}</div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 28 }}>
+          <span style={{ fontSize: 17, color: '#1c1c1e' }}>Quantity</span>
+          <input
+            type="number"
+            min={1}
+            step="any"
+            value={qty}
+            onChange={(e) => onChangeQty(Math.max(1, Number(e.target.value) || 1))}
+            style={{
+              marginLeft: 'auto',
+              width: 190,
+              textAlign: 'right',
+              fontSize: 17,
+              padding: '10px 12px',
+              border: '1px solid #d0d0d5',
+              borderRadius: 8,
+              background: '#fff',
+              color: '#1c1c1e',
+            }}
+          />
+          <span style={{ fontSize: 17, color: '#8a8a8e' }}>{unit}</span>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 16, padding: '34px 0 28px' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{ background: '#fff', color: BLUE, border: `1.5px solid ${BLUE}`, borderRadius: 10, padding: '11px 36px', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onAdd}
+            style={{ background: BLUE, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 46px', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Add
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1546,12 +1767,14 @@ function UpgradeActionRow({
   u,
   baseId,
   disableIds,
+  library,
   onSwap,
   onRemove,
 }: {
-  u: { id: string; name: string; area: number; delta: number; thumb: string };
+  u: { id: string; name: string; area: number; delta: number; thumb: string; measureText?: string };
   baseId: string | null;
   disableIds: string[];
+  library?: { category: string; items: LibraryItem[] }[];
   onSwap: (newId: string) => void;
   onRemove: () => void;
 }) {
@@ -1567,11 +1790,15 @@ function UpgradeActionRow({
   const ACTIONS = ['View Product Detail', 'Swap Upgrade Option', 'Remove Upgrade Option'];
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 18, background: '#fff', borderRadius: 10 }}>
-      <div style={{ width: 48, height: 48, flex: '0 0 auto', borderRadius: 6, border: '1px solid #e0cdda', background: u.thumb }} />
+      {u.thumb === 'none' ? (
+        <ProductSwatch thumb="none" />
+      ) : (
+        <div style={{ width: 48, height: 48, flex: '0 0 auto', borderRadius: 6, border: '1px solid #e0cdda', background: u.thumb }} />
+      )}
       <span style={{ flex: 1, minWidth: 0, fontSize: 17, fontWeight: 600, color: '#1c1c1e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {u.name}
       </span>
-      <span style={{ fontSize: 16, color: '#6b6b70', minWidth: 110, textAlign: 'right' }}>{fmtSqFt(u.area)}</span>
+      <span style={{ fontSize: 16, color: '#6b6b70', minWidth: 110, textAlign: 'right' }}>{u.measureText ?? fmtSqFt(u.area)}</span>
       <span style={{ fontSize: 17, fontWeight: 600, color: '#1c1c1e', minWidth: 120, textAlign: 'right' }}>
         {u.delta < 0 ? '− ' : '+ '}
         {fmtUsd(Math.abs(u.delta))}
@@ -1642,6 +1869,7 @@ function UpgradeActionRow({
             {swapOpen && (
               <ProductPickerPopover
                 title="Swap Upgrade Option"
+                library={library}
                 isDisabled={(id) => disableIds.includes(id)}
                 tagFor={(id) =>
                   id === baseId
@@ -1672,21 +1900,26 @@ function UpgradeActionRow({
  *  the base flooring product owns upgrades, matching the modal). */
 function ProductActionMenu({
   isAddon,
+  hasUpgrade,
   canUpgrade,
   baseId,
   upgradeDisableIds,
+  upgradeLibrary,
   onAddUpgrade,
   onToggleAddon,
   onRemove,
 }: {
   isAddon: boolean;
+  hasUpgrade: boolean;
   canUpgrade: boolean;
   baseId: string;
   upgradeDisableIds: string[];
+  upgradeLibrary?: { category: string; items: LibraryItem[] }[];
   onAddUpgrade: (libId: string) => void;
   onToggleAddon: () => void;
   onRemove: () => void;
 }) {
+  const rowActions = rowActionsFor(hasUpgrade, isAddon);
   const [open, setOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [place, setPlace] = useState<React.CSSProperties>({ top: 28, right: 0, maxHeight: 520 });
@@ -1703,7 +1936,7 @@ function ProductActionMenu({
         type="button"
         onClick={() => {
           setUpgradeOpen(false);
-          if (!open) setMenuPlace(menuPlacement(btnRef.current, PRODUCT_ROW_ACTIONS.length * 54));
+          if (!open) setMenuPlace(menuPlacement(btnRef.current, rowActions.length * 54));
           setOpen((o) => !o);
         }}
         style={{ background: 'transparent', border: 'none', color: BLUE, fontSize: 22, letterSpacing: '2px', cursor: 'pointer', padding: '0 4px' }}
@@ -1728,7 +1961,7 @@ function ProductActionMenu({
                 ...menuPlace,
               }}
             >
-              {PRODUCT_ROW_ACTIONS.map((action, idx) => {
+              {rowActions.map((action, idx) => {
                 const isUpgradeAction = action === 'Add Upgrade Option';
                 const isAddonAction = action === 'Set as Add-on';
                 const isRemoveAction = action === 'Remove Product';
@@ -1777,6 +2010,7 @@ function ProductActionMenu({
           {upgradeOpen && (
             <ProductPickerPopover
               title="Add Upgrade Option"
+              library={upgradeLibrary}
               isDisabled={(id) => upgradeDisableIds.includes(id)}
               tagFor={(id) =>
                 id === baseId ? '(Basic Product)' : upgradeDisableIds.includes(id) ? '(Upgrade Option)' : ''
@@ -1996,6 +2230,8 @@ function ProductItemModal({
   const renderRowInner = (g: ProductGroup) => {
     const isAddon = addonIds.includes(g.key);
     const ownsUpgrades = g.key === primaryFlooringKey;
+    const hasUpgrade = ownsUpgrades && upgradeIds.length > 0;
+    const rowActions = rowActionsFor(hasUpgrade, isAddon);
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
         <div style={{ width: 48, height: 48, flex: '0 0 auto', borderRadius: 6, border: '1px solid #e0cdda', background: g.thumb }} />
@@ -2031,7 +2267,7 @@ function ProductItemModal({
                     zIndex: 30,
                   }}
                 >
-                  {PRODUCT_ROW_ACTIONS.map((action, idx) => {
+                  {rowActions.map((action, idx) => {
                     const isUpgradeAction = action === 'Add Upgrade Option';
                     const isAddonAction = action === 'Set as Add-on';
                     const isRemoveAction = action === 'Remove Product';
@@ -2702,6 +2938,10 @@ function ReportSheet({
   onRemoveProduct,
   onToggleFeeAddon,
   onRemoveFee,
+  onAddFeeUpgrade,
+  onSwapFeeUpgrade,
+  onRemoveFeeUpgrade,
+  onAddOtherItem,
   onClose,
 }: {
   categories: SummaryCategory[];
@@ -2712,12 +2952,32 @@ function ReportSheet({
   onRemoveProduct: (instanceIds: string[], key: string, isBase: boolean) => void;
   onToggleFeeAddon: (feeId: string, makeAddon: boolean) => void;
   onRemoveFee: (feeId: string) => void;
+  onAddFeeUpgrade: (feeId: string, libId: string) => void;
+  onSwapFeeUpgrade: (feeId: string, oldId: string, newId: string) => void;
+  onRemoveFeeUpgrade: (feeId: string, libId: string) => void;
+  onAddOtherItem: (libId: string, qty: number) => void;
   onClose: () => void;
 }) {
-  const total = categories.reduce(
-    (sum, c) => sum + c.rows.reduce((s, r) => s + r.price, 0),
-    0,
-  );
+  // The Total is a range once optional items exist: from the minimum (no add-ons,
+  // every upgradeable item on its base option) up to the maximum (all add-ons on,
+  // each upgradeable item on its most expensive option). Collapses to a single
+  // figure when nothing is optional (no add-ons, no price-raising upgrades).
+  const allRows = categories.flatMap((c) => c.rows);
+  const maxUpgradeExtra = (r: SummaryRow) => Math.max(0, ...r.upgrades.map((u) => u.delta));
+  const minTotal = allRows.filter((r) => !r.isAddon).reduce((s, r) => s + r.price, 0);
+  const maxTotal = allRows.reduce((s, r) => s + r.price + maxUpgradeExtra(r), 0);
+
+  // "Add Other Items" flow: pick a product (page 1) → enter a quantity (page 2)
+  // → append it to the summary as a line item.
+  const [addStep, setAddStep] = useState<'closed' | 'pick' | 'qty'>('closed');
+  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [qty, setQty] = useState(1);
+  const pickedItem = pickedId ? findLibraryItem(pickedId) : null;
+  const closeAdd = () => {
+    setAddStep('closed');
+    setPickedId(null);
+    setQty(1);
+  };
 
   // Split the aggregated rows into the Included / Optional Add-ons sections,
   // mirroring the Product Setup modal. Each section keeps its category labels.
@@ -2740,7 +3000,23 @@ function ReportSheet({
   const renderLineItem = (categoryName: string, row: SummaryRow) => {
     const hasUpgrades = row.upgrades.length > 0;
     const isFee = !!row.feeId;
-    const canUpgrade = categoryName === 'Flooring' && row.isBase;
+    // A fee's upgrade candidates are the Services & Fees products sharing its
+    // unit (service → service, Each → Each). The fee's own product stays in the
+    // list but is disabled + tagged "(Basic Product)", mirroring the flooring picker.
+    const feeUpgradeGroups =
+      isFee && row.unit
+        ? SERVICE_LIBRARY.map((g) => ({
+            category: g.category,
+            items: g.items.filter((it) => (it.unit ?? '') === row.unit),
+          })).filter((g) => g.items.length > 0)
+        : undefined;
+    const canUpgrade = isFee
+      ? !!feeUpgradeGroups && feeUpgradeGroups.length > 0
+      : categoryName === 'Flooring' && row.isBase;
+    // The library id this row represents (drives the "(Basic Product)" tag +
+    // self-disable). For fees this is the source product; for flooring it's baseId.
+    const upgradeBaseId = row.sourceId ?? row.baseId;
+    const upgradeDisableIds = [upgradeBaseId, ...row.upgrades.map((u) => u.id)];
     return (
       // line item — base option + its upgrade(s) share one card/padding
       <div
@@ -2757,10 +3033,16 @@ function ReportSheet({
           <span style={{ fontSize: 17, fontWeight: 600, color: '#1c1c1e', minWidth: 120, textAlign: 'right' }}>{fmtUsd(row.price)}</span>
           <ProductActionMenu
             isAddon={row.isAddon}
+            hasUpgrade={hasUpgrades}
             canUpgrade={canUpgrade}
-            baseId={row.baseId}
-            upgradeDisableIds={[row.baseId, ...row.upgrades.map((u) => u.id)]}
-            onAddUpgrade={isFee ? () => {} : (libId) => onAddUpgrade(row.instanceIds, libId)}
+            baseId={upgradeBaseId}
+            upgradeDisableIds={upgradeDisableIds}
+            upgradeLibrary={feeUpgradeGroups}
+            onAddUpgrade={
+              isFee
+                ? (libId) => onAddFeeUpgrade(row.feeId!, libId)
+                : (libId) => onAddUpgrade(row.instanceIds, libId)
+            }
             onToggleAddon={
               isFee
                 ? () => onToggleFeeAddon(row.feeId!, !row.isAddon)
@@ -2782,10 +3064,19 @@ function ReportSheet({
                 <UpgradeActionRow
                   key={u.id}
                   u={u}
-                  baseId={row.baseId}
-                  disableIds={[row.baseId, ...row.upgrades.map((x) => x.id)]}
-                  onSwap={(newId) => onSwapUpgrade(row.instanceIds, u.id, newId)}
-                  onRemove={() => onRemoveUpgrade(row.instanceIds, u.id)}
+                  baseId={upgradeBaseId}
+                  disableIds={upgradeDisableIds}
+                  library={feeUpgradeGroups}
+                  onSwap={
+                    isFee
+                      ? (newId) => onSwapFeeUpgrade(row.feeId!, u.id, newId)
+                      : (newId) => onSwapUpgrade(row.instanceIds, u.id, newId)
+                  }
+                  onRemove={
+                    isFee
+                      ? () => onRemoveFeeUpgrade(row.feeId!, u.id)
+                      : () => onRemoveUpgrade(row.instanceIds, u.id)
+                  }
                 />
               ))}
             </div>
@@ -2904,19 +3195,58 @@ function ReportSheet({
                 borderBottom: '1px solid #dcdce0',
               }}
             >
-              <button
-                type="button"
-                style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', color: BLUE, fontSize: 17, cursor: 'pointer', padding: 0 }}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round">
-                  <path d="M9 3v12M3 9h12" />
-                </svg>
-                Add Other Items
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setAddStep('pick')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', color: BLUE, fontSize: 17, cursor: 'pointer', padding: 0 }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M9 3v12M3 9h12" />
+                  </svg>
+                  Add Other Items
+                </button>
+
+                {addStep !== 'closed' && (
+                  <>
+                    <div onClick={closeAdd} style={{ position: 'fixed', inset: 0, zIndex: 29 }} />
+                    {addStep === 'pick' && (
+                      <ProductPickerPopover
+                        title="Select a Product"
+                        library={ADD_OTHER_LIBRARY}
+                        isDisabled={() => false}
+                        tagFor={() => ''}
+                        onPick={(libId) => {
+                          setPickedId(libId);
+                          setQty(1);
+                          setAddStep('qty');
+                        }}
+                        placement={{ top: 'calc(100% + 12px)', left: 0 }}
+                      />
+                    )}
+                    {addStep === 'qty' && pickedItem && (
+                      <OtherItemQuantityCard
+                        name={pickedItem.name}
+                        unit={unitOf(pickedItem).label}
+                        qty={qty}
+                        onChangeQty={setQty}
+                        onCancel={closeAdd}
+                        onAdd={() => {
+                          onAddOtherItem(pickedItem.id, qty);
+                          closeAdd();
+                        }}
+                        placement={{ top: 'calc(100% + 12px)', left: 0 }}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 15, color: '#8a8a8e' }}>Total</span>
-                  <span style={{ fontSize: 22, fontWeight: 700 }}>{fmtUsd(total)}</span>
+                  <span style={{ fontSize: 22, fontWeight: 700 }}>
+                    {maxTotal > minTotal ? `${fmtUsd(minTotal)} – ${fmtUsd(maxTotal)}` : fmtUsd(minTotal)}
+                  </span>
                   <svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="#8a8a8e" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M1 1.5l5 5 5-5" />
                   </svg>
@@ -3340,6 +3670,10 @@ function describe(name: string): string {
     return 'Preparation, filing, and processing of any local permits required for the flooring work. Covers municipal fees and coordination on your behalf.';
   if (/Furniture|Prep/.test(name))
     return 'Moving furniture out of and back into the work area, plus prepping and leveling the existing subfloor so the new flooring sits flat and lasts.';
+  if (/Extended Warranty - 5/.test(name))
+    return 'A 5-year extended protection plan covering material defects and installation-related issues, including labor for any qualifying repairs. Our most comprehensive coverage for long-term peace of mind.';
+  if (/Extended Warranty - 3/.test(name))
+    return 'A 3-year extended protection plan covering material defects and installation workmanship. Repairs and replacements for covered issues are handled at no additional cost.';
   return 'A quality component included in this proposal. Detailed specifications and product imagery for this line item will appear here.';
 }
 
@@ -3582,6 +3916,43 @@ function HoButton({ children, variant = 'outline' }: { children: React.ReactNode
   );
 }
 
+/** Tween a number toward `target`, restarting from the currently displayed value
+ *  whenever `target` changes (e.g. an add-on toggle or upgrade swap). easeOutCubic. */
+function useCountUp(target: number, duration = 450) {
+  const [value, setValue] = useState(target);
+  const ref = useRef({ from: target, start: 0, raf: 0 });
+  useEffect(() => {
+    const s = ref.current;
+    s.from = value; // begin from wherever the display currently sits
+    s.start = 0;
+    if (s.from === target) return;
+    const step = (ts: number) => {
+      if (!s.start) s.start = ts;
+      const p = Math.min((ts - s.start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(s.from + (target - s.from) * eased);
+      if (p < 1) s.raf = requestAnimationFrame(step);
+      else setValue(target);
+    };
+    s.raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(s.raf);
+    // Only re-tween on a new target; `value` is read intentionally as the live start.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, duration]);
+  return value;
+}
+
+/** A dollar figure that animates (counts up/down) as its value changes. */
+function AnimatedUsd({ value, style, suffix }: { value: number; style?: React.CSSProperties; suffix?: string }) {
+  const v = useCountUp(value);
+  return (
+    <p style={style}>
+      {fmtUsd(v)}
+      {suffix}
+    </p>
+  );
+}
+
 function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
   // Homeowner-side selections: upgrade choice per upgradeable line item, and
   // which optional add-ons are checked. Both start at the contractor's
@@ -3593,7 +3964,7 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
   const [drawingHover, setDrawingHover] = useState(false);
 
   const rowKey = (cat: string, row: SummaryRow) =>
-    `${cat}|${row.name}|${row.upgrades.map((u) => u.id).join(',')}`;
+    `${cat}|${row.name}|${row.upgrades.map((u) => u.id).join(',')}|${row.feeId ?? ''}`;
 
   // Split aggregated rows into Included vs. Optional Add-ons, keeping category
   // grouping — mirrors the app's Report Summary sections.
@@ -3825,11 +4196,11 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
                 <div style={{ borderTop: '0.5px solid rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 0' }}>
                   <div>
                     <p style={{ fontSize: 12, color: '#737373' }}>Contract Total <sup style={{ fontSize: 8 }}>1</sup></p>
-                    <p style={{ fontSize: 32, color: PROP_INK }}>{fmtUsd(contractTotal)}</p>
+                    <AnimatedUsd value={contractTotal} style={{ fontSize: 32, color: PROP_INK }} />
                   </div>
                   <div>
                     <p style={{ fontSize: 12, color: '#737373' }}>Estimated Monthly Payment <sup style={{ fontSize: 8 }}>2</sup></p>
-                    <p style={{ fontSize: 20, color: PROP_INK, fontWeight: 300 }}>{fmtUsd(monthly)} / mo</p>
+                    <AnimatedUsd value={monthly} style={{ fontSize: 20, color: PROP_INK, fontWeight: 300 }} suffix=" / mo" />
                   </div>
                 </div>
 
