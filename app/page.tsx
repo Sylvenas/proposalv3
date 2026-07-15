@@ -9,6 +9,12 @@ const pages = [
       'A prototype for configuring proposal options and parameters.',
   },
   {
+    href: '/configurator-prototype-revision-1',
+    title: 'Configurator Prototype Revision 1',
+    description:
+      'An independent copy of the Configurator Prototype for revision 1 iterations.',
+  },
+  {
     href: '/proposal-v3-responsive',
     title: 'Proposal V3 (Responsive)',
     description:
