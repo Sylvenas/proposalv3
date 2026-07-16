@@ -9,6 +9,12 @@ const pages = [
       'A prototype for configuring proposal options and parameters.',
   },
   {
+    href: '/configurator-exploration-prototype',
+    title: 'Configurator Exploration Prototype (Upfront Configurator)',
+    description:
+      'An independent copy of the Configurator Prototype for exploring an upfront configurator flow.',
+  },
+  {
     href: '/configurator-prototype-revision-1',
     title: 'Configurator Prototype Revision 1',
     description:
