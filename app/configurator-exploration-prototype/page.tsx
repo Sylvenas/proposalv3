@@ -2644,6 +2644,7 @@ function FloorPlanSvg({
   onSelect,
   viewBox = '0 0 1120 760',
   productOverrides,
+  highlightIds,
 }: {
   selected: string | null;
   onSelect: (id: string | null) => void;
@@ -2654,6 +2655,9 @@ function FloorPlanSvg({
    *  region's fill follows the homeowner's live upgrade selection instead of
    *  the base product. Falls back to the instance's own product. */
   productOverrides?: Record<string, string>;
+  /** Instances to wash with the hover highlight (e.g. the geometry an
+   *  add-on card in the homeowner configurator is hovering over). */
+  highlightIds?: string[];
 }) {
   const W = 13; // exterior wall stroke (canvas units)
   const Wi = 7; // interior wall stroke
@@ -2832,6 +2836,18 @@ function FloorPlanSvg({
         <SmallLabel x={930} y={650} name="2-CAR GARAGE" dim={'25\'-5" X 19\'-3"'} />
         <SmallLabel x={360} y={732} name="COVERED PORCH" dim={'37\'-6" X 5\'-5"'} />
       </g>
+
+      {/* ============ HOVER HIGHLIGHT (linked from the configurator) ============ */}
+      {(highlightIds ?? []).map((id) => {
+        const inst = FLOOR_INSTANCES.find((i) => i.id === id);
+        if (!inst) return null;
+        return (
+          <g key={id} pointerEvents="none">
+            <rect x={inst.x} y={inst.y} width={inst.w} height={inst.h} rx={6} fill="#4aa3ff" fillOpacity={0.12} />
+            <rect x={inst.x} y={inst.y} width={inst.w} height={inst.h} rx={6} fill="none" stroke="#4aa3ff" strokeWidth={2.4} />
+          </g>
+        );
+      })}
 
       {/* ============ SELECTION HIGHLIGHT ============ */}
       {selInst && <SelectionOverlay inst={selInst} />}
@@ -4030,6 +4046,7 @@ function HoOptionSwatch({ title, selected, onClick }: { title: string; selected:
         background: 'transparent',
         display: 'flex',
         boxSizing: 'border-box',
+        position: 'relative',
       }}
     >
       {!img || err ? (
@@ -4038,6 +4055,12 @@ function HoOptionSwatch({ title, selected, onClick }: { title: string; selected:
         </div>
       ) : (
         <img src={img} alt="" onError={() => setErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 2, display: 'block' }} />
+      )}
+      {/* same selected badge as the detail sheet's option swatches */}
+      {selected && (
+        <div style={{ position: 'absolute', left: 5, bottom: 5 }}>
+          <SheetCheckbox checked={true} />
+        </div>
       )}
     </button>
   );
@@ -4166,6 +4189,10 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
   // Which line item's detail sheet is open (section + category + row key).
   const [detail, setDetail] = useState<{ section: 'included' | 'addon'; cat: string; key: string } | null>(null);
   const [drawingHover, setDrawingHover] = useState(false);
+  // Configurator add-on card under the pointer (row key). Geometry-backed
+  // add-ons echo the hover onto their drawing region(s); fee-based add-ons
+  // have no geometry, so only the card itself highlights.
+  const [hoverAddonKey, setHoverAddonKey] = useState<string | null>(null);
   // Two-stage scroll (Upfront Configurator): the scroller snaps between the
   // Customize stage and the Summary stage.
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -4179,6 +4206,10 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
   const configColRef = useRef<HTMLDivElement | null>(null);
   const configHeadRef = useRef<HTMLDivElement | null>(null);
   const [headRelease, setHeadRelease] = useState<{ top: number; height: number } | null>(null);
+  // Add-on-only proposals (no upgradeable rows) render the header statically —
+  // the column is short, so the sticky/release treatment would just leave the
+  // header's flow spacer as a blank block between the search bar and Addons.
+  const hasUpgradeGroups = categories.some((c) => c.rows.some((r) => !r.isAddon && r.upgrades.length > 0));
   // Hand-off between the stages, done by hand (CSS scroll-snap fights
   // mid-scroll positions — it re-snaps after re-renders and clamps
   // programmatic scrolls):
@@ -4275,6 +4306,8 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
         }
       }
     }
+    // Static header (add-on-only proposal) — no release tracking needed.
+    if (!hasUpgradeGroups) return;
     // The release boundary is the stage-1 content container's bottom edge —
     // INCLUDING its bottom padding — entering the viewport (col.parentElement
     // is the padded two-column container).
@@ -4291,10 +4324,13 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
       // bottom, the pinned header (top: 64) sits 64 + colHeight + padBelowCol −
       // scrollportHeight from the column top. Deriving it — rather than
       // sampling the header's rect on a scroll event — keeps the hand-off
-      // continuous at any scroll speed.
+      // continuous at any scroll speed. When the column is short, the boundary
+      // can arrive BEFORE the header has ever pinned — it is still at its flow
+      // position (below the title block), so never release it above that:
+      // otherwise the white header teleports up and covers the title/address.
       const ratio = scRect.height / scroller.clientHeight;
       const padBelowCol = (contRect.bottom - col.getBoundingClientRect().bottom) / ratio;
-      const top = Math.max(0, 64 + col.offsetHeight + padBelowCol - scroller.clientHeight);
+      const top = Math.max(head.offsetTop, 64 + col.offsetHeight + padBelowCol - scroller.clientHeight);
       return { top, height: head.offsetHeight };
     });
   };
@@ -4416,6 +4452,11 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
   );
   const addonItems = addonCats.flatMap((c) => c.rows.map((row) => ({ cat: c.category, row })));
   const hasCustomization = upgradeGroups.length > 0 || addonItems.length > 0;
+  // Drawing regions to highlight for the hovered add-on card (empty for
+  // fee-based add-ons — they have no geometry on the plan).
+  const hoverAddonIds = hoverAddonKey
+    ? (addonItems.find(({ cat, row }) => rowKey(cat, row) === hoverAddonKey)?.row.instanceIds ?? [])
+    : [];
 
   // Button-driven scrolls commit their destination so the hand-off snap logic
   // doesn't hijack the glide while it crosses the boundary zone.
@@ -4456,7 +4497,7 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
             {/* viewBox cropped to the plan's extents so the drawing renders
                 larger with less side whitespace (taller card to match) */}
-            <FloorPlanSvg selected={null} onSelect={() => {}} viewBox="100 145 880 565" productOverrides={drawingOverrides} />
+            <FloorPlanSvg selected={null} onSelect={() => {}} viewBox="100 145 880 565" productOverrides={drawingOverrides} highlightIds={hoverAddonIds} />
           </div>
           {/* Zoom controls — revealed only on hover over the drawing */}
           <ZoomControlsPill
@@ -4651,7 +4692,9 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
                   bottom is fully in view the header is released (absolute) and
                   rides up with the content. The spacer keeps the flow layout
                   identical while the header is out of flow. */}
-              {headRelease && <div style={{ height: headRelease.height, margin: '-24px 0 -12px', flex: '0 0 auto' }} />}
+              {hasUpgradeGroups && headRelease && (
+                <div style={{ height: headRelease.height, margin: '-24px 0 -12px', flex: '0 0 auto' }} />
+              )}
               <div
                 ref={configHeadRef}
                 style={{
@@ -4660,10 +4703,14 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
                   gap: 12,
                   zIndex: 10,
                   background: '#fff',
-                  padding: '24px 0 12px',
-                  ...(headRelease
-                    ? { position: 'absolute', top: headRelease.top, left: 12, right: 12 }
-                    : { position: 'sticky', top: 64, margin: '-24px 0 -12px' }),
+                  ...(hasUpgradeGroups
+                    ? {
+                        padding: '24px 0 12px',
+                        ...(headRelease
+                          ? { position: 'absolute', top: headRelease.top, left: 12, right: 12 }
+                          : { position: 'sticky', top: 64, margin: '-24px 0 -12px' }),
+                      }
+                    : null),
                 }}
               >
                 <p style={{ fontSize: 16, fontWeight: 600 }}>Customize Your Project</p>
@@ -4715,18 +4762,22 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
                     {addonItems.map(({ cat, row }) => {
                       const k = rowKey(cat, row);
                       const checked = !!hoAddon[k];
+                      const hovered = hoverAddonKey === k;
                       return (
                         <div
                           key={k}
                           onClick={() => setDetail({ section: 'addon', cat, key: k })}
+                          onMouseEnter={() => setHoverAddonKey(k)}
+                          onMouseLeave={() => setHoverAddonKey((prev) => (prev === k ? null : prev))}
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
                             padding: '8px 8px 12px',
                             borderRadius: 8,
-                            border: `1px solid ${checked ? PROP_INK : '#bfbfbf'}`,
+                            border: `1px solid ${checked || hovered ? PROP_INK : '#bfbfbf'}`,
                             cursor: 'pointer',
-                            background: '#fff',
+                            background: hovered ? '#fafafa' : '#fff',
+                            transition: 'border-color 120ms ease, background 120ms ease',
                           }}
                         >
                           <div style={{ display: 'flex', gap: 12, paddingRight: 8 }}>
