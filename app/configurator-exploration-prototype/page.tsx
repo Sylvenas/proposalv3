@@ -625,15 +625,16 @@ export default function ConfiguratorPrototypePage() {
                     [feeId]: (prev[feeId] ?? []).filter((x) => x !== libId),
                   }))
                 }
-                onAddOtherItem={(libId, qty) => {
+                onAddOtherItem={(libId, qty, asAddon) => {
                   const it = findLibraryItem(libId);
                   if (!it) return;
                   const { label, perUnit } = unitOf(it);
                   customIdRef.current += 1;
+                  const id = `custom-${customIdRef.current}`;
                   setCustomItems((prev) => [
                     ...prev,
                     {
-                      id: `custom-${customIdRef.current}`,
+                      id,
                       libId,
                       name: it.name,
                       qty,
@@ -644,6 +645,8 @@ export default function ConfiguratorPrototypePage() {
                       thumb: 'none',
                     },
                   ]);
+                  // Items added via "Add Addons" land directly in Optional Add-ons.
+                  if (asAddon) setFeeAddon((prev) => ({ ...prev, [id]: true }));
                 }}
                 onClose={() => setReportOpen(false)}
               />
@@ -2074,6 +2077,7 @@ function ProductItemModal({
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradePlace, setUpgradePlace] = useState<React.CSSProperties>({ top: -104, right: 0 });
   const [addProductOpen, setAddProductOpen] = useState(false);
+  const [addAddonsOpen, setAddAddonsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -2461,13 +2465,17 @@ function ProductItemModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
+            gap: 12,
             padding: '0 24px',
           }}
         >
           <div style={{ position: 'relative' }}>
             <button
               type="button"
-              onClick={() => setAddProductOpen((o) => !o)}
+              onClick={() => {
+                setAddAddonsOpen(false);
+                setAddProductOpen((o) => !o);
+              }}
               style={{
                 background: '#fff',
                 color: BLUE,
@@ -2500,6 +2508,54 @@ function ProductItemModal({
                     if (cat === SOUNDPROOFING_CATEGORY || (isEmpty && cat === 'Flooring')) {
                       onAddProduct(libId);
                       setAddProductOpen(false);
+                    }
+                  }}
+                  placement={{ bottom: 'calc(100% + 10px)', right: 0 }}
+                />
+              </>
+            )}
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setAddProductOpen(false);
+                setAddAddonsOpen((o) => !o);
+              }}
+              style={{
+                background: '#fff',
+                color: BLUE,
+                border: `1.5px solid ${BLUE}`,
+                borderRadius: 10,
+                padding: '8px 20px',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              + Add Addons
+            </button>
+
+            {addAddonsOpen && (
+              <>
+                <div
+                  onClick={() => setAddAddonsOpen(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 29 }}
+                />
+                <ProductPickerPopover
+                  title="Add Addons"
+                  // Same candidate rules as Add Product, but the picked product
+                  // lands directly in Optional Add-ons (no separate "Set as
+                  // Add-on" step needed).
+                  isDisabled={() => false}
+                  tagFor={() => ''}
+                  onPick={(libId) => {
+                    const cat = findLibraryEntry(libId)?.category;
+                    if (cat === SOUNDPROOFING_CATEGORY || (isEmpty && cat === 'Flooring')) {
+                      onAddProduct(libId);
+                      if (!addonIds.includes(libId)) onToggleAddon(libId);
+                      setAddAddonsOpen(false);
                     }
                   }}
                   placement={{ bottom: 'calc(100% + 10px)', right: 0 }}
@@ -2984,7 +3040,7 @@ function ReportSheet({
   onAddFeeUpgrade: (feeId: string, libId: string) => void;
   onSwapFeeUpgrade: (feeId: string, oldId: string, newId: string) => void;
   onRemoveFeeUpgrade: (feeId: string, libId: string) => void;
-  onAddOtherItem: (libId: string, qty: number) => void;
+  onAddOtherItem: (libId: string, qty: number, asAddon?: boolean) => void;
   onClose: () => void;
 }) {
   // The Total is a range once optional items exist: from the minimum (no add-ons,
@@ -3001,11 +3057,15 @@ function ReportSheet({
   const [addStep, setAddStep] = useState<'closed' | 'pick' | 'qty'>('closed');
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  // Whether the active add flow came from "Add Addons" (the picked item then
+  // lands directly in Optional Add-ons) rather than "Add Other Items".
+  const [addAsAddon, setAddAsAddon] = useState(false);
   const pickedItem = pickedId ? findLibraryItem(pickedId) : null;
   const closeAdd = () => {
     setAddStep('closed');
     setPickedId(null);
     setQty(1);
+    setAddAsAddon(false);
   };
 
   // Split the aggregated rows into the Included / Optional Add-ons sections,
@@ -3224,16 +3284,33 @@ function ReportSheet({
                 borderBottom: '1px solid #dcdce0',
               }}
             >
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 28 }}>
                 <button
                   type="button"
-                  onClick={() => setAddStep('pick')}
+                  onClick={() => {
+                    setAddAsAddon(false);
+                    setAddStep('pick');
+                  }}
                   style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', color: BLUE, fontSize: 17, cursor: 'pointer', padding: 0 }}
                 >
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round">
                     <path d="M9 3v12M3 9h12" />
                   </svg>
                   Add Other Items
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddAsAddon(true);
+                    setAddStep('pick');
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', color: BLUE, fontSize: 17, cursor: 'pointer', padding: 0 }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M9 3v12M3 9h12" />
+                  </svg>
+                  Add Addons
                 </button>
 
                 {addStep !== 'closed' && (
@@ -3261,7 +3338,7 @@ function ReportSheet({
                         onChangeQty={setQty}
                         onCancel={closeAdd}
                         onAdd={() => {
-                          onAddOtherItem(pickedItem.id, qty);
+                          onAddOtherItem(pickedItem.id, qty, addAsAddon);
                           closeAdd();
                         }}
                         placement={{ top: 'calc(100% + 12px)', left: 0 }}
