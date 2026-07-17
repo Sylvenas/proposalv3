@@ -626,8 +626,9 @@ export default function ConfiguratorPrototypePage() {
                   }))
                 }
                 onAddOtherItem={(libId, qty, asAddon) => {
-                  const it = findLibraryItem(libId);
-                  if (!it) return;
+                  const entry = findLibraryEntry(libId);
+                  if (!entry) return;
+                  const it = entry.item;
                   const { label, perUnit } = unitOf(it);
                   customIdRef.current += 1;
                   const id = `custom-${customIdRef.current}`;
@@ -640,9 +641,10 @@ export default function ConfiguratorPrototypePage() {
                       qty,
                       unitPrice: perUnit,
                       unitLabel: label,
-                      // No legend swatch — every Services & Fees line item uses the
-                      // crossed-out placeholder, matching the preset fee rows.
-                      thumb: 'none',
+                      // Services & Fees items have no CAD legend (crossed-out
+                      // placeholder, matching the preset fee rows); products keep
+                      // the legend swatch they carry in the library.
+                      thumb: entry.category === OTHER_ITEMS_CATEGORY ? 'none' : (it.color ?? thumbBackground(it.name)),
                     },
                   ]);
                   // Items added via "Add Addons" land directly in Optional Add-ons.
@@ -3884,7 +3886,7 @@ function HoUpgradeBody({ content }: { content: Extract<ProductDetailContent, { k
                   </div>
                   {committed && (
                     <div className="absolute" style={{ left: 5, bottom: 5 }}>
-                      <SheetCheckbox checked={true} />
+                      <HoSwatchCheckBadge />
                     </div>
                   )}
                 </button>
@@ -4103,6 +4105,17 @@ function HoChevronsDown({ size = 16, color = '#262626' }: { size?: number; color
   );
 }
 
+/** Circular "selected" badge overlaid on an option swatch — indicator only
+ *  (not interactive), so it reads as a status mark rather than a checkbox. */
+function HoSwatchCheckBadge() {
+  return (
+    <div style={{ position: 'relative', width: 20, height: 20, flex: '0 0 auto' }}>
+      <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#262626' }} />
+      <CheckMark size={16} color="#ffffff" style={{ position: 'absolute', inset: 2 }} />
+    </div>
+  );
+}
+
 /** 64px option swatch — the selected option carries a 1.5px black border. */
 function HoOptionSwatch({ title, selected, onClick }: { title: string; selected: boolean; onClick: () => void }) {
   const [err, setErr] = useState(false);
@@ -4136,7 +4149,7 @@ function HoOptionSwatch({ title, selected, onClick }: { title: string; selected:
       {/* same selected badge as the detail sheet's option swatches */}
       {selected && (
         <div style={{ position: 'absolute', left: 5, bottom: 5 }}>
-          <SheetCheckbox checked={true} />
+          <HoSwatchCheckBadge />
         </div>
       )}
     </button>
@@ -4663,7 +4676,7 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
         {/* scrolling page body — the header lives inside the scroll region so it
             scrolls off-screen with the content (maximizing information density
             once the reader starts scrolling), rather than staying pinned. */}
-        <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', background: '#fff' }}>
+        <div ref={scrollerRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', background: '#fff' }}>
           {pageHeader}
 
           <div style={{ maxWidth: 1160, margin: '0 auto', padding: '24px 24px 48px', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
@@ -4672,6 +4685,29 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
               {drawingCard}
               {includedCard}
               {addonsCard}
+              <button
+                type="button"
+                onClick={scrollToTop}
+                style={{
+                  marginTop: 16,
+                  height: 40,
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  borderRadius: 4,
+                  border: 'none',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontFamily: PROP_FONT,
+                  fontSize: 14,
+                  color: 'rgba(0,0,0,0.85)',
+                }}
+              >
+                <ArrowUpIcon size={16} color={PROP_INK} />
+                Back to Top
+              </button>
             </div>
 
             {/* ── Summary column (sticky) ── */}
@@ -4921,6 +4957,7 @@ function HomeownerProposal({ categories }: { categories: SummaryCategory[] }) {
                 type="button"
                 onClick={scrollToTop}
                 style={{
+                  marginTop: 16,
                   height: 40,
                   width: '100%',
                   display: 'flex',
